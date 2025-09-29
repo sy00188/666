@@ -1,0 +1,69 @@
+// 颜色变量
+$primary-color: #409eff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$color-danger: #f56c6c; // 添加别名以兼容组件中的引用
+$color-warning: #e6a23c; // 添加警告色变量以兼容组件中的引用
+$color-success: #67c23a; // 添加成功色变量以兼容组件中的引用
+$info-color: #909399;
+$color-info: #909399; // 添加信息色变量以兼容组件中的引用
+$color-primary: #409eff; // 添加主色变量以兼容组件中的引用
+
+// 文字颜色
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #c0c4cc;
+$text-tertiary: #c0c4cc; // 添加第三级文字颜色变量以兼容组件中的引用
+
+// 边框颜色
+$border-base: #dcdfe6;
+$border-light: #e4e7ed;
+$border-lighter: #ebeef5;
+$border-extra-light: #f2f6fc;
+$border-color: #dcdfe6; // 添加通用边框颜色变量以兼容组件中的引用
+
+// 背景颜色
+$bg-color: #ffffff;
+$bg-color-page: #f2f3f5;
+$bg-color-overlay: #ffffff;
+$bg-light: #f5f7fa; // 添加浅色背景变量以兼容组件中的引用
+$bg-white: #ffffff; // 添加白色背景变量以兼容组件中的引用
+$bg-color-light: #f5f7fa; // 添加浅色背景变量别名以兼容组件中的引用
+
+// 布局尺寸
+$header-height: 60px;
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 64px;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// 圆角
+$border-radius-base: 4px;
+$border-radius-small: 2px;
+$border-radius-large: 8px;
+$border-radius: 4px; // 添加通用圆角变量以兼容组件中的引用
+
+// 阴影
+$box-shadow-base: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+$box-shadow-dark: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.12);
+$box-shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+// 字体大小
+$font-size-extra-small: 12px;
+$font-size-small: 13px;
+$font-size-base: 14px;
+$font-size-medium: 16px;
+$font-size-large: 18px;
+$font-size-extra-large: 20px;
+
+// 层级
+$z-index-normal: 1;
+$z-index-top: 1000;
+$z-index-popper: 2000;

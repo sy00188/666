@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档案管理系统 - 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        dark: '#1a1a1a',
+                        'dark-secondary': '#2d2d2d'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center">
+    <!-- 背景图片 - 来源: Unsplash -->
+    <div class="absolute inset-0 z-0">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80" 
+             alt="办公室背景" class="w-full h-full object-cover opacity-20">
+        <!-- 图片来源: https://unsplash.com/photos/turned-on-monitoring-screen-0a1dd7228f2d -->
+    </div>
+    
+    <!-- 登录容器 -->
+    <div class="relative z-10 w-full max-w-md">
+        <!-- 登录卡片 -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border border-gray-300">
+            <!-- Logo 和标题 -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+                    <i class="fas fa-archive text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-black mb-2">档案管理系统</h1>
+                <p class="text-gray-600 text-sm">请登录您的账户</p>
+            </div>
+
+            <!-- 登录表单 -->
+            <form class="space-y-6" id="loginForm">
+                <!-- 用户名输入 -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user mr-2"></i>用户名
+                    </label>
+                    <input type="text" id="username" name="username" required
+                           class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                           placeholder="请输入用户名">
+                </div>
+
+                <!-- 密码输入 -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-2"></i>密码
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="password" name="password" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 pr-12"
+                               placeholder="请输入密码">
+                        <button type="button" id="togglePassword" 
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-black transition-colors">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 记住我和忘记密码 -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember"
+                               class="w-4 h-4 text-blue-600 bg-gray-50 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                        <span class="ml-2 text-sm text-gray-700">记住我</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-700 transition-colors">
+                        忘记密码？
+                    </a>
+                </div>
+
+                <!-- 登录按钮 -->
+                <button type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white">
+                    <i class="fas fa-sign-in-alt mr-2"></i>登录
+                </button>
+
+                <!-- 分割线 -->
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-600">或</span>
+                    </div>
+                </div>
+
+                <!-- 其他登录方式 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="wechatLogin"
+                            class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-200">
+                        <i class="fab fa-weixin mr-2"></i>微信登录
+                    </button>
+                    <button type="button" id="qqLogin"
+                            class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-all duration-200">
+                        <i class="fab fa-qq mr-2"></i>QQ登录
+                    </button>
+                </div>
+            </form>
+
+            <!-- 版权信息 -->
+            <div class="mt-8 text-center">
+                <p class="text-xs text-gray-500">
+                    © 2024 档案管理系统. 保留所有权利.
+                </p>
+            </div>
+        </div>
+
+        <!-- 系统状态指示器 -->
+        <div class="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-400">
+            <div class="flex items-center">
+                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                系统正常
+            </div>
+            <div class="flex items-center">
+                <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                数据库连接
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 密码显示/隐藏切换
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        });
+
+        // 表单提交处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                // 模拟登录过程
+                const button = this.querySelector('button[type="submit"]');
+                const originalText = button.innerHTML;
+                
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>登录中...';
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    alert('登录成功！（这是原型演示）');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        });
+
+        // 输入框焦点效果
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('ring-2', 'ring-blue-500');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('ring-2', 'ring-blue-500');
+            });
+        });
+
+        // 微信登录处理
+        document.getElementById('wechatLogin').addEventListener('click', function() {
+            const button = this;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>连接微信...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                alert('微信登录功能（这是原型演示）\n实际项目中会调用微信登录API');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 1500);
+        });
+
+        // QQ登录处理
+        document.getElementById('qqLogin').addEventListener('click', function() {
+            const button = this;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>连接QQ...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                alert('QQ登录功能（这是原型演示）\n实际项目中会调用QQ登录API');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

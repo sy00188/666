@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册 - 档案管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center p-4">
+    <!-- 背景装饰 -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 opacity-50"></div>
+    
+    <!-- 注册容器 -->
+    <div class="relative z-10 w-full max-w-2xl">
+        <!-- 注册卡片 -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border border-gray-300">
+            <!-- Logo 和标题 -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+                    <i class="fas fa-user-plus text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-black mb-2">用户注册</h1>
+                <p class="text-gray-600 text-sm">创建您的档案管理系统账户</p>
+            </div>
+
+            <!-- 注册表单 -->
+            <form class="space-y-6" id="registerForm">
+                <!-- 第一行：用户名和邮箱 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 用户名 -->
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2"></i>用户名 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="username" name="username" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                               placeholder="请输入用户名">
+                        <div id="usernameError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+
+                    <!-- 邮箱 -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2"></i>邮箱地址 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                               placeholder="请输入邮箱地址">
+                        <div id="emailError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 第二行：手机号和真实姓名 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 手机号 -->
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2"></i>手机号码 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" id="phone" name="phone" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                               placeholder="请输入手机号码">
+                        <div id="phoneError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+
+                    <!-- 真实姓名 -->
+                    <div>
+                        <label for="realName" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card mr-2"></i>真实姓名 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="realName" name="realName" required
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                               placeholder="请输入真实姓名">
+                        <div id="realNameError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 部门选择 -->
+                <div>
+                    <label for="department" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-building mr-2"></i>所属部门 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="department" name="department" required
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                        <option value="">请选择部门</option>
+                        <option value="admin">行政部</option>
+                        <option value="hr">人力资源部</option>
+                        <option value="finance">财务部</option>
+                        <option value="it">信息技术部</option>
+                        <option value="marketing">市场部</option>
+                        <option value="sales">销售部</option>
+                        <option value="operations">运营部</option>
+                    </select>
+                    <div id="departmentError" class="text-red-500 text-xs mt-1 hidden"></div>
+                </div>
+
+                <!-- 第三行：密码和确认密码 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 密码 -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2"></i>密码 <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                   class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 pr-12"
+                                   placeholder="请输入密码">
+                            <button type="button" id="togglePassword" 
+                                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-black transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="passwordStrength" class="mt-2">
+                            <div class="text-xs text-gray-600 mb-1">密码强度：</div>
+                            <div class="flex space-x-1">
+                                <div class="h-2 w-1/4 bg-gray-300 rounded"></div>
+                                <div class="h-2 w-1/4 bg-gray-300 rounded"></div>
+                                <div class="h-2 w-1/4 bg-gray-300 rounded"></div>
+                                <div class="h-2 w-1/4 bg-gray-300 rounded"></div>
+                            </div>
+                        </div>
+                        <div id="passwordError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+
+                    <!-- 确认密码 -->
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2"></i>确认密码 <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="confirmPassword" name="confirmPassword" required
+                                   class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 pr-12"
+                                   placeholder="请再次输入密码">
+                            <button type="button" id="toggleConfirmPassword" 
+                                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-black transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="confirmPasswordError" class="text-red-500 text-xs mt-1 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 用户协议 -->
+                <div class="flex items-start">
+                    <input type="checkbox" id="agreement" name="agreement" required
+                           class="w-4 h-4 text-blue-600 bg-gray-50 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1">
+                    <label for="agreement" class="ml-2 text-sm text-gray-700">
+                        我已阅读并同意 
+                        <a href="#" class="text-blue-600 hover:text-blue-700 underline">用户协议</a> 
+                        和 
+                        <a href="#" class="text-blue-600 hover:text-blue-700 underline">隐私政策</a>
+                        <span class="text-red-500">*</span>
+                    </label>
+                </div>
+
+                <!-- 注册按钮 -->
+                <button type="submit" id="registerBtn"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-user-plus mr-2"></i>注册账户
+                </button>
+
+                <!-- 登录链接 -->
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">
+                        已有账户？ 
+                        <a href="login.html" class="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                            立即登录
+                        </a>
+                    </p>
+                </div>
+            </form>
+
+            <!-- 版权信息 -->
+            <div class="mt-8 text-center">
+                <p class="text-xs text-gray-500">
+                    © 2024 档案管理系统. 保留所有权利.
+                </p>
+            </div>
+        </div>
+
+        <!-- 系统状态指示器 -->
+        <div class="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-400">
+            <div class="flex items-center">
+                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                系统正常
+            </div>
+            <div class="flex items-center">
+                <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                数据库连接
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 密码显示/隐藏切换
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        });
+
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('confirmPassword');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        });
+
+        // 密码强度检查
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const lengthCheck = document.getElementById('lengthCheck');
+            const numberCheck = document.getElementById('numberCheck');
+            const letterCheck = document.getElementById('letterCheck');
+
+            // 长度检查
+            if (password.length >= 8) {
+                lengthCheck.className = 'flex items-center text-green-500';
+                lengthCheck.innerHTML = '<i class="fas fa-check mr-1"></i>至少8位字符';
+            } else {
+                lengthCheck.className = 'flex items-center text-gray-500';
+                lengthCheck.innerHTML = '<i class="fas fa-times mr-1"></i>至少8位字符';
+            }
+
+            // 数字检查
+            if (/\d/.test(password)) {
+                numberCheck.className = 'flex items-center text-green-500';
+                numberCheck.innerHTML = '<i class="fas fa-check mr-1"></i>包含数字';
+            } else {
+                numberCheck.className = 'flex items-center text-gray-500';
+                numberCheck.innerHTML = '<i class="fas fa-times mr-1"></i>包含数字';
+            }
+
+            // 字母检查
+            if (/[a-zA-Z]/.test(password)) {
+                letterCheck.className = 'flex items-center text-green-500';
+                letterCheck.innerHTML = '<i class="fas fa-check mr-1"></i>包含字母';
+            } else {
+                letterCheck.className = 'flex items-center text-gray-500';
+                letterCheck.innerHTML = '<i class="fas fa-times mr-1"></i>包含字母';
+            }
+
+            checkPasswordMatch();
+        });
+
+        // 密码匹配检查
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const matchElement = document.getElementById('passwordMatch');
+
+            if (confirmPassword === '') {
+                matchElement.textContent = '';
+                return;
+            }
+
+            if (password === confirmPassword) {
+                matchElement.textContent = '✓ 密码匹配';
+                matchElement.className = 'text-xs text-green-500 mt-1';
+            } else {
+                matchElement.textContent = '✗ 密码不匹配';
+                matchElement.className = 'text-xs text-red-500 mt-1';
+            }
+        }
+
+        document.getElementById('confirmPassword').addEventListener('input', checkPasswordMatch);
+
+        // 表单验证和提交
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+            const agreement = formData.get('agreement');
+
+            // 验证密码强度
+            if (password.length < 8 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+                alert('密码不符合要求，请检查密码强度');
+                return;
+            }
+
+            // 验证密码匹配
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+
+            // 验证用户协议
+            if (!agreement) {
+                alert('请先同意用户协议和隐私政策');
+                return;
+            }
+
+            // 模拟注册过程
+            const button = document.getElementById('registerBtn');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>注册中...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                alert('注册成功！（这是原型演示）\n即将跳转到登录页面...');
+                button.innerHTML = originalText;
+                button.disabled = false;
+                // 实际项目中这里会跳转到登录页面
+                // window.location.href = 'login.html';
+            }, 2000);
+        });
+
+        // 输入框焦点效果
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('ring-2', 'ring-blue-500');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('ring-2', 'ring-blue-500');
+            });
+        });
+
+        // 手机号格式化
+        document.getElementById('phone').addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 11) {
+                value = value.slice(0, 11);
+            }
+            this.value = value;
+        });
+    </script>
+</body>
+</html>

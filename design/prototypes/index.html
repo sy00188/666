@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档案管理系统 - 高保真原型展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        dark: '#1a1a1a',
+                        'dark-secondary': '#2d2d2d'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .prototype-frame {
+            width: 100%;
+            height: 900px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: #1f2937;
+        }
+        
+        .browser-mockup {
+            background: #374151;
+            border-radius: 12px 12px 0 0;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .browser-dots {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .browser-dot.red { background: #ef4444; }
+        .browser-dot.yellow { background: #f59e0b; }
+        .browser-dot.green { background: #10b981; }
+        
+        .browser-address {
+            flex: 1;
+            background: #1f2937;
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin-left: 16px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+        
+        .prototype-container {
+            background: #374151;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 900px;
+            background: #1f2937;
+            color: #6b7280;
+            font-size: 18px;
+        }
+        
+        .nav-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: #111827;
+            border-right: 1px solid #374151;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        @media (max-width: 1024px) {
+            .nav-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .nav-sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- 侧边导航栏 -->
+    <div class="nav-sidebar" id="sidebar">
+        <!-- Logo 区域 -->
+        <div class="p-6 border-b border-gray-700">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-archive text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        档案管理系统
+                    </h1>
+                    <p class="text-sm text-gray-400">高保真原型展示</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 原型导航 -->
+        <nav class="p-4">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">界面原型</h3>
+            <ul class="space-y-2">
+                <li>
+                    <a href="#login" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-sign-in-alt text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">登录页面</span>
+                            <p class="text-xs text-gray-500">用户认证入口</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#register" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-user-plus text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">注册页面</span>
+                            <p class="text-xs text-gray-500">新用户注册</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#dashboard" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-tachometer-alt text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">主仪表板</span>
+                            <p class="text-xs text-gray-500">系统概览</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#archive" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-folder-open text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">档案管理</span>
+                            <p class="text-xs text-gray-500">档案CRUD操作</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#borrow" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">借阅管理</span>
+                            <p class="text-xs text-gray-500">借阅流程</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#users" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-users text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">用户管理</span>
+                            <p class="text-xs text-gray-500">RBAC权限</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#reports" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-chart-bar text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">统计报表</span>
+                            <p class="text-xs text-gray-500">数据分析</p>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings" class="nav-link flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200 group">
+                        <div class="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-cog text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">系统设置</span>
+                            <p class="text-xs text-gray-500">配置管理</p>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 技术栈信息 -->
+        <div class="p-4 border-t border-gray-700 mt-auto">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">技术栈</h3>
+            <div class="space-y-2">
+                <div class="flex items-center text-sm text-gray-300">
+                    <i class="fab fa-html5 text-orange-500 mr-2"></i>
+                    <span>HTML5</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-300">
+                    <i class="fab fa-css3-alt text-blue-500 mr-2"></i>
+                    <span>Tailwind CSS</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-300">
+                    <i class="fas fa-icons text-yellow-500 mr-2"></i>
+                    <span>FontAwesome</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-300">
+                    <i class="fas fa-image text-green-500 mr-2"></i>
+                    <span>Unsplash Images</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="p-4 border-t border-gray-700">
+            <div class="text-center">
+                <p class="text-xs text-gray-500">原型版本 v1.0.0</p>
+                <p class="text-xs text-gray-500">更新时间: 2024-01-15</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 顶部工具栏 -->
+        <div class="bg-gray-800 border-b border-gray-700 px-6 py-4 sticky top-0 z-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <!-- 移动端菜单按钮 -->
+                    <button id="menuToggle" class="lg:hidden text-gray-400 hover:text-white mr-4">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            档案管理系统原型
+                        </h1>
+                        <p class="text-sm text-gray-400">基于系统架构、业务流程和开发流程文档设计的高保真交互原型</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- 全屏按钮 -->
+                    <button id="fullscreenBtn" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors" title="全屏查看">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    
+                    <!-- 刷新按钮 -->
+                    <button id="refreshBtn" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors" title="刷新页面">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    
+                    <!-- 主题切换 -->
+                    <button id="themeToggle" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors" title="切换主题">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 原型展示区域 -->
+        <div class="p-6">
+            <!-- 登录页面 -->
+            <section id="login" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-sign-in-alt text-white text-sm"></i>
+                        </div>
+                        登录页面
+                    </h2>
+                    <p class="text-gray-400">用户认证和权限验证入口，支持用户名/邮箱登录，包含记住密码和忘记密码功能</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/login</div>
+                    </div>
+                    <iframe src="login.html" class="prototype-frame" loading="lazy"></iframe>
+                </div>
+            </section>
+
+            <!-- 注册页面 -->
+            <section id="register" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-user-plus text-white text-sm"></i>
+                        </div>
+                        注册页面
+                    </h2>
+                    <p class="text-gray-400">新用户注册界面，包含完整的用户信息收集和验证功能，支持社交登录</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/register</div>
+                    </div>
+                    <iframe src="register.html" class="prototype-frame" loading="lazy"></iframe>
+                </div>
+            </section>
+
+            <!-- 主仪表板 -->
+            <section id="dashboard" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-tachometer-alt text-white text-sm"></i>
+                        </div>
+                        主仪表板
+                    </h2>
+                    <p class="text-gray-400">系统概览和快捷操作中心，展示关键统计数据、最近活动和待办事项</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/dashboard</div>
+                    </div>
+                    <iframe src="dashboard.html" class="prototype-frame" loading="lazy"></iframe>
+                </div>
+            </section>
+
+            <!-- 档案管理 -->
+            <section id="archive" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-folder-open text-white text-sm"></i>
+                        </div>
+                        档案管理
+                    </h2>
+                    <p class="text-gray-400">档案的完整CRUD操作界面，包含列表查看、搜索筛选、新建档案和详情管理</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/archives</div>
+                    </div>
+                    <iframe src="archive.html" class="prototype-frame" loading="lazy"></iframe>
+                </div>
+            </section>
+
+            <!-- 借阅管理 -->
+            <section id="borrow" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-book text-white text-sm"></i>
+                        </div>
+                        借阅管理
+                    </h2>
+                    <p class="text-gray-400">档案借阅申请、审批流程和归还管理，支持借阅记录追踪和到期提醒</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/borrow</div>
+                    </div>
+                    <div class="loading-placeholder">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                            <p>借阅管理页面开发中...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 用户管理 -->
+            <section id="users" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-users text-white text-sm"></i>
+                        </div>
+                        用户管理
+                    </h2>
+                    <p class="text-gray-400">用户列表、角色权限和RBAC控制界面，支持用户创建、编辑和权限分配</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/users</div>
+                    </div>
+                    <div class="loading-placeholder">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                            <p>用户管理页面开发中...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 统计报表 -->
+            <section id="reports" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-chart-bar text-white text-sm"></i>
+                        </div>
+                        统计报表
+                    </h2>
+                    <p class="text-gray-400">数据分析图表和统计报表，提供档案使用情况、借阅趋势等关键指标</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/reports</div>
+                    </div>
+                    <div class="loading-placeholder">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                            <p>统计报表页面开发中...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 系统设置 -->
+            <section id="settings" class="prototype-section mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                        <div class="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-cog text-white text-sm"></i>
+                        </div>
+                        系统设置
+                    </h2>
+                    <p class="text-gray-400">系统配置和分类管理，包含档案分类设置、系统参数配置等功能</p>
+                </div>
+                <div class="prototype-container">
+                    <div class="browser-mockup">
+                        <div class="browser-dots">
+                            <div class="browser-dot red"></div>
+                            <div class="browser-dot yellow"></div>
+                            <div class="browser-dot green"></div>
+                        </div>
+                        <div class="browser-address">https://archive-system.com/settings</div>
+                    </div>
+                    <div class="loading-placeholder">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                            <p>系统设置页面开发中...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="bg-gray-800 border-t border-gray-700 px-6 py-8">
+            <div class="text-center">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">档案管理系统高保真原型</h3>
+                    <p class="text-gray-400 max-w-2xl mx-auto">
+                        基于系统架构设计、业务流程详细设计和项目结构与开发流程文档，
+                        使用 HTML5 + Tailwind CSS + FontAwesome 技术栈实现的完整交互原型
+                    </p>
+                </div>
+                
+                <div class="flex items-center justify-center space-x-6 text-sm text-gray-500">
+                    <span>© 2024 档案管理系统</span>
+                    <span>•</span>
+                    <span>原型版本 v1.0.0</span>
+                    <span>•</span>
+                    <span>设计规范: Web端暗色主题</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // 侧边栏导航
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.getAttribute('href');
+                const element = document.querySelector(target);
+                if (element) {
+                    element.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // 更新活跃状态
+                    document.querySelectorAll('.nav-link').forEach(l => {
+                        l.classList.remove('bg-blue-900/30', 'text-blue-400');
+                        l.classList.add('text-gray-300');
+                    });
+                    this.classList.remove('text-gray-300');
+                    this.classList.add('bg-blue-900/30', 'text-blue-400');
+                }
+            });
+        });
+
+        // 移动端菜单切换
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+        });
+
+        // 点击主内容区域关闭侧边栏（移动端）
+        document.querySelector('.main-content').addEventListener('click', function() {
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // 全屏功能
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                this.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+                document.exitFullscreen();
+                this.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+        });
+
+        // 刷新功能
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        });
+
+        // 主题切换（预留功能）
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', function() {
+            // 这里可以添加主题切换逻辑
+            console.log('主题切换功能待实现');
+        });
+
+        // 滚动监听，更新导航状态
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('.prototype-section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('bg-blue-900/30', 'text-blue-400');
+                link.classList.add('text-gray-300');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.remove('text-gray-300');
+                    link.classList.add('bg-blue-900/30', 'text-blue-400');
+                }
+            });
+        });
+
+        // 响应式处理
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认激活第一个导航项
+            const firstNavLink = document.querySelector('.nav-link');
+            if (firstNavLink) {
+                firstNavLink.classList.add('bg-blue-900/30', 'text-blue-400');
+                firstNavLink.classList.remove('text-gray-300');
+            }
+        });
+    </script>
+</body>
+</html>

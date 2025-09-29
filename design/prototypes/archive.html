@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档案管理系统 - 档案管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        dark: '#1a1a1a',
+                        'dark-secondary': '#2d2d2d'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-black">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-100 border-r border-gray-300 flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-300">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-archive text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-black">档案管理</h1>
+                        <p class="text-xs text-gray-600">v2.0.1</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            <span>仪表板</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-blue-600 bg-blue-100 rounded-lg">
+                            <i class="fas fa-folder-open mr-3"></i>
+                            <span>档案管理</span>
+                            <span class="ml-auto bg-red-500 text-xs px-2 py-1 rounded-full text-white">5</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-book mr-3"></i>
+                            <span>借阅管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-users mr-3"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-chart-bar mr-3"></i>
+                            <span>统计报表</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-cog mr-3"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 档案分类 -->
+            <div class="p-4 border-t border-gray-300">
+                <h3 class="text-sm font-medium text-gray-600 mb-3">档案分类</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-blue-600 bg-blue-100 rounded">
+                            <span>全部档案</span>
+                            <span class="text-xs">12,847</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-200 rounded">
+                            <span>财务档案</span>
+                            <span class="text-xs">3,245</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded">
+                            <span>人事档案</span>
+                            <span class="text-xs">2,156</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded">
+                            <span>合同档案</span>
+                            <span class="text-xs">1,892</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded">
+                            <span>项目档案</span>
+                            <span class="text-xs">5,554</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 用户信息 -->
+            <div class="p-4 border-t border-gray-700">
+                <div class="flex items-center">
+                    <!-- 用户头像 - 来源: Unsplash -->
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                         alt="用户头像" class="w-10 h-10 rounded-full mr-3">
+                    <!-- 图片来源: https://unsplash.com/photos/man-wearing-white-dress-shirt-and-black-blazer-iFgRcqHznqg -->
+                    <div class="flex-1">
+                        <p class="text-sm font-medium">张管理员</p>
+                        <p class="text-xs text-gray-400">系统管理员</p>
+                    </div>
+                    <button class="text-gray-400 hover:text-white">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 顶部导航栏 -->
+            <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold">档案管理</h2>
+                        <p class="text-sm text-gray-400">管理和维护所有档案信息</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- 新建档案按钮 -->
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                            <i class="fas fa-plus mr-2"></i>
+                            新建档案
+                        </button>
+                        
+                        <!-- 批量操作 -->
+                        <div class="relative">
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                                <i class="fas fa-layer-group mr-2"></i>
+                                批量操作
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 导入导出 -->
+                        <div class="relative">
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                                <i class="fas fa-exchange-alt mr-2"></i>
+                                导入/导出
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 搜索和筛选栏 -->
+            <div class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+                <div class="flex items-center space-x-4">
+                    <!-- 搜索框 -->
+                    <div class="flex-1 relative">
+                        <input type="text" placeholder="搜索档案标题、编号、创建人..." 
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    
+                    <!-- 筛选器 -->
+                    <select class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm">
+                        <option>全部状态</option>
+                        <option>正常</option>
+                        <option>借出</option>
+                        <option>归档</option>
+                        <option>待审核</option>
+                    </select>
+                    
+                    <select class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm">
+                        <option>全部分类</option>
+                        <option>财务档案</option>
+                        <option>人事档案</option>
+                        <option>合同档案</option>
+                        <option>项目档案</option>
+                    </select>
+                    
+                    <select class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm">
+                        <option>创建时间</option>
+                        <option>最近7天</option>
+                        <option>最近30天</option>
+                        <option>最近90天</option>
+                        <option>自定义时间</option>
+                    </select>
+                    
+                    <!-- 高级搜索 -->
+                    <button class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                    
+                    <!-- 视图切换 -->
+                    <div class="flex bg-gray-700 rounded-lg p-1">
+                        <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button class="px-3 py-1 text-gray-400 hover:text-white rounded text-sm">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要内容 -->
+            <main class="flex-1 overflow-y-auto">
+                <!-- 档案列表 -->
+                <div class="p-6">
+                    <!-- 列表头部信息 -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-400">共找到 12,847 个档案</span>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="selectAll" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                                <label for="selectAll" class="text-sm text-gray-400">全选</label>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-400">排序:</span>
+                            <select class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm">
+                                <option>创建时间 ↓</option>
+                                <option>创建时间 ↑</option>
+                                <option>标题 A-Z</option>
+                                <option>标题 Z-A</option>
+                                <option>大小 ↓</option>
+                                <option>大小 ↑</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 档案表格 -->
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded">
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">档案信息</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">分类</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">状态</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">创建人</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">创建时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-700">
+                                <!-- 档案行 1 -->
+                                <tr class="hover:bg-gray-700/50">
+                                    <td class="px-6 py-4">
+                                        <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-file-alt text-white"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-white">2024年度财务预算报告</div>
+                                                <div class="text-sm text-gray-400">编号: ARC-2024-001</div>
+                                                <div class="text-xs text-gray-500">大小: 2.5MB | 页数: 45</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-300">
+                                            财务档案
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-300">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            正常
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <!-- 创建人头像 - 来源: Unsplash -->
+                                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b5bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1287&q=80" 
+                                                 alt="创建人" class="w-8 h-8 rounded-full mr-2">
+                                            <!-- 图片来源: https://unsplash.com/photos/woman-wearing-yellow-long-sleeved-dress-under-white-clouds-and-blue-sky-during-daytime-494790108755 -->
+                                            <div>
+                                                <div class="text-sm text-white">李财务</div>
+                                                <div class="text-xs text-gray-400">财务部</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-300">
+                                        2024-01-15<br>
+                                        <span class="text-xs text-gray-400">09:30</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-2">
+                                            <button class="text-blue-400 hover:text-blue-300" title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="text-green-400 hover:text-green-300" title="下载">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="text-yellow-400 hover:text-yellow-300" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-purple-400 hover:text-purple-300" title="借阅">
+                                                <i class="fas fa-share"></i>
+                                            </button>
+                                            <div class="relative">
+                                                <button class="text-gray-400 hover:text-white" title="更多操作">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- 档案行 2 -->
+                                <tr class="hover:bg-gray-700/50">
+                                    <td class="px-6 py-4">
+                                        <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-user-tie text-white"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-white">员工入职档案 - 张三</div>
+                                                <div class="text-sm text-gray-400">编号: HR-2024-0156</div>
+                                                <div class="text-xs text-gray-500">大小: 1.2MB | 页数: 12</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-300">
+                                            人事档案
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900 text-yellow-300">
+                                            <i class="fas fa-share mr-1"></i>
+                                            借出中
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <!-- 创建人头像 - 来源: Unsplash -->
+                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80" 
+                                                 alt="创建人" class="w-8 h-8 rounded-full mr-2">
+                                            <!-- 图片来源: https://unsplash.com/photos/turned-on-monitoring-screen-0a1dd7228f2d -->
+                                            <div>
+                                                <div class="text-sm text-white">王人事</div>
+                                                <div class="text-xs text-gray-400">人事部</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-300">
+                                        2024-01-14<br>
+                                        <span class="text-xs text-gray-400">14:20</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-2">
+                                            <button class="text-blue-400 hover:text-blue-300" title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="text-green-400 hover:text-green-300" title="下载">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="text-yellow-400 hover:text-yellow-300" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-400 hover:text-red-300" title="催还">
+                                                <i class="fas fa-bell"></i>
+                                            </button>
+                                            <div class="relative">
+                                                <button class="text-gray-400 hover:text-white" title="更多操作">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- 档案行 3 -->
+                                <tr class="hover:bg-gray-700/50">
+                                    <td class="px-6 py-4">
+                                        <input type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-handshake text-white"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-white">供应商合作协议 - ABC公司</div>
+                                                <div class="text-sm text-gray-400">编号: CON-2024-0089</div>
+                                                <div class="text-xs text-gray-500">大小: 3.8MB | 页数: 28</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-900 text-orange-300">
+                                            合同档案
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            待审核
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <!-- 创建人头像 - 来源: Unsplash -->
+                                            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1287&q=80" 
+                                                 alt="创建人" class="w-8 h-8 rounded-full mr-2">
+                                            <!-- 图片来源: https://unsplash.com/photos/man-in-white-button-up-shirt-smiling-560250097-0b93528c311a -->
+                                            <div>
+                                                <div class="text-sm text-white">陈采购</div>
+                                                <div class="text-xs text-gray-400">采购部</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-300">
+                                        2024-01-13<br>
+                                        <span class="text-xs text-gray-400">16:45</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-2">
+                                            <button class="text-blue-400 hover:text-blue-300" title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="text-green-400 hover:text-green-300" title="审核通过">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="text-red-400 hover:text-red-300" title="审核拒绝">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <button class="text-yellow-400 hover:text-yellow-300" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <div class="relative">
+                                                <button class="text-gray-400 hover:text-white" title="更多操作">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="flex items-center justify-between mt-6">
+                        <div class="text-sm text-gray-400">
+                            显示第 1-20 条，共 12,847 条记录
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="px-3 py-2 bg-gray-700 text-gray-400 rounded-lg cursor-not-allowed">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="px-3 py-2 bg-blue-600 text-white rounded-lg">1</button>
+                            <button class="px-3 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg">2</button>
+                            <button class="px-3 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg">3</button>
+                            <span class="px-3 py-2 text-gray-400">...</span>
+                            <button class="px-3 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg">642</button>
+                            <button class="px-3 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 新建档案模态框 -->
+    <div id="createModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold">新建档案</h3>
+                <button class="text-gray-400 hover:text-white" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">档案标题 *</label>
+                        <input type="text" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" placeholder="请输入档案标题">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">档案编号</label>
+                        <input type="text" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" placeholder="系统自动生成">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">档案分类 *</label>
+                        <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                            <option>请选择分类</option>
+                            <option>财务档案</option>
+                            <option>人事档案</option>
+                            <option>合同档案</option>
+                            <option>项目档案</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">保密级别</label>
+                        <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                            <option>公开</option>
+                            <option>内部</option>
+                            <option>机密</option>
+                            <option>绝密</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">档案描述</label>
+                    <textarea class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-24" placeholder="请输入档案描述"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">上传文件 *</label>
+                    <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-400">拖拽文件到此处或 <span class="text-blue-400 cursor-pointer">点击上传</span></p>
+                        <p class="text-xs text-gray-500 mt-1">支持 PDF, DOC, DOCX, XLS, XLSX 格式，最大 50MB</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-4 pt-4">
+                    <button type="button" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600" onclick="closeModal()">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        创建档案
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 模态框控制
+        function openModal() {
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('createModal').classList.add('flex');
+        }
+        
+        function closeModal() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('createModal').classList.remove('flex');
+        }
+        
+        // 新建档案按钮事件
+        document.querySelector('button:has(i.fa-plus)').addEventListener('click', openModal);
+        
+        // 全选功能
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+        
+        // 侧边栏交互
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('nav a').forEach(l => {
+                    l.classList.remove('text-blue-400', 'bg-blue-900/30');
+                    l.classList.add('text-gray-300');
+                });
+                this.classList.remove('text-gray-300');
+                this.classList.add('text-blue-400', 'bg-blue-900/30');
+            });
+        });
+        
+        // 档案分类切换
+        document.querySelectorAll('.p-4.border-t a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.p-4.border-t a').forEach(l => {
+                    l.classList.remove('text-blue-400', 'bg-blue-900/20');
+                    l.classList.add('text-gray-300');
+                });
+                this.classList.remove('text-gray-300');
+                this.classList.add('text-blue-400', 'bg-blue-900/20');
+            });
+        });
+    </script>
+</body>
+</html>

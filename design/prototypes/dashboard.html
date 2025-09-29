@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档案管理系统 - 仪表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        dark: '#1a1a1a',
+                        'dark-secondary': '#2d2d2d'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-black">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gray-100 border-r border-gray-300 flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-300">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-archive text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-black">档案管理</h1>
+                        <p class="text-xs text-gray-600">v2.0.1</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-blue-600 bg-blue-100 rounded-lg">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            <span>仪表板</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-folder-open mr-3"></i>
+                            <span>档案管理</span>
+                            <span class="ml-auto bg-red-500 text-xs px-2 py-1 rounded-full text-white">5</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-book mr-3"></i>
+                            <span>借阅管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-users mr-3"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-chart-bar mr-3"></i>
+                            <span>统计报表</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">
+                            <i class="fas fa-cog mr-3"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 用户信息 -->
+            <div class="p-4 border-t border-gray-300">
+                <div class="flex items-center">
+                    <!-- 用户头像 - 来源: Unsplash -->
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                         alt="用户头像" class="w-10 h-10 rounded-full mr-3">
+                    <!-- 图片来源: https://unsplash.com/photos/man-wearing-white-dress-shirt-and-black-blazer-iFgRcqHznqg -->
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-black">张管理员</p>
+                        <p class="text-xs text-gray-600">系统管理员</p>
+                    </div>
+                    <button class="text-gray-600 hover:text-black">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 顶部导航栏 -->
+            <header class="bg-gray-100 border-b border-gray-300 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-black">仪表板</h2>
+                        <p class="text-sm text-gray-600">欢迎回来，今天是 2024年1月15日</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- 搜索框 -->
+                        <div class="relative">
+                            <input type="text" placeholder="搜索档案..." 
+                                   class="bg-white border border-gray-300 rounded-lg px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600"></i>
+                        </div>
+                        
+                        <!-- 通知 -->
+                        <button class="relative p-2 text-gray-600 hover:text-black">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">3</span>
+                        </button>
+                        
+                        <!-- 设置 -->
+                        <button class="p-2 text-gray-600 hover:text-black">
+                            <i class="fas fa-cog text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">总档案数</p>
+                                <p class="text-2xl font-bold text-black">12,847</p>
+                                <p class="text-green-600 text-sm mt-1">
+                                    <i class="fas fa-arrow-up mr-1"></i>+2.5%
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-folder text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">今日借阅</p>
+                                <p class="text-2xl font-bold text-black">156</p>
+                                <p class="text-green-600 text-sm mt-1">
+                                    <i class="fas fa-arrow-up mr-1"></i>+12.3%
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-book text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">待审批</p>
+                                <p class="text-2xl font-bold text-black">23</p>
+                                <p class="text-red-600 text-sm mt-1">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>需处理
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-clock text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">活跃用户</p>
+                                <p class="text-2xl font-bold text-black">1,234</p>
+                                <p class="text-green-600 text-sm mt-1">
+                                    <i class="fas fa-arrow-up mr-1"></i>+5.7%
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表和快捷操作 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- 借阅趋势图表 -->
+                    <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-black">借阅趋势</h3>
+                            <select class="bg-white border border-gray-300 rounded px-3 py-1 text-sm text-black">
+                                <option>最近7天</option>
+                                <option>最近30天</option>
+                                <option>最近90天</option>
+                            </select>
+                        </div>
+                        <canvas id="borrowChart" height="100"></canvas>
+                    </div>
+
+                    <!-- 快捷操作 -->
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4 text-black">快捷操作</h3>
+                        <div class="space-y-3">
+                            <button class="w-full flex items-center justify-between p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white">
+                                <span class="flex items-center">
+                                    <i class="fas fa-plus mr-3"></i>
+                                    新建档案
+                                </span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button class="w-full flex items-center justify-between p-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-black">
+                                <span class="flex items-center">
+                                    <i class="fas fa-upload mr-3"></i>
+                                    批量导入
+                                </span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button class="w-full flex items-center justify-between p-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-black">
+                                <span class="flex items-center">
+                                    <i class="fas fa-download mr-3"></i>
+                                    导出报表
+                                </span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button class="w-full flex items-center justify-between p-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-black">
+                                <span class="flex items-center">
+                                    <i class="fas fa-search mr-3"></i>
+                                    高级搜索
+                                </span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近活动和待办事项 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 最近活动 -->
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4 text-black">最近活动</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-plus text-xs text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-black">张三 创建了新档案 "2024年度财务报告"</p>
+                                    <p class="text-xs text-gray-600">2分钟前</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-check text-xs text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-black">李四 的借阅申请已通过审批</p>
+                                    <p class="text-xs text-gray-600">15分钟前</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-edit text-xs text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-black">王五 更新了档案分类规则</p>
+                                    <p class="text-xs text-gray-600">1小时前</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation text-xs text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-black">系统检测到异常登录尝试</p>
+                                    <p class="text-xs text-gray-600">2小时前</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm">
+                            查看全部活动
+                        </button>
+                    </div>
+
+                    <!-- 待办事项 -->
+                    <div class="bg-white rounded-xl p-6 border border-gray-300 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4 text-black">待办事项</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded">
+                                <span class="flex-1 text-sm text-black">审批 5 个借阅申请</span>
+                                <span class="text-xs text-red-600">紧急</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded">
+                                <span class="flex-1 text-sm text-black">更新档案分类标准</span>
+                                <span class="text-xs text-yellow-600">今日</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded" checked>
+                                <span class="flex-1 text-sm line-through text-gray-600">备份数据库</span>
+                                <span class="text-xs text-green-600">已完成</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
+                                <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded">
+                                <span class="flex-1 text-sm text-black">生成月度统计报表</span>
+                                <span class="text-xs text-blue-600">本周</span>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm">
+                            添加新任务
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 初始化借阅趋势图表
+        const ctx = document.getElementById('borrowChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                datasets: [{
+                    label: '借阅数量',
+                    data: [120, 190, 300, 500, 200, 300, 450],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#374151'
+                        },
+                        ticks: {
+                            color: '#9ca3af'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: '#374151'
+                        },
+                        ticks: {
+                            color: '#9ca3af'
+                        }
+                    }
+                }
+            }
+        });
+
+        // 侧边栏交互
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('nav a').forEach(l => {
+                    l.classList.remove('text-blue-400', 'bg-blue-900/30');
+                    l.classList.add('text-gray-300');
+                });
+                this.classList.remove('text-gray-300');
+                this.classList.add('text-blue-400', 'bg-blue-900/30');
+            });
+        });
+
+        // 待办事项交互
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const span = this.nextElementSibling;
+                if (this.checked) {
+                    span.classList.add('line-through', 'text-gray-400');
+                } else {
+                    span.classList.remove('line-through', 'text-gray-400');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

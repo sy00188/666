@@ -1,0 +1,414 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 200
+    min-spare-threads: 10
+
+spring:
+  application:
+    name: archive-management-system
+  
+  profiles:
+    active: dev
+  
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/archive_management?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: HikariCP
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+    open-in-view: false
+
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+        shutdown-timeout: 100ms
+
+  # 消息队列配置 (RabbitMQ)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 15000
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 5
+        max-concurrency: 10
+        prefetch: 10
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          max-interval: 10000
+          multiplier: 1.0
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+      file-size-threshold: 2KB
+      location: /tmp
+
+  # 缓存配置
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: "archive:cache:"
+
+  # 任务调度配置
+  task:
+    scheduling:
+      pool:
+        size: 10
+      thread-name-prefix: "archive-task-"
+    execution:
+      pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 100
+        keep-alive: 60s
+      thread-name-prefix: "archive-exec-"
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.archive.management.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    auto-mapping-unknown-column-behavior: warning
+    default-executor-type: reuse
+    default-statement-timeout: 25
+    default-fetch-size: 100
+    safe-row-bounds-enabled: false
+    local-cache-scope: session
+    jdbc-type-for-null: other
+    lazy-load-trigger-methods: equals,clone,hashCode,toString
+    default-scripting-language: org.apache.ibatis.scripting.xmltags.XMLLanguageDriver
+    call-setters-on-nulls: false
+    return-instance-for-empty-row: false
+    log-prefix: 
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 分页插件配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+  page-size-zero: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.archive.management: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/archive-management.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops,beans,mappings
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+    metrics:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+      sla:
+        http.server.requests: 10ms, 50ms, 100ms, 200ms, 500ms
+
+# 应用自定义配置
+archive:
+  # 文件存储配置
+  file:
+    storage:
+      type: minio # local, minio, oss, s3
+      base-path: /data/archive/files
+      temp-path: /data/archive/temp
+      max-size: 104857600 # 100MB
+      allowed-types: pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,gif,zip,rar
+    upload:
+      chunk-size: 1048576 # 1MB
+      max-chunks: 1000
+      timeout: 300000 # 5分钟
+  
+  # MinIO配置
+  minio:
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket-name: archive-files
+    connect-timeout: 10000
+    write-timeout: 60000
+    read-timeout: 10000
+  
+  # 安全配置
+  security:
+    jwt:
+      secret: archive-management-jwt-secret-key-2024
+      expiration: 86400000 # 24小时
+      refresh-expiration: 604800000 # 7天
+    password:
+      min-length: 8
+      require-uppercase: true
+      require-lowercase: true
+      require-digit: true
+      require-special: true
+      max-attempts: 5
+      lock-duration: 1800000 # 30分钟
+    session:
+      max-sessions: 5
+      timeout: 3600000 # 1小时
+  
+  # 审计配置
+  audit:
+    enabled: true
+    log-requests: true
+    log-responses: false
+    sensitive-fields: password,token,secret
+    retention-days: 365
+  
+  # 缓存配置
+  cache:
+    user-cache-ttl: 1800 # 30分钟
+    permission-cache-ttl: 3600 # 1小时
+    config-cache-ttl: 7200 # 2小时
+    archive-cache-ttl: 900 # 15分钟
+  
+  # 消息队列主题配置
+  mq:
+    topics:
+      archive-events: archive.events
+      user-events: user.events
+      system-events: system.events
+      audit-events: audit.events
+    exchanges:
+      archive-exchange: archive.exchange
+      user-exchange: user.exchange
+      system-exchange: system.exchange
+    routing-keys:
+      archive-created: archive.created
+      archive-updated: archive.updated
+      archive-deleted: archive.deleted
+      user-login: user.login
+      user-logout: user.logout
+      system-alert: system.alert
+  
+  # 定时任务配置
+  scheduler:
+    enabled: true
+    archive-cleanup-cron: "0 0 2 * * ?" # 每天凌晨2点
+    user-session-cleanup-cron: "0 */30 * * * ?" # 每30分钟
+    system-monitor-cron: "0 */10 * * * ?" # 每10分钟
+    backup-cron: "0 0 3 * * SUN" # 每周凌晨3点
+  
+  # 系统监控配置
+  monitor:
+    enabled: true
+    performance-threshold:
+      cpu: 80.0
+      memory: 85.0
+      disk: 90.0
+    health-check-interval: 300000 # 5分钟
+    alert-enabled: true
+  
+  # 备份配置
+  backup:
+    enabled: true
+    type: local # local, oss, s3
+    path: /data/archive/backup
+    retention-days: 30
+    compress: true
+    encrypt: false
+
+---
+# 开发环境配置
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  main:
+    allow-bean-definition-overriding: true
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/archive_management_dev?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+  
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.archive.management: DEBUG
+    org.springframework.web: DEBUG
+
+archive:
+  file:
+    storage:
+      base-path: ./data/dev/files
+      temp-path: ./data/dev/temp
+  backup:
+    path: ./data/dev/backup
+
+---
+# 测试环境配置
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/archive_management_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+archive:
+  file:
+    storage:
+      base-path: ./data/test/files
+      temp-path: ./data/test/temp
+  backup:
+    enabled: false
+
+---
+# 生产环境配置
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  datasource:
+    url: jdbc:mysql://prod-db-server:3306/archive_management?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:archive_user}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:prod-redis-server}
+      password: ${REDIS_PASSWORD:}
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:prod-mq-server}
+    username: ${RABBITMQ_USERNAME:archive_user}
+    password: ${RABBITMQ_PASSWORD:}
+
+logging:
+  level:
+    root: WARN
+    com.archive.management: INFO
+  file:
+    name: /var/log/archive-management/application.log
+
+archive:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+  file:
+    storage:
+      base-path: ${FILE_STORAGE_PATH:/data/archive/files}
+      temp-path: ${FILE_TEMP_PATH:/data/archive/temp}
+  backup:
+    path: ${BACKUP_PATH:/data/archive/backup}

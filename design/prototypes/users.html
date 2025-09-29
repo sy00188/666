@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 档案管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .role-admin { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300; }
+        .role-manager { @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300; }
+        .role-user { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300; }
+        .role-guest { @apply bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300; }
+        .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300; }
+        .status-inactive { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300; }
+        .status-pending { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <!-- 侧边栏 -->
+    <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out" id="sidebar">
+        <div class="flex items-center justify-center h-16 bg-primary-600 text-white">
+            <i class="fas fa-archive mr-2"></i>
+            <span class="text-xl font-bold">档案管理系统</span>
+        </div>
+        <nav class="mt-8">
+            <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-tachometer-alt mr-3"></i>
+                仪表板
+            </a>
+            <a href="archive.html" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-folder-open mr-3"></i>
+                档案管理
+            </a>
+            <a href="borrow.html" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-hand-holding mr-3"></i>
+                借阅管理
+            </a>
+            <a href="users.html" class="flex items-center px-6 py-3 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 border-r-4 border-primary-500">
+                <i class="fas fa-users mr-3"></i>
+                用户管理
+            </a>
+            <a href="reports.html" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-chart-bar mr-3"></i>
+                报表统计
+            </a>
+            <a href="settings.html" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-cog mr-3"></i>
+                系统设置
+            </a>
+        </nav>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="lg:ml-64">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-6 py-4">
+                <div class="flex items-center">
+                    <button class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="toggleSidebar()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="ml-4 text-2xl font-bold text-gray-900 dark:text-white">用户管理</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="用户头像" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium">管理员</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容 -->
+        <main class="p-6">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+                            <i class="fas fa-users text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">总用户数</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white">156</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 dark:bg-green-900">
+                            <i class="fas fa-user-check text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">活跃用户</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white">142</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+                            <i class="fas fa-user-clock text-yellow-600 dark:text-yellow-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">待审核</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white">8</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-red-100 dark:bg-red-900">
+                            <i class="fas fa-user-shield text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">管理员</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white">6</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签页导航 -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="-mb-px flex space-x-8 px-6">
+                        <button onclick="switchTab('users')" id="users-tab" class="tab-button active border-b-2 border-primary-500 py-4 px-1 text-sm font-medium text-primary-600 dark:text-primary-400">
+                            <i class="fas fa-users mr-2"></i>用户列表
+                        </button>
+                        <button onclick="switchTab('roles')" id="roles-tab" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
+                            <i class="fas fa-user-tag mr-2"></i>角色管理
+                        </button>
+                        <button onclick="switchTab('permissions')" id="permissions-tab" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
+                            <i class="fas fa-key mr-2"></i>权限管理
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- 用户列表标签页 -->
+                <div id="users-content" class="tab-content">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-center space-x-4 mb-4 sm:mb-0">
+                                <button onclick="openUserModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    添加用户
+                                </button>
+                                <button onclick="batchAction()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                    <i class="fas fa-tasks mr-2"></i>
+                                    批量操作
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <select class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700">
+                                    <option>全部角色</option>
+                                    <option>管理员</option>
+                                    <option>经理</option>
+                                    <option>普通用户</option>
+                                    <option>访客</option>
+                                </select>
+                                <select class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700">
+                                    <option>全部状态</option>
+                                    <option>活跃</option>
+                                    <option>非活跃</option>
+                                    <option>待审核</option>
+                                </select>
+                                <div class="relative">
+                                    <input type="text" placeholder="搜索用户..." class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 w-64">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        <input type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">用户信息</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">角色</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">部门</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">最后登录</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">状态</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="用户" class="w-10 h-10 rounded-full">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">张三</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">zhangsan@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full role-admin">管理员</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">信息技术部</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2024-01-15 14:30</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-active">活跃</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="editUser('user1')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-3">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                        <button onclick="managePermissions('user1')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">
+                                            <i class="fas fa-key"></i> 权限
+                                        </button>
+                                        <button onclick="resetPassword('user1')" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 mr-3">
+                                            <i class="fas fa-lock"></i> 重置
+                                        </button>
+                                        <button onclick="deleteUser('user1')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face" alt="用户" class="w-10 h-10 rounded-full">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">李四</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">lisi@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full role-manager">经理</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">财务部</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2024-01-15 09:45</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-active">活跃</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="editUser('user2')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-3">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                        <button onclick="managePermissions('user2')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">
+                                            <i class="fas fa-key"></i> 权限
+                                        </button>
+                                        <button onclick="resetPassword('user2')" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 mr-3">
+                                            <i class="fas fa-lock"></i> 重置
+                                        </button>
+                                        <button onclick="deleteUser('user2')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" class="rounded border-gray-300 dark:border-gray-600">
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="用户" class="w-10 h-10 rounded-full">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">王五</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">wangwu@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full role-user">普通用户</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">人事部</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2024-01-14 16:20</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-pending">待审核</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="approveUser('user3')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">
+                                            <i class="fas fa-check"></i> 审核
+                                        </button>
+                                        <button onclick="editUser('user3')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-3">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                        <button onclick="deleteUser('user3')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 角色管理标签页 -->
+                <div id="roles-content" class="tab-content hidden">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">角色管理</h3>
+                            <button onclick="openRoleModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                添加角色
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <div class="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                                            <i class="fas fa-user-shield text-red-600 dark:text-red-400"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-lg font-medium text-gray-900 dark:text-white">管理员</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">系统最高权限</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button onclick="editRole('admin')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteRole('admin')" class="text-red-600 hover:text-red-900 dark:text-red-400">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                        <i class="fas fa-users mr-2"></i>
+                                        <span>6 个用户</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded">全部权限</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                            <i class="fas fa-user-tie text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-lg font-medium text-gray-900 dark:text-white">经理</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">部门管理权限</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button onclick="editRole('manager')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteRole('manager')" class="text-red-600 hover:text-red-900 dark:text-red-400">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                        <i class="fas fa-users mr-2"></i>
+                                        <span>24 个用户</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded">档案管理</span>
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded">借阅审批</span>
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded">报表查看</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                                            <i class="fas fa-user text-green-600 dark:text-green-400"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-lg font-medium text-gray-900 dark:text-white">普通用户</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">基础操作权限</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button onclick="editRole('user')" class="text-primary-600 hover:text-primary-900 dark:text-primary-400">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteRole('user')" class="text-red-600 hover:text-red-900 dark:text-red-400">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                        <i class="fas fa-users mr-2"></i>
+                                        <span>118 个用户</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs rounded">档案查看</span>
+                                        <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs rounded">借阅申请</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 权限管理标签页 -->
+                <div id="permissions-content" class="tab-content hidden">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">权限管理</h3>
+                            <button onclick="openPermissionModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                添加权限
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-6">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">档案管理权限</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-eye text-blue-500 mr-2"></i>
+                                            <span class="text-sm">查看档案</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">archive:read</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-plus text-green-500 mr-2"></i>
+                                            <span class="text-sm">创建档案</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">archive:create</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-edit text-yellow-500 mr-2"></i>
+                                            <span class="text-sm">编辑档案</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">archive:update</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-trash text-red-500 mr-2"></i>
+                                            <span class="text-sm">删除档案</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">archive:delete</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">借阅管理权限</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-hand-holding text-blue-500 mr-2"></i>
+                                            <span class="text-sm">借阅申请</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">borrow:apply</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check text-green-500 mr-2"></i>
+                                            <span class="text-sm">审批借阅</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">borrow:approve</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-undo text-yellow-500 mr-2"></i>
+                                            <span class="text-sm">归还管理</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">borrow:return</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-list text-purple-500 mr-2"></i>
+                                            <span class="text-sm">查看记录</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">borrow:read</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">系统管理权限</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-users text-blue-500 mr-2"></i>
+                                            <span class="text-sm">用户管理</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">user:manage</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-user-tag text-green-500 mr-2"></i>
+                                            <span class="text-sm">角色管理</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">role:manage</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-chart-bar text-yellow-500 mr-2"></i>
+                                            <span class="text-sm">报表查看</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">report:read</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-cog text-red-500 mr-2"></i>
+                                            <span class="text-sm">系统设置</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">system:config</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 用户模态框 -->
+    <div id="userModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">添加用户</h3>
+                    <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">姓名</label>
+                            <input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700" placeholder="请输入姓名">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">邮箱</label>
+                            <input type="email" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700" placeholder="请输入邮箱">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">角色</label>
+                            <select class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700">
+                                <option>选择角色</option>
+                                <option>管理员</option>
+                                <option>经理</option>
+                                <option>普通用户</option>
+                                <option>访客</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">部门</label>
+                            <select class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700">
+                                <option>选择部门</option>
+                                <option>信息技术部</option>
+                                <option>财务部</option>
+                                <option>人事部</option>
+                                <option>法务部</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">密码</label>
+                            <input type="password" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700" placeholder="请输入密码">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">确认密码</label>
+                            <input type="password" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700" placeholder="请确认密码">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeUserModal()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                        <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg">添加用户</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 切换侧边栏
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 移除所有标签按钮的活跃状态
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active', 'border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+                button.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            });
+            
+            // 显示选中的标签页内容
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+            
+            // 激活选中的标签按钮
+            const activeButton = document.getElementById(tabName + '-tab');
+            activeButton.classList.add('active', 'border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            activeButton.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        }
+
+        // 用户管理相关函数
+        function openUserModal() {
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        function editUser(userId) {
+            alert(`编辑用户: ${userId}`);
+        }
+
+        function deleteUser(userId) {
+            if (confirm('确认删除此用户？')) {
+                alert(`用户 ${userId} 已删除`);
+            }
+        }
+
+        function managePermissions(userId) {
+            alert(`管理用户 ${userId} 的权限`);
+        }
+
+        function resetPassword(userId) {
+            if (confirm('确认重置此用户的密码？')) {
+                alert(`用户 ${userId} 的密码已重置`);
+            }
+        }
+
+        function approveUser(userId) {
+            if (confirm('确认审核通过此用户？')) {
+                alert(`用户 ${userId} 已审核通过`);
+            }
+        }
+
+        function batchAction() {
+            const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert('请选择要操作的用户');
+                return;
+            }
+            alert(`选中了 ${checkboxes.length} 个用户，可以进行批量操作`);
+        }
+
+        // 角色管理相关函数
+        function openRoleModal() {
+            alert('打开角色添加模态框');
+        }
+
+        function editRole(roleId) {
+            alert(`编辑角色: ${roleId}`);
+        }
+
+        function deleteRole(roleId) {
+            if (confirm('确认删除此角色？')) {
+                alert(`角色 ${roleId} 已删除`);
+            }
+        }
+
+        // 权限管理相关函数
+        function openPermissionModal() {
+            alert('打开权限添加模态框');
+        }
+
+        // 初始化暗色模式
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</body>
+</html>
