@@ -69,7 +69,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path.startswith('/api/v1/archives'):
+        elif self.path.startswith('/api/v1/archives') or self.path.startswith('/v1/archives'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -111,7 +111,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path.startswith('/api/v1/categories'):
+        elif self.path.startswith('/api/v1/categories') or self.path.startswith('/v1/categories'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -144,6 +144,56 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                         'createTime': '2024-01-01 10:00:00'
                     }
                 ]
+            }
+            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+        elif self.path.startswith('/api/users'):
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            # 模拟用户列表响应
+            response = {
+                'success': True,
+                'code': 200,
+                'message': '获取成功',
+                'data': {
+                    'list': [
+                        {
+                            'id': 1,
+                            'username': 'admin',
+                            'name': '管理员',
+                            'email': 'admin@example.com',
+                            'role': 'admin',
+                            'status': 'active',
+                            'createTime': '2024-01-01 10:00:00',
+                            'lastLoginTime': '2025-01-15 09:30:00'
+                        },
+                        {
+                            'id': 2,
+                            'username': 'user1',
+                            'name': '张三',
+                            'email': 'zhangsan@example.com',
+                            'role': 'user',
+                            'status': 'active',
+                            'createTime': '2024-01-02 10:00:00',
+                            'lastLoginTime': '2025-01-15 08:45:00'
+                        },
+                        {
+                            'id': 3,
+                            'username': 'user2',
+                            'name': '李四',
+                            'email': 'lisi@example.com',
+                            'role': 'user',
+                            'status': 'active',
+                            'createTime': '2024-01-03 10:00:00',
+                            'lastLoginTime': '2025-01-14 16:20:00'
+                        }
+                    ],
+                    'total': 3,
+                    'page': 1,
+                    'size': 10
+                }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
         elif self.path.startswith('/api/v1/statistics') or self.path.startswith('/v1/archives/statistics'):

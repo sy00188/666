@@ -174,8 +174,8 @@ import {
 } from '@element-plus/icons-vue'
 import { StatisticsAPI } from '@/api/statistics'
 import type { ArchiveStatistics, BorrowTrend, UserActivity } from '@/api/statistics'
-import ArchiveTrendChart from '@/components/charts/ArchiveTrendChart.vue'
-import BorrowStatChart from '@/components/charts/BorrowStatChart.vue'
+import ArchiveTrendChart from '@/components/dashboard/ArchiveTrendChart.vue'
+import BorrowStatChart from '@/components/dashboard/BorrowStatChart.vue'
 
 // 响应式数据
 const archivePeriod = ref('30d')
