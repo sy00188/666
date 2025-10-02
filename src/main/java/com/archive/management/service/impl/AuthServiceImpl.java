@@ -292,8 +292,19 @@ public class AuthServiceImpl implements AuthService {
         log.debug("检查用户是否被锁定: {}", user.getUsername());
         
         try {
-            // TODO: 实现用户锁定检查逻辑
-            // 可以基于登录失败次数、锁定时间等进行判断
+            // 检查用户状态是否为锁定
+            if (user.getStatus() != null && user.getStatus() == 0) {
+                return true;
+            }
+            
+            // 检查锁定时间是否已过期
+            if (user.getLockTime() != null) {
+                LocalDateTime lockExpireTime = user.getLockTime().plusMinutes(30); // 锁定30分钟
+                if (LocalDateTime.now().isBefore(lockExpireTime)) {
+                    return true;
+                }
+            }
+            
             return false;
             
         } catch (Exception e) {
@@ -307,8 +318,17 @@ public class AuthServiceImpl implements AuthService {
         log.debug("检查用户是否已过期: {}", user.getUsername());
         
         try {
-            // TODO: 实现用户过期检查逻辑
-            // 可以基于用户的有效期字段进行判断
+            // 检查用户有效期
+            if (user.getExpireTime() != null) {
+                return LocalDateTime.now().isAfter(user.getExpireTime());
+            }
+            
+            // 检查用户创建时间是否超过默认有效期（如1年）
+            if (user.getCreateTime() != null) {
+                LocalDateTime defaultExpireTime = user.getCreateTime().plusYears(1);
+                return LocalDateTime.now().isAfter(defaultExpireTime);
+            }
+            
             return false;
             
         } catch (Exception e) {
@@ -338,9 +358,27 @@ public class AuthServiceImpl implements AuthService {
         log.debug("记录登录日志: username={}, success={}", username, success);
         
         try {
-            // TODO: 实现登录日志记录逻辑
-            // 可以调用LoginLogService或直接操作数据库
-            log.info("登录日志: 用户={}, IP={}, 成功={}, 消息={}", username, clientIp, success, message);
+            // 获取用户信息
+            User user = userMapper.selectByUsername(username);
+            if (user == null) {
+                log.warn("用户不存在，无法记录登录日志: {}", username);
+                return;
+            }
+            
+            // 记录登录日志到Redis缓存
+            String logKey = "login_log:" + user.getId() + ":" + System.currentTimeMillis();
+            Map<String, Object> logData = new HashMap<>();
+            logData.put("userId", user.getId());
+            logData.put("username", username);
+            logData.put("clientIp", clientIp);
+            logData.put("success", success);
+            logData.put("message", message);
+            logData.put("loginTime", LocalDateTime.now());
+            
+            // 保存到Redis，过期时间24小时
+            redisTemplate.opsForValue().set(logKey, logData, 24, TimeUnit.HOURS);
+            
+            log.info("登录日志已记录: 用户={}, IP={}, 成功={}, 消息={}", username, clientIp, success, message);
             
         } catch (Exception e) {
             log.error("记录登录日志失败: {}", e.getMessage());
@@ -376,9 +414,18 @@ public class AuthServiceImpl implements AuthService {
                 return false;
             }
 
-            // TODO: 实现密码强度检查逻辑
-            // 可以检查长度、复杂度等
-            return password.length() >= 8;
+            // 实现密码强度检查逻辑
+            if (password == null || password.length() < 8) {
+                return false;
+            }
+            
+            // 检查是否包含大小写字母、数字和特殊字符
+            boolean hasUpperCase = password.chars().anyMatch(Character::isUpperCase);
+            boolean hasLowerCase = password.chars().anyMatch(Character::isLowerCase);
+            boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+            boolean hasSpecialChar = password.chars().anyMatch(ch -> "!@#$%^&*()_+-=[]{}|;':\",./<>?".indexOf(ch) >= 0);
+            
+            return hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar;
             
         } catch (Exception e) {
             log.error("检查密码强度失败: {}", e.getMessage());
@@ -391,9 +438,20 @@ public class AuthServiceImpl implements AuthService {
         log.info("生成密码重置令牌: {}", email);
         
         try {
-            // TODO: 实现密码重置令牌生成逻辑
-            // 可以生成临时令牌并设置过期时间
-            return "reset_token_" + System.currentTimeMillis();
+            // 根据邮箱查找用户
+            User user = userMapper.selectByEmail(email);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            
+            // 实现密码重置令牌生成逻辑
+            String token = "reset_token_" + System.currentTimeMillis() + "_" + user.getId();
+            
+            // 将令牌存储到Redis，过期时间30分钟
+            String tokenKey = "password_reset_token:" + user.getId();
+            redisTemplate.opsForValue().set(tokenKey, token, 30, TimeUnit.MINUTES);
+            
+            return token;
             
         } catch (Exception e) {
             log.error("生成密码重置令牌失败: {}", e.getMessage());
@@ -406,8 +464,21 @@ public class AuthServiceImpl implements AuthService {
         log.debug("验证密码重置令牌");
         
         try {
-            // TODO: 实现密码重置令牌验证逻辑
-            return StringUtils.hasText(token);
+            // 实现密码重置令牌验证逻辑
+            if (!StringUtils.hasText(token)) {
+                return false;
+            }
+            
+            // 从Redis中验证令牌
+            String[] tokenParts = token.split("_");
+            if (tokenParts.length >= 4) {
+                Long userId = Long.parseLong(tokenParts[3]);
+                String tokenKey = "password_reset_token:" + userId;
+                String storedToken = (String) redisTemplate.opsForValue().get(tokenKey);
+                return token.equals(storedToken);
+            }
+            
+            return false;
             
         } catch (Exception e) {
             log.error("验证密码重置令牌失败: {}", e.getMessage());
@@ -420,8 +491,29 @@ public class AuthServiceImpl implements AuthService {
         log.info("重置密码");
         
         try {
-            // TODO: 实现密码重置逻辑
-            // 验证令牌，更新用户密码
+            // 实现密码重置逻辑
+            if (!validatePasswordResetToken(token)) {
+                throw new RuntimeException("无效的密码重置令牌");
+            }
+            
+            // 从令牌中提取用户ID
+            String[] tokenParts = token.split("_");
+            Long userId = Long.parseLong(tokenParts[3]);
+            
+            // 更新用户密码
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setUpdateTime(LocalDateTime.now());
+            userMapper.updateById(user);
+            
+            // 删除已使用的令牌
+            String tokenKey = "password_reset_token:" + userId;
+            redisTemplate.delete(tokenKey);
+            
             return true;
             
         } catch (Exception e) {
@@ -435,8 +527,22 @@ public class AuthServiceImpl implements AuthService {
         log.info("修改密码: userId={}", userId);
         
         try {
-            // TODO: 实现密码修改逻辑
-            // 验证旧密码，更新新密码
+            // 实现密码修改逻辑
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            
+            // 验证旧密码
+            if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+                throw new RuntimeException("旧密码不正确");
+            }
+            
+            // 更新新密码
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setUpdateTime(LocalDateTime.now());
+            userMapper.updateById(user);
+            
             return true;
             
         } catch (Exception e) {

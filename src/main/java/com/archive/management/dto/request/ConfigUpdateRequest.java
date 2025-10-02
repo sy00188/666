@@ -1,21 +1,20 @@
-package com.archive.dto.request;
+package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 系统配置创建请求DTO
- * 封装系统配置创建的输入信息
+ * 系统配置更新请求DTO
+ * 封装系统配置更新的输入信息
  */
-public class ConfigCreateRequest {
+public class ConfigUpdateRequest {
 
     /**
-     * 配置键
+     * 配置ID
      */
-    @NotBlank(message = "配置键不能为空")
-    @Size(max = 100, message = "配置键长度不能超过100个字符")
-    private String configKey;
+    @NotNull(message = "配置ID不能为空")
+    private Long id;
 
     /**
      * 配置值
@@ -49,12 +48,6 @@ public class ConfigCreateRequest {
      */
     @NotBlank(message = "配置类型不能为空")
     private String configType;
-
-    /**
-     * 是否系统内置配置
-     */
-    @NotNull(message = "是否系统内置配置不能为空")
-    private Boolean isSystem;
 
     /**
      * 是否加密存储
@@ -104,20 +97,19 @@ public class ConfigCreateRequest {
     private String remark;
 
     // 构造函数
-    public ConfigCreateRequest() {}
+    public ConfigUpdateRequest() {}
 
-    public ConfigCreateRequest(String configKey, String configValue, String configName,
-                              String description, String configGroup, String configType,
-                              Boolean isSystem, Boolean encrypted, Boolean editable,
-                              Integer sortOrder, String status, String defaultValue,
-                              String valueRange, String validationRule, String remark) {
-        this.configKey = configKey;
+    public ConfigUpdateRequest(Long id, String configValue, String configName, String description,
+                              String configGroup, String configType, Boolean encrypted,
+                              Boolean editable, Integer sortOrder, String status,
+                              String defaultValue, String valueRange, String validationRule,
+                              String remark) {
+        this.id = id;
         this.configValue = configValue;
         this.configName = configName;
         this.description = description;
         this.configGroup = configGroup;
         this.configType = configType;
-        this.isSystem = isSystem;
         this.encrypted = encrypted;
         this.editable = editable;
         this.sortOrder = sortOrder;
@@ -129,12 +121,12 @@ public class ConfigCreateRequest {
     }
 
     // Getter和Setter方法
-    public String getConfigKey() {
-        return configKey;
+    public Long getId() {
+        return id;
     }
 
-    public void setConfigKey(String configKey) {
-        this.configKey = configKey;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getConfigValue() {
@@ -175,14 +167,6 @@ public class ConfigCreateRequest {
 
     public void setConfigType(String configType) {
         this.configType = configType;
-    }
-
-    public Boolean getIsSystem() {
-        return isSystem;
-    }
-
-    public void setIsSystem(Boolean isSystem) {
-        this.isSystem = isSystem;
     }
 
     public Boolean getEncrypted() {
@@ -251,14 +235,13 @@ public class ConfigCreateRequest {
 
     @Override
     public String toString() {
-        return "ConfigCreateRequest{" +
-                "configKey='" + configKey + '\'' +
+        return "ConfigUpdateRequest{" +
+                "id=" + id +
                 ", configValue='" + configValue + '\'' +
                 ", configName='" + configName + '\'' +
                 ", description='" + description + '\'' +
                 ", configGroup='" + configGroup + '\'' +
                 ", configType='" + configType + '\'' +
-                ", isSystem=" + isSystem +
                 ", encrypted=" + encrypted +
                 ", editable=" + editable +
                 ", sortOrder=" + sortOrder +

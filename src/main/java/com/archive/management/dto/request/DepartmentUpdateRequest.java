@@ -1,13 +1,13 @@
-package com.archive.dto.request;
+package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * 部门创建请求DTO
- * 封装部门创建所需的输入信息
+ * 部门更新请求DTO
+ * 封装部门更新所需的输入信息
  */
-public class DepartmentCreateRequest {
+public class DepartmentUpdateRequest {
 
     /**
      * 部门名称
@@ -57,16 +57,22 @@ public class DepartmentCreateRequest {
     private Integer sortOrder;
 
     /**
+     * 部门状态（ACTIVE-启用，INACTIVE-禁用）
+     */
+    private String status;
+
+    /**
      * 备注
      */
     @Size(max = 500, message = "备注长度不能超过500个字符")
     private String remark;
 
     // 构造函数
-    public DepartmentCreateRequest() {}
+    public DepartmentUpdateRequest() {}
 
-    public DepartmentCreateRequest(String name, String code, Long parentId, String description,
-                                  Long managerId, String phone, String address, Integer sortOrder, String remark) {
+    public DepartmentUpdateRequest(String name, String code, Long parentId, String description,
+                                  Long managerId, String phone, String address, Integer sortOrder,
+                                  String status, String remark) {
         this.name = name;
         this.code = code;
         this.parentId = parentId;
@@ -75,6 +81,7 @@ public class DepartmentCreateRequest {
         this.phone = phone;
         this.address = address;
         this.sortOrder = sortOrder;
+        this.status = status;
         this.remark = remark;
     }
 
@@ -143,6 +150,14 @@ public class DepartmentCreateRequest {
         this.sortOrder = sortOrder;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public String getRemark() {
         return remark;
     }
@@ -153,7 +168,7 @@ public class DepartmentCreateRequest {
 
     @Override
     public String toString() {
-        return "DepartmentCreateRequest{" +
+        return "DepartmentUpdateRequest{" +
                 "name='" + name + '\'' +
                 ", code='" + code + '\'' +
                 ", parentId=" + parentId +
@@ -162,6 +177,7 @@ public class DepartmentCreateRequest {
                 ", phone='" + phone + '\'' +
                 ", address='" + address + '\'' +
                 ", sortOrder=" + sortOrder +
+                ", status='" + status + '\'' +
                 ", remark='" + remark + '\'' +
                 '}';
     }

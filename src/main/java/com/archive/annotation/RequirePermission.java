@@ -1,4 +1,4 @@
-package com.archive.annotation;
+package com.archive.management.annotation;
 
 import java.lang.annotation.*;
 

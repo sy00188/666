@@ -1,4 +1,4 @@
-package com.archive.dto.request;
+package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;

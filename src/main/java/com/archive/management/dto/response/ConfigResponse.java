@@ -1,4 +1,4 @@
-package com.archive.dto.response;
+package com.archive.management.dto.response;
 
 import java.time.LocalDateTime;
 

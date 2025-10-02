@@ -1,31 +1,47 @@
-package com.archive.dto.request;
+package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
 /**
- * 角色查询请求DTO
- * 封装角色查询的条件参数
+ * 权限查询请求DTO
+ * 封装权限查询的条件参数
  */
-public class RoleQueryRequest {
+public class PermissionQueryRequest {
 
     /**
-     * 角色名称（模糊查询）
+     * 权限名称（模糊查询）
      */
-    @Size(max = 50, message = "角色名称长度不能超过50个字符")
+    @Size(max = 50, message = "权限名称长度不能超过50个字符")
     private String name;
 
     /**
-     * 角色编码（模糊查询）
+     * 权限编码（模糊查询）
      */
-    @Size(max = 50, message = "角色编码长度不能超过50个字符")
+    @Size(max = 100, message = "权限编码长度不能超过100个字符")
     private String code;
 
     /**
-     * 角色类型列表（SYSTEM-系统角色，CUSTOM-自定义角色）
+     * 权限类型列表（MENU-菜单权限，BUTTON-按钮权限，API-接口权限）
      */
     private List<String> types;
+
+    /**
+     * 父权限ID
+     */
+    private Long parentId;
+
+    /**
+     * 权限路径（模糊查询）
+     */
+    @Size(max = 200, message = "权限路径长度不能超过200个字符")
+    private String path;
+
+    /**
+     * HTTP方法列表（GET、POST、PUT、DELETE等）
+     */
+    private List<String> methods;
 
     /**
      * 状态列表（ACTIVE-启用，INACTIVE-禁用）
@@ -33,9 +49,9 @@ public class RoleQueryRequest {
     private List<String> statuses;
 
     /**
-     * 数据权限范围列表（ALL-全部数据，DEPT-本部门数据，DEPT_AND_SUB-本部门及子部门数据，SELF-仅本人数据，CUSTOM-自定义数据权限）
+     * 是否显示
      */
-    private List<String> dataScopes;
+    private Boolean visible;
 
     /**
      * 创建者ID
@@ -63,6 +79,11 @@ public class RoleQueryRequest {
     private String updateTimeEnd;
 
     /**
+     * 是否包含子权限
+     */
+    private Boolean includeChildren;
+
+    /**
      * 排序字段（name-按名称，code-按编码，createTime-按创建时间，updateTime-按更新时间，sortOrder-按排序号）
      */
     private String sortBy;
@@ -85,22 +106,28 @@ public class RoleQueryRequest {
     private Integer pageSize;
 
     // 构造函数
-    public RoleQueryRequest() {}
+    public PermissionQueryRequest() {}
 
-    public RoleQueryRequest(String name, String code, List<String> types, List<String> statuses,
-                           List<String> dataScopes, Long creatorId, String createTimeStart,
-                           String createTimeEnd, String updateTimeStart, String updateTimeEnd,
-                           String sortBy, String sortDirection, Integer pageNum, Integer pageSize) {
+    public PermissionQueryRequest(String name, String code, List<String> types, Long parentId,
+                                 String path, List<String> methods, List<String> statuses,
+                                 Boolean visible, Long creatorId, String createTimeStart,
+                                 String createTimeEnd, String updateTimeStart, String updateTimeEnd,
+                                 Boolean includeChildren, String sortBy, String sortDirection,
+                                 Integer pageNum, Integer pageSize) {
         this.name = name;
         this.code = code;
         this.types = types;
+        this.parentId = parentId;
+        this.path = path;
+        this.methods = methods;
         this.statuses = statuses;
-        this.dataScopes = dataScopes;
+        this.visible = visible;
         this.creatorId = creatorId;
         this.createTimeStart = createTimeStart;
         this.createTimeEnd = createTimeEnd;
         this.updateTimeStart = updateTimeStart;
         this.updateTimeEnd = updateTimeEnd;
+        this.includeChildren = includeChildren;
         this.sortBy = sortBy;
         this.sortDirection = sortDirection;
         this.pageNum = pageNum;
@@ -132,6 +159,30 @@ public class RoleQueryRequest {
         this.types = types;
     }
 
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public List<String> getMethods() {
+        return methods;
+    }
+
+    public void setMethods(List<String> methods) {
+        this.methods = methods;
+    }
+
     public List<String> getStatuses() {
         return statuses;
     }
@@ -140,12 +191,12 @@ public class RoleQueryRequest {
         this.statuses = statuses;
     }
 
-    public List<String> getDataScopes() {
-        return dataScopes;
+    public Boolean getVisible() {
+        return visible;
     }
 
-    public void setDataScopes(List<String> dataScopes) {
-        this.dataScopes = dataScopes;
+    public void setVisible(Boolean visible) {
+        this.visible = visible;
     }
 
     public Long getCreatorId() {
@@ -188,6 +239,14 @@ public class RoleQueryRequest {
         this.updateTimeEnd = updateTimeEnd;
     }
 
+    public Boolean getIncludeChildren() {
+        return includeChildren;
+    }
+
+    public void setIncludeChildren(Boolean includeChildren) {
+        this.includeChildren = includeChildren;
+    }
+
     public String getSortBy() {
         return sortBy;
     }
@@ -222,17 +281,21 @@ public class RoleQueryRequest {
 
     @Override
     public String toString() {
-        return "RoleQueryRequest{" +
+        return "PermissionQueryRequest{" +
                 "name='" + name + '\'' +
                 ", code='" + code + '\'' +
                 ", types=" + types +
+                ", parentId=" + parentId +
+                ", path='" + path + '\'' +
+                ", methods=" + methods +
                 ", statuses=" + statuses +
-                ", dataScopes=" + dataScopes +
+                ", visible=" + visible +
                 ", creatorId=" + creatorId +
                 ", createTimeStart='" + createTimeStart + '\'' +
                 ", createTimeEnd='" + createTimeEnd + '\'' +
                 ", updateTimeStart='" + updateTimeStart + '\'' +
                 ", updateTimeEnd='" + updateTimeEnd + '\'' +
+                ", includeChildren=" + includeChildren +
                 ", sortBy='" + sortBy + '\'' +
                 ", sortDirection='" + sortDirection + '\'' +
                 ", pageNum=" + pageNum +

@@ -2,11 +2,14 @@ package com.archive.management.service.impl;
 
 import com.archive.management.dto.*;
 import com.archive.management.entity.LoginLog;
+import com.archive.management.mapper.LoginLogMapper;
 import com.archive.management.service.LoginLogService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -23,92 +26,119 @@ import java.util.Map;
  */
 @Slf4j
 @Service
+@Transactional
 public class LoginLogServiceImpl implements LoginLogService {
 
+    @Autowired
+    private LoginLogMapper loginLogMapper;
+
     @Override
+    @Transactional
     public LoginLogResponse recordLoginLog(CreateLoginLogRequest request) {
         log.info("记录登录日志: request={}", request);
-        // TODO: 实现登录日志记录逻辑
+        
+        LoginLog loginLog = new LoginLog();
+        loginLog.setUserId(request.getUserId());
+        loginLog.setUsername(request.getUsername());
+        loginLog.setClientIp(request.getClientIp());
+        loginLog.setUserAgent(request.getUserAgent());
+        loginLog.setLoginType(request.getLoginType());
+        loginLog.setStatus(request.getStatus());
+        loginLog.setLoginTime(LocalDateTime.now());
+        loginLog.setErrorMessage(request.getErrorMessage());
+        
+        loginLogMapper.insert(loginLog);
+        
         LoginLogResponse response = new LoginLogResponse();
-        response.setId(1L);
+        response.setId(loginLog.getId());
+        response.setUserId(loginLog.getUserId());
+        response.setUsername(loginLog.getUsername());
+        response.setClientIp(loginLog.getClientIp());
+        response.setLoginTime(loginLog.getLoginTime());
+        response.setStatus(loginLog.getStatus());
+        
         return response;
     }
 
     @Override
     public LoginLog getLoginLogById(Long id) {
         log.info("根据ID获取登录日志: id={}", id);
-        // TODO: 实现根据ID获取登录日志逻辑
-        return new LoginLog();
+        return loginLogMapper.selectById(id);
     }
 
     @Override
     public LoginLogResponse getLoginLogResponseById(Long id) {
         log.info("根据ID获取登录日志响应: id={}", id);
-        // TODO: 实现根据ID获取登录日志响应逻辑
-        return new LoginLogResponse();
+        LoginLog loginLog = loginLogMapper.selectById(id);
+        if (loginLog == null) {
+            return null;
+        }
+        
+        LoginLogResponse response = new LoginLogResponse();
+        response.setId(loginLog.getId());
+        response.setUserId(loginLog.getUserId());
+        response.setUsername(loginLog.getUsername());
+        response.setClientIp(loginLog.getClientIp());
+        response.setLoginTime(loginLog.getLoginTime());
+        response.setStatus(loginLog.getStatus());
+        response.setErrorMessage(loginLog.getErrorMessage());
+        
+        return response;
     }
 
     @Override
     public List<LoginLog> getLoginLogsByUserId(Long userId) {
         log.info("根据用户ID获取登录日志: userId={}", userId);
-        // TODO: 实现根据用户ID获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByUserId(userId);
     }
 
     @Override
     public List<LoginLog> getLoginLogsByUsername(String username) {
         log.info("根据用户名获取登录日志: username={}", username);
-        // TODO: 实现根据用户名获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByUsername(username);
     }
 
     @Override
     public List<LoginLog> getLoginLogsByStatus(Integer status) {
         log.info("根据状态获取登录日志: status={}", status);
-        // TODO: 实现根据状态获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByStatus(status);
     }
 
     @Override
     public List<LoginLog> getLoginLogsByClientIp(String clientIp) {
         log.info("根据IP地址获取登录日志: clientIp={}", clientIp);
-        // TODO: 实现根据IP地址获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByClientIp(clientIp);
     }
 
     @Override
     public List<LoginLog> getLoginLogsByLoginType(String loginType) {
         log.info("根据登录类型获取登录日志: loginType={}", loginType);
-        // TODO: 实现根据登录类型获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByLoginType(loginType);
     }
 
     @Override
     public List<LoginLog> getLoginLogsByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
         log.info("根据时间范围获取登录日志: startTime={}, endTime={}", startTime, endTime);
-        // TODO: 实现根据时间范围获取登录日志逻辑
-        return List.of();
+        return loginLogMapper.selectByTimeRange(startTime, endTime);
     }
 
     @Override
     public List<LoginLog> getRecentLoginLogs(Long userId, int limit) {
         log.info("获取最近登录记录: userId={}, limit={}", userId, limit);
-        // TODO: 实现获取最近登录记录逻辑
-        return List.of();
+        return loginLogMapper.selectRecentByUserId(userId, limit);
     }
 
     @Override
     public LoginLog getLastLoginLog(Long userId) {
         log.info("获取最后一次登录记录: userId={}", userId);
-        // TODO: 实现获取最后一次登录记录逻辑
-        return new LoginLog();
+        return loginLogMapper.selectLastByUserId(userId);
     }
 
     @Override
     public int getFailedLoginCount(Long userId, int hours) {
         log.info("获取失败登录次数: userId={}, hours={}", userId, hours);
-        // TODO: 实现获取失败登录次数逻辑
-        return 0;
+        LocalDateTime startTime = LocalDateTime.now().minusHours(hours);
+        return loginLogMapper.countFailedLogins(userId, startTime);
     }
 
     @Override
@@ -116,176 +146,156 @@ public class LoginLogServiceImpl implements LoginLogService {
                                                       Integer status, String clientIp, String loginType,
                                                       LocalDateTime startTime, LocalDateTime endTime) {
         log.info("分页查询登录日志: userId={}, username={}, status={}", userId, username, status);
-        // TODO: 实现分页查询登录日志逻辑
-        return page;
+        return loginLogMapper.selectPageWithConditions(page, userId, username, status, clientIp, loginType, startTime, endTime);
     }
 
     @Override
+    @Transactional
     public boolean deleteLoginLog(Long id) {
         log.info("删除登录日志: id={}", id);
-        // TODO: 实现删除登录日志逻辑
-        return true;
+        return loginLogMapper.deleteById(id) > 0;
     }
 
     @Override
+    @Transactional
     public int batchDeleteLoginLogs(List<Long> ids) {
         log.info("批量删除登录日志: ids={}", ids);
-        // TODO: 实现批量删除登录日志逻辑
-        return ids.size();
+        return loginLogMapper.deleteBatchIds(ids);
     }
 
     @Override
+    @Transactional
     public int cleanupExpiredLoginLogs(int days) {
         log.info("清理过期登录日志: days={}", days);
-        // TODO: 实现清理过期登录日志逻辑
-        return 0;
+        LocalDateTime expireTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.deleteExpiredLogs(expireTime);
     }
 
     @Override
     public Map<String, Object> getLoginSuccessRateStatistics(LocalDateTime startTime, LocalDateTime endTime) {
         log.info("统计登录成功率: startTime={}, endTime={}", startTime, endTime);
-        // TODO: 实现统计登录成功率逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("successRate", 100.0);
-        return result;
+        return loginLogMapper.getLoginSuccessRateStatistics(startTime, endTime);
     }
 
     @Override
     public Map<String, Object> getUserLoginStatistics(Long userId, int days) {
         log.info("统计用户登录情况: userId={}, days={}", userId, days);
-        // TODO: 实现统计用户登录情况逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("totalLogins", 0);
-        return result;
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getUserLoginStatistics(userId, startTime);
     }
 
     @Override
     public Map<String, Object> getActiveUserStatistics(int days) {
         log.info("统计活跃用户数量: days={}", days);
-        // TODO: 实现统计活跃用户数量逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("activeUsers", 0);
-        return result;
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getActiveUserStatistics(startTime);
     }
 
     @Override
     public List<Map<String, Object>> getDailyLoginStatistics(int days) {
         log.info("获取每日登录统计: days={}", days);
-        // TODO: 实现获取每日登录统计逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getDailyLoginStatistics(startTime);
     }
 
     @Override
     public List<Map<String, Object>> getLoginTypeStatistics(int days) {
         log.info("获取登录类型统计: days={}", days);
-        // TODO: 实现获取登录类型统计逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getLoginTypeStatistics(startTime);
     }
 
     @Override
     public List<Map<String, Object>> getBrowserStatistics(int days) {
         log.info("获取浏览器统计: days={}", days);
-        // TODO: 实现获取浏览器统计逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getBrowserStatistics(startTime);
     }
 
     @Override
     public List<Map<String, Object>> getOperatingSystemStatistics(int days) {
         log.info("获取操作系统统计: days={}", days);
-        // TODO: 实现获取操作系统统计逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getOperatingSystemStatistics(startTime);
     }
 
     @Override
     public List<Map<String, Object>> getLocationStatistics(int days) {
         log.info("获取地理位置统计: days={}", days);
-        // TODO: 实现获取地理位置统计逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getLocationStatistics(startTime);
     }
 
     @Override
     public List<String> identifySuspiciousIPs(int failedAttempts, int hours) {
         log.info("识别可疑IP地址: failedAttempts={}, hours={}", failedAttempts, hours);
-        // TODO: 实现识别可疑IP地址逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusHours(hours);
+        return loginLogMapper.identifySuspiciousIPs(failedAttempts, startTime);
     }
 
     @Override
     public Map<String, Object> getLoginTrendAnalysis(int days) {
         log.info("获取登录趋势分析: days={}", days);
-        // TODO: 实现获取登录趋势分析逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("trend", "stable");
-        return result;
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return loginLogMapper.getLoginTrendAnalysis(startTime);
     }
 
     @Override
     public String exportLoginLogs(ExportLoginLogRequest request) {
         log.info("导出登录日志: request={}", request);
-        // TODO: 实现导出登录日志逻辑
-        return "/tmp/login_logs.xlsx";
+        // 这里应该实现Excel导出逻辑，暂时返回模拟路径
+        String fileName = "login_logs_" + System.currentTimeMillis() + ".xlsx";
+        // TODO: 实现实际的Excel导出逻辑
+        return "/exports/" + fileName;
     }
 
     @Override
     public List<LoginLog> searchLoginLogs(String keyword, int limit) {
         log.info("搜索登录日志: keyword={}, limit={}", keyword, limit);
-        // TODO: 实现搜索登录日志逻辑
-        return List.of();
+        return loginLogMapper.searchByKeyword(keyword, limit);
     }
 
     @Override
     public Map<String, Object> generateSecurityReport(LocalDateTime startTime, LocalDateTime endTime) {
         log.info("获取登录安全报告: startTime={}, endTime={}", startTime, endTime);
-        // TODO: 实现获取登录安全报告逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("totalLogins", 0);
-        result.put("suspiciousActivities", 0);
-        return result;
+        return loginLogMapper.generateSecurityReport(startTime, endTime);
     }
 
     @Override
     public boolean hasAbnormalLoginBehavior(Long userId, int hours) {
         log.info("检查异常登录行为: userId={}, hours={}", userId, hours);
-        // TODO: 实现检查异常登录行为逻辑
-        return false;
+        LocalDateTime startTime = LocalDateTime.now().minusHours(hours);
+        return loginLogMapper.hasAbnormalLoginBehavior(userId, startTime);
     }
 
     @Override
     public List<LoginLog> getLoginFailureDetails(Long userId, int hours) {
         log.info("获取登录失败详情: userId={}, hours={}", userId, hours);
-        // TODO: 实现获取登录失败详情逻辑
-        return List.of();
+        LocalDateTime startTime = LocalDateTime.now().minusHours(hours);
+        return loginLogMapper.getLoginFailureDetails(userId, startTime);
     }
 
     @Override
     public long countTotalLogins() {
         log.info("统计总登录次数");
-        // TODO: 实现统计总登录次数逻辑
-        return 0;
+        return loginLogMapper.countTotalLogins();
     }
 
     @Override
     public long countSuccessfulLogins() {
         log.info("统计成功登录次数");
-        // TODO: 实现统计成功登录次数逻辑
-        return 0;
+        return loginLogMapper.countSuccessfulLogins();
     }
 
     @Override
     public long countFailedLogins() {
         log.info("统计失败登录次数");
-        // TODO: 实现统计失败登录次数逻辑
-        return 0;
+        return loginLogMapper.countFailedLogins();
     }
 
     @Override
     public Map<String, Long> countLoginsByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
         log.info("根据时间范围统计登录次数: startTime={}, endTime={}", startTime, endTime);
-        // TODO: 实现根据时间范围统计登录次数逻辑
-        Map<String, Long> result = new HashMap<>();
-        result.put("total", 0L);
-        result.put("successful", 0L);
-        result.put("failed", 0L);
-        return result;
+        return loginLogMapper.countLoginsByTimeRange(startTime, endTime);
     }
 }

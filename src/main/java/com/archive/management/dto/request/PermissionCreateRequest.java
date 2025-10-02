@@ -1,13 +1,13 @@
-package com.archive.dto.request;
+package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * 权限更新请求DTO
- * 封装权限更新所需的输入信息
+ * 权限创建请求DTO
+ * 封装权限创建所需的输入信息
  */
-public class PermissionUpdateRequest {
+public class PermissionCreateRequest {
 
     /**
      * 权限名称
@@ -68,22 +68,17 @@ public class PermissionUpdateRequest {
     private Boolean visible;
 
     /**
-     * 状态（ACTIVE-启用，INACTIVE-禁用）
-     */
-    private String status;
-
-    /**
      * 备注
      */
     @Size(max = 500, message = "备注长度不能超过500个字符")
     private String remark;
 
     // 构造函数
-    public PermissionUpdateRequest() {}
+    public PermissionCreateRequest() {}
 
-    public PermissionUpdateRequest(String name, String code, String description, String type,
+    public PermissionCreateRequest(String name, String code, String description, String type,
                                   Long parentId, String path, String method, String icon,
-                                  Integer sortOrder, Boolean visible, String status, String remark) {
+                                  Integer sortOrder, Boolean visible, String remark) {
         this.name = name;
         this.code = code;
         this.description = description;
@@ -94,7 +89,6 @@ public class PermissionUpdateRequest {
         this.icon = icon;
         this.sortOrder = sortOrder;
         this.visible = visible;
-        this.status = status;
         this.remark = remark;
     }
 
@@ -179,14 +173,6 @@ public class PermissionUpdateRequest {
         this.visible = visible;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public String getRemark() {
         return remark;
     }
@@ -197,7 +183,7 @@ public class PermissionUpdateRequest {
 
     @Override
     public String toString() {
-        return "PermissionUpdateRequest{" +
+        return "PermissionCreateRequest{" +
                 "name='" + name + '\'' +
                 ", code='" + code + '\'' +
                 ", description='" + description + '\'' +
@@ -208,7 +194,6 @@ public class PermissionUpdateRequest {
                 ", icon='" + icon + '\'' +
                 ", sortOrder=" + sortOrder +
                 ", visible=" + visible +
-                ", status='" + status + '\'' +
                 ", remark='" + remark + '\'' +
                 '}';
     }
