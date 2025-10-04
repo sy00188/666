@@ -6,6 +6,11 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.binder.MeterBinder;
+import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,11 +18,17 @@ import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCusto
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.actuate.info.InfoContributor;
+import org.springframework.boot.actuate.info.Info;
+import org.springframework.boot.actuate.health.HealthContributor;
+import org.springframework.boot.actuate.health.HealthContributorRegistry;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * 性能监控配置类
@@ -38,11 +49,53 @@ public class MonitoringConfig {
      */
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
-        return registry -> registry.config().commonTags(
-                "application", "archive-management-system",
-                "version", "1.0.0",
-                "environment", "production"
-        );
+        return registry -> registry.config()
+                .commonTags(
+                        "application", "archive-management-system",
+                        "version", "1.0.0",
+                        "environment", "production",
+                        "region", "us-east-1",
+                        "stack", "prod"
+                )
+                .meterFilter(MeterFilter.denyNameStartsWith("jvm.threads"))
+                .meterFilter(MeterFilter.denyNameStartsWith("jvm.classes"))
+                .meterFilter(MeterFilter.acceptNameStartsWith("archive."))
+                .meterFilter(MeterFilter.acceptNameStartsWith("http."))
+                .meterFilter(MeterFilter.acceptNameStartsWith("jvm.memory"))
+                .meterFilter(MeterFilter.acceptNameStartsWith("jvm.gc"))
+                .meterFilter(MeterFilter.acceptNameStartsWith("process."))
+                .meterFilter(MeterFilter.acceptNameStartsWith("system."));
+    }
+
+    /**
+     * 配置指标过滤器
+     */
+    @Bean
+    public MeterFilter meterFilter() {
+        return MeterFilter.maxExpected(DistributionStatisticConfig.DEFAULT)
+                .and(MeterFilter.denyNameStartsWith("jvm.threads"))
+                .and(MeterFilter.denyNameStartsWith("jvm.classes"));
+    }
+
+    /**
+     * 应用信息贡献者
+     */
+    @Bean
+    public InfoContributor applicationInfoContributor() {
+        return new InfoContributor() {
+            @Override
+            public void contribute(Info.Builder builder) {
+                Map<String, Object> details = new HashMap<>();
+                details.put("name", "档案管理系统");
+                details.put("version", "1.0.0");
+                details.put("description", "企业级档案数字化管理平台");
+                details.put("buildTime", System.currentTimeMillis());
+                details.put("javaVersion", System.getProperty("java.version"));
+                details.put("osName", System.getProperty("os.name"));
+                details.put("osVersion", System.getProperty("os.version"));
+                builder.withDetail("application", details);
+            }
+        };
     }
 
     /**

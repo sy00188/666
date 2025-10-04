@@ -1,26 +1,30 @@
 package com.archive.management.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.support.CompositeCacheManager;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * 缓存配置类
- * 配置Redis缓存和本地缓存策略
+ * 多级缓存配置类
+ * 实现本地缓存 + Redis分布式缓存的多级缓存架构
  * 
  * @author Archive Management System
  * @version 1.0
@@ -31,102 +35,173 @@ import java.time.Duration;
 public class CacheConfig {
 
     /**
-     * 配置RedisTemplate
+     * Redis模板配置
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
-        // 使用Jackson2JsonRedisSerializer来序列化和反序列化redis的value值
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
-        serializer.setObjectMapper(mapper);
-
-        // 使用StringRedisSerializer来序列化和反序列化redis的key值
+        
+        // 设置序列化器
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(serializer);
-
-        // Hash的key也采用StringRedisSerializer的序列化方式
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(serializer);
-
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        
         template.afterPropertiesSet();
         return template;
     }
 
     /**
-     * 配置CacheManager
+     * 本地缓存管理器 (Caffeine)
      */
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // 配置序列化
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
-        serializer.setObjectMapper(mapper);
-
-        // 配置缓存序列化
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(30)) // 默认30分钟过期
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .disableCachingNullValues(); // 不缓存null值
-
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .build();
+    public CaffeineCacheManager localCacheManager() {
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(Duration.ofMinutes(5))
+                .expireAfterAccess(Duration.ofMinutes(2))
+                .recordStats());
+        return cacheManager;
     }
 
     /**
-     * 用户缓存配置
+     * Redis缓存管理器
      */
     @Bean
-    public RedisCacheConfiguration userCacheConfig() {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(30))
-                .prefixCacheNameWith("user:")
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new Jackson2JsonRedisSerializer<>(Object.class)));
+    public RedisCacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
+        RedisCacheManager.Builder builder = RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                        .entryTtl(Duration.ofMinutes(30))
+                        .disableCachingNullValues());
+        
+        // 配置不同缓存的TTL
+        Map<String, org.springframework.data.redis.cache.RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        
+        // 用户缓存 - 30分钟
+        cacheConfigurations.put("users", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(30)));
+        
+        // 权限缓存 - 1小时
+        cacheConfigurations.put("permissions", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(1)));
+        
+        // 角色缓存 - 1小时
+        cacheConfigurations.put("roles", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(1)));
+        
+        // 部门缓存 - 2小时
+        cacheConfigurations.put("departments", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(2)));
+        
+        // 档案缓存 - 15分钟
+        cacheConfigurations.put("archives", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(15)));
+        
+        // 配置缓存 - 2小时
+        cacheConfigurations.put("config", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(2)));
+        
+        // 统计缓存 - 5分钟
+        cacheConfigurations.put("statistics", org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(5)));
+        
+        builder.withInitialCacheConfigurations(cacheConfigurations);
+        
+        return builder.build();
     }
 
     /**
-     * 权限缓存配置
+     * 复合缓存管理器 - 多级缓存
      */
     @Bean
-    public RedisCacheConfiguration permissionCacheConfig() {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
-                .prefixCacheNameWith("permission:")
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new Jackson2JsonRedisSerializer<>(Object.class)));
+    @Primary
+    public CacheManager cacheManager(CaffeineCacheManager localCacheManager, 
+                                   RedisCacheManager redisCacheManager) {
+        CompositeCacheManager compositeCacheManager = new CompositeCacheManager();
+        compositeCacheManager.setCacheManagers(Arrays.asList(localCacheManager, redisCacheManager));
+        compositeCacheManager.setFallbackToNoOpCache(true);
+        return compositeCacheManager;
     }
 
     /**
-     * 档案缓存配置
+     * 缓存配置属性
      */
     @Bean
-    public RedisCacheConfiguration archiveCacheConfig() {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(15))
-                .prefixCacheNameWith("archive:")
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new Jackson2JsonRedisSerializer<>(Object.class)));
+    public CacheProperties cacheProperties() {
+        return new CacheProperties();
     }
 
     /**
-     * 系统配置缓存
+     * 缓存统计配置
      */
     @Bean
-    public RedisCacheConfiguration systemConfigCacheConfig() {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(2))
-                .prefixCacheNameWith("system:")
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new Jackson2JsonRedisSerializer<>(Object.class)));
+    public CacheStatisticsConfig cacheStatisticsConfig() {
+        return new CacheStatisticsConfig();
+    }
+
+    /**
+     * 用户信息本地缓存
+     */
+    @Bean
+    public LoadingCache<String, Object> userCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(500)
+                .expireAfterWrite(Duration.ofMinutes(10))
+                .expireAfterAccess(Duration.ofMinutes(5))
+                .recordStats()
+                .build(key -> {
+                    // 缓存未命中时的加载逻辑
+                    return null;
+                });
+    }
+
+    /**
+     * 权限信息本地缓存
+     */
+    @Bean
+    public LoadingCache<String, Object> permissionCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(200)
+                .expireAfterWrite(Duration.ofMinutes(30))
+                .expireAfterAccess(Duration.ofMinutes(15))
+                .recordStats()
+                .build(key -> {
+                    // 缓存未命中时的加载逻辑
+                    return null;
+                });
+    }
+
+    /**
+     * 档案信息本地缓存
+     */
+    @Bean
+    public LoadingCache<String, Object> archiveCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(Duration.ofMinutes(5))
+                .expireAfterAccess(Duration.ofMinutes(2))
+                .recordStats()
+                .build(key -> {
+                    // 缓存未命中时的加载逻辑
+                    return null;
+                });
+    }
+
+    /**
+     * 统计信息本地缓存
+     */
+    @Bean
+    public LoadingCache<String, Object> statisticsCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterWrite(Duration.ofMinutes(2))
+                .expireAfterAccess(Duration.ofMinutes(1))
+                .recordStats()
+                .build(key -> {
+                    // 缓存未命中时的加载逻辑
+                    return null;
+                });
     }
 }

@@ -192,26 +192,70 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,env,configprops,beans,mappings
+        include: health,info,metrics,prometheus,env,configprops,beans,mappings,loggers,httptrace,threaddump,heapdump
       base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: "GET,POST"
+        allowed-headers: "*"
   endpoint:
     health:
       show-details: when-authorized
       show-components: when-authorized
+      probes:
+        enabled: true
     metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    info:
+      enabled: true
+    env:
+      enabled: true
+    configprops:
+      enabled: true
+    beans:
+      enabled: true
+    mappings:
+      enabled: true
+    loggers:
+      enabled: true
+    httptrace:
+      enabled: true
+    threaddump:
+      enabled: true
+    heapdump:
       enabled: true
   prometheus:
     metrics:
       export:
         enabled: true
+        step: "30s"
   metrics:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        jvm.gc.pause: true
+        jvm.memory.used: true
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
+        jvm.gc.pause: 0.5, 0.9, 0.95, 0.99
       sla:
         http.server.requests: 10ms, 50ms, 100ms, 200ms, 500ms
+    tags:
+      application: "archive-management-system"
+      environment: "production"
+      region: "us-east-1"
+      stack: "prod"
+    use-global-registry: true
+    export:
+      prometheus:
+        enabled: true
+        step: "30s"
+      datadog:
+        enabled: false
+      stackdriver:
+        enabled: false
 
 # 应用自定义配置
 archive:
@@ -314,6 +358,51 @@ archive:
     type: local # local, oss, s3
     path: /data/archive/backup
     retention-days: 30
+  
+  # 性能配置
+  performance:
+    async:
+      core-pool-size: 5
+      max-pool-size: 20
+      queue-capacity: 100
+      keep-alive-seconds: 60
+    scheduled:
+      pool-size: 5
+    file-upload:
+      core-pool-size: 3
+      max-pool-size: 10
+      queue-capacity: 50
+      keep-alive-seconds: 60
+    search:
+      core-pool-size: 5
+      max-pool-size: 15
+      queue-capacity: 100
+      keep-alive-seconds: 60
+    batch-operation:
+      core-pool-size: 3
+      max-pool-size: 8
+      queue-capacity: 50
+      keep-alive-seconds: 60
+  
+  # 数据库优化配置
+  database:
+    optimization:
+      connection-pool:
+        max-pool-size: 20
+        min-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        leak-detection-threshold: 60000
+      transaction:
+        timeout: 30
+      query-optimization:
+        slow-query-threshold: 1000
+        enable-query-cache: true
+        query-cache-size: 32
+      monitoring:
+        enabled: true
+        check-interval: 300
     compress: true
     encrypt: false
 

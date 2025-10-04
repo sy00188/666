@@ -1,152 +1,273 @@
 package com.archive.management.service;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+
+import com.github.benmanes.caffeine.cache.LoadingCache;
+
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
- * 缓存服务接口
- * 提供系统缓存相关的操作
+ * 缓存服务类
+ * 提供多级缓存的统一访问接口
  * 
  * @author Archive Management System
  * @version 1.0
- * @since 2024-01-01
+ * @since 2024-01-20
  */
-public interface CacheService {
+@Service
+public class CacheService {
+
+    @Autowired
+    private CacheManager cacheManager;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private LoadingCache<String, Object> userCache;
+
+    @Autowired
+    private LoadingCache<String, Object> permissionCache;
+
+    @Autowired
+    private LoadingCache<String, Object> archiveCache;
+
+    @Autowired
+    private LoadingCache<String, Object> statisticsCache;
 
     /**
-     * 设置缓存
-     * 
-     * @param key 缓存键
-     * @param value 缓存值
+     * 获取缓存值
      */
-    void set(String key, Object value);
+    public <T> T get(String cacheName, String key, Class<T> type) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            Cache.ValueWrapper wrapper = cache.get(key);
+            if (wrapper != null) {
+                return type.cast(wrapper.get());
+            }
+        }
+        return null;
+    }
 
     /**
-     * 设置缓存并指定过期时间
-     * 
-     * @param key 缓存键
-     * @param value 缓存值
-     * @param duration 过期时间
+     * 设置缓存值
      */
-    void set(String key, Object value, Duration duration);
+    public void put(String cacheName, String key, Object value) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.put(key, value);
+        }
+    }
 
     /**
-     * 获取缓存
-     * 
-     * @param key 缓存键
-     * @return 缓存值
+     * 设置缓存值（带TTL）
      */
-    Object get(String key);
-
-    /**
-     * 获取缓存并指定类型
-     * 
-     * @param key 缓存键
-     * @param clazz 值类型
-     * @param <T> 泛型类型
-     * @return 缓存值
-     */
-    <T> T get(String key, Class<T> clazz);
+    public void put(String cacheName, String key, Object value, long ttl, TimeUnit timeUnit) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.put(key, value);
+        }
+        
+        // 同时设置Redis缓存
+        redisTemplate.opsForValue().set(cacheName + ":" + key, value, ttl, timeUnit);
+    }
 
     /**
      * 删除缓存
-     * 
-     * @param key 缓存键
-     * @return 是否删除成功
      */
-    boolean delete(String key);
+    public void evict(String cacheName, String key) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.evict(key);
+        }
+        
+        // 同时删除Redis缓存
+        redisTemplate.delete(cacheName + ":" + key);
+    }
 
     /**
-     * 批量删除缓存
-     * 
-     * @param keys 缓存键列表
-     * @return 删除成功的数量
+     * 清空缓存
      */
-    long delete(List<String> keys);
+    public void clear(String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+        }
+    }
+
+    /**
+     * 获取或计算缓存值
+     */
+    public <T> T getOrCompute(String cacheName, String key, Function<String, T> computeFunction, Class<T> type) {
+        T value = get(cacheName, key, type);
+        if (value == null) {
+            value = computeFunction.apply(key);
+            if (value != null) {
+                put(cacheName, key, value);
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 获取或计算缓存值（带TTL）
+     */
+    public <T> T getOrCompute(String cacheName, String key, Function<String, T> computeFunction, 
+                             Class<T> type, long ttl, TimeUnit timeUnit) {
+        T value = get(cacheName, key, type);
+        if (value == null) {
+            value = computeFunction.apply(key);
+            if (value != null) {
+                put(cacheName, key, value, ttl, timeUnit);
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 用户缓存操作
+     */
+    public <T> T getUser(String key, Class<T> type) {
+        return type.cast(userCache.get(key));
+    }
+
+    public void putUser(String key, Object value) {
+        userCache.put(key, value);
+    }
+
+    public void evictUser(String key) {
+        userCache.invalidate(key);
+    }
+
+    public void clearUserCache() {
+        userCache.invalidateAll();
+    }
+
+    /**
+     * 权限缓存操作
+     */
+    public <T> T getPermission(String key, Class<T> type) {
+        return type.cast(permissionCache.get(key));
+    }
+
+    public void putPermission(String key, Object value) {
+        permissionCache.put(key, value);
+    }
+
+    public void evictPermission(String key) {
+        permissionCache.invalidate(key);
+    }
+
+    public void clearPermissionCache() {
+        permissionCache.invalidateAll();
+    }
+
+    /**
+     * 档案缓存操作
+     */
+    public <T> T getArchive(String key, Class<T> type) {
+        return type.cast(archiveCache.get(key));
+    }
+
+    public void putArchive(String key, Object value) {
+        archiveCache.put(key, value);
+    }
+
+    public void evictArchive(String key) {
+        archiveCache.invalidate(key);
+    }
+
+    public void clearArchiveCache() {
+        archiveCache.invalidateAll();
+    }
+
+    /**
+     * 统计缓存操作
+     */
+    public <T> T getStatistics(String key, Class<T> type) {
+        return type.cast(statisticsCache.get(key));
+    }
+
+    public void putStatistics(String key, Object value) {
+        statisticsCache.put(key, value);
+    }
+
+    public void evictStatistics(String key) {
+        statisticsCache.invalidate(key);
+    }
+
+    public void clearStatisticsCache() {
+        statisticsCache.invalidateAll();
+    }
+
+    /**
+     * 预热缓存
+     */
+    public void warmUpCache(String cacheName, String key, Object value) {
+        put(cacheName, key, value);
+    }
+
+    /**
+     * 批量预热缓存
+     */
+    public void warmUpCache(String cacheName, java.util.Map<String, Object> data) {
+        data.forEach((k, v) -> put(cacheName, k, v));
+    }
+
+    /**
+     * 获取缓存统计信息
+     */
+    public String getCacheStats() {
+        StringBuilder stats = new StringBuilder();
+        stats.append("用户缓存统计: ").append(userCache.stats()).append("\n");
+        stats.append("权限缓存统计: ").append(permissionCache.stats()).append("\n");
+        stats.append("档案缓存统计: ").append(archiveCache.stats()).append("\n");
+        stats.append("统计缓存统计: ").append(statisticsCache.stats()).append("\n");
+        return stats.toString();
+    }
 
     /**
      * 检查缓存是否存在
-     * 
-     * @param key 缓存键
-     * @return 是否存在
      */
-    boolean exists(String key);
+    public boolean exists(String cacheName, String key) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            return cache.get(key) != null;
+        }
+        return false;
+    }
 
     /**
-     * 设置缓存过期时间
-     * 
-     * @param key 缓存键
-     * @param duration 过期时间
-     * @return 是否设置成功
+     * 获取缓存大小
      */
-    boolean expire(String key, Duration duration);
-
-    /**
-     * 获取缓存剩余过期时间
-     * 
-     * @param key 缓存键
-     * @return 剩余过期时间（秒）
-     */
-    long getExpire(String key);
-
-    /**
-     * 根据模式匹配获取所有键
-     * 
-     * @param pattern 匹配模式
-     * @return 匹配的键集合
-     */
-    Set<String> keys(String pattern);
+    public long getCacheSize(String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            return cache.getNativeCache().size();
+        }
+        return 0;
+    }
 
     /**
      * 清空所有缓存
      */
-    void clear();
-
-    /**
-     * 清空指定前缀的缓存
-     * 
-     * @param prefix 缓存键前缀
-     * @return 清空的数量
-     */
-    long clearByPrefix(String prefix);
-
-    /**
-     * 获取缓存统计信息
-     * 
-     * @return 统计信息
-     */
-    Map<String, Object> getStats();
-
-    /**
-     * 刷新缓存
-     * 
-     * @param key 缓存键
-     * @param value 新值
-     * @return 是否刷新成功
-     */
-    boolean refresh(String key, Object value);
-
-    /**
-     * 预热缓存
-     * 
-     * @param cacheData 预热数据
-     * @return 预热成功的数量
-     */
-    int warmUp(Map<String, Object> cacheData);
-
-    /**
-     * 获取缓存大小
-     * 
-     * @return 缓存项数量
-     */
-    long size();
-
-    /**
-     * 获取缓存内存使用情况
-     * 
-     * @return 内存使用信息
-     */
-    Map<String, Object> getMemoryInfo();
+    public void clearAllCaches() {
+        cacheManager.getCacheNames().forEach(cacheName -> {
+            Cache cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+            }
+        });
+        
+        // 清空本地缓存
+        userCache.invalidateAll();
+        permissionCache.invalidateAll();
+        archiveCache.invalidateAll();
+        statisticsCache.invalidateAll();
+    }
 }

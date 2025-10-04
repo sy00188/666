@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Prometheus - 指标收集和存储
   prometheus:
     image: prom/prometheus:latest
     container_name: archive-prometheus
@@ -9,6 +8,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -17,10 +17,11 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # Grafana - 监控面板
   grafana:
     image: grafana/grafana:latest
     container_name: archive-grafana
@@ -28,16 +29,34 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/archive-dashboard.json
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/archive-dashboard.json
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     networks:
       - monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
 
-  # Node Exporter - 系统指标收集
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: archive-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring
+    restart: unless-stopped
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: archive-node-exporter
@@ -54,8 +73,8 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # cAdvisor - 容器指标收集
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: archive-cadvisor
@@ -72,8 +91,8 @@ services:
       - /dev/kmsg
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # Redis Exporter - Redis指标收集
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: archive-redis-exporter
@@ -83,73 +102,68 @@ services:
       - REDIS_ADDR=redis://redis:6379
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # MySQL Exporter - MySQL指标收集
   mysql-exporter:
     image: prom/mysqld-exporter:latest
     container_name: archive-mysql-exporter
     ports:
       - "9104:9104"
     environment:
-      - DATA_SOURCE_NAME=root:123456@(mysql:3306)/
+      - DATA_SOURCE_NAME=root:password@(mysql:3306)/
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # Alertmanager - 告警管理
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: archive-alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - alertmanager_data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://localhost:9093'
-    networks:
-      - monitoring
-
-  # Elasticsearch - 日志存储
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: archive-elasticsearch
     ports:
       - "9200:9200"
+      - "9300:9300"
     environment:
       - discovery.type=single-node
+      - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - monitoring
+    restart: unless-stopped
 
-  # Kibana - 日志分析
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.17.0
+    image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: archive-kibana
     ports:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
     networks:
       - monitoring
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
 
-  # Logstash - 日志处理
-  logstash:
-    image: docker.elastic.co/logstash/logstash:7.17.0
-    container_name: archive-logstash
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: archive-jaeger
     ports:
-      - "5044:5044"
-    volumes:
-      - ./monitoring/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    depends_on:
-      - elasticsearch
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
       - monitoring
+    restart: unless-stopped
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: archive-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - monitoring
+    restart: unless-stopped
 
 volumes:
   prometheus_data:

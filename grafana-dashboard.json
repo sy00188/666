@@ -2,8 +2,7 @@
   "dashboard": {
     "id": null,
     "title": "档案管理系统监控面板",
-    "description": "档案管理系统的性能监控和业务指标面板",
-    "tags": ["archive", "monitoring", "performance"],
+    "tags": ["archive", "management", "monitoring", "spring-boot"],
     "style": "dark",
     "timezone": "browser",
     "refresh": "30s",
@@ -14,185 +13,6 @@
     "panels": [
       {
         "id": 1,
-        "title": "系统概览",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "archive_system_active_users",
-            "legendFormat": "活跃用户数"
-          },
-          {
-            "expr": "archive_system_total_users",
-            "legendFormat": "总用户数"
-          },
-          {
-            "expr": "archive_system_total_documents",
-            "legendFormat": "总档案数"
-          },
-          {
-            "expr": "archive_system_concurrent_operations",
-            "legendFormat": "并发操作数"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 0
-        }
-      },
-      {
-        "id": 2,
-        "title": "业务指标趋势",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(archive_user_registration_total[5m])",
-            "legendFormat": "用户注册率"
-          },
-          {
-            "expr": "rate(archive_document_created_total[5m])",
-            "legendFormat": "档案创建率"
-          },
-          {
-            "expr": "rate(archive_document_downloaded_total[5m])",
-            "legendFormat": "档案下载率"
-          },
-          {
-            "expr": "rate(archive_user_login_total[5m])",
-            "legendFormat": "用户登录率"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 8
-        }
-      },
-      {
-        "id": 3,
-        "title": "错误率统计",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(archive_error_count_total[5m])",
-            "legendFormat": "错误率"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 8
-        }
-      },
-      {
-        "id": 4,
-        "title": "响应时间分布",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, rate(archive_user_registration_time_seconds_bucket[5m]))",
-            "legendFormat": "用户注册P50"
-          },
-          {
-            "expr": "histogram_quantile(0.90, rate(archive_user_registration_time_seconds_bucket[5m]))",
-            "legendFormat": "用户注册P90"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(archive_user_registration_time_seconds_bucket[5m]))",
-            "legendFormat": "用户注册P95"
-          },
-          {
-            "expr": "histogram_quantile(0.99, rate(archive_user_registration_time_seconds_bucket[5m]))",
-            "legendFormat": "用户注册P99"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 16
-        }
-      },
-      {
-        "id": 5,
-        "title": "档案操作响应时间",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, rate(archive_document_creation_time_seconds_bucket[5m]))",
-            "legendFormat": "档案创建P50"
-          },
-          {
-            "expr": "histogram_quantile(0.90, rate(archive_document_creation_time_seconds_bucket[5m]))",
-            "legendFormat": "档案创建P90"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(archive_document_creation_time_seconds_bucket[5m]))",
-            "legendFormat": "档案创建P95"
-          },
-          {
-            "expr": "histogram_quantile(0.99, rate(archive_document_creation_time_seconds_bucket[5m]))",
-            "legendFormat": "档案创建P99"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 16
-        }
-      },
-      {
-        "id": 6,
-        "title": "数据库连接池状态",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "archive_database_connections_active",
-            "legendFormat": "活跃连接数"
-          },
-          {
-            "expr": "archive_database_connections_idle",
-            "legendFormat": "空闲连接数"
-          },
-          {
-            "expr": "archive_database_connections_total",
-            "legendFormat": "总连接数"
-          },
-          {
-            "expr": "archive_database_connections_waiting",
-            "legendFormat": "等待连接数"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 24
-        }
-      },
-      {
-        "id": 7,
-        "title": "系统健康状态",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "up{job=\"archive-management-system\"}",
-            "legendFormat": "应用状态"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 24
-        }
-      },
-      {
-        "id": 8,
         "title": "JVM内存使用情况",
         "type": "graph",
         "targets": [
@@ -203,116 +23,238 @@
           {
             "expr": "jvm_memory_max_bytes{area=\"heap\"}",
             "legendFormat": "堆内存最大值"
+          },
+          {
+            "expr": "jvm_memory_used_bytes{area=\"nonheap\"}",
+            "legendFormat": "非堆内存使用"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "内存使用量 (bytes)",
+            "min": 0
+          }
+        ],
+        "xAxes": [
+          {
+            "label": "时间"
           }
         ],
         "gridPos": {
           "h": 8,
           "w": 12,
           "x": 0,
-          "y": 32
-        }
+          "y": 0
+        },
+        "thresholds": [
+          {
+            "value": 0.8,
+            "color": "yellow"
+          },
+          {
+            "value": 0.9,
+            "color": "red"
+          }
+        ]
       },
       {
-        "id": 9,
+        "id": 2,
         "title": "HTTP请求统计",
         "type": "graph",
         "targets": [
           {
             "expr": "rate(http_server_requests_seconds_count[5m])",
-            "legendFormat": "请求率"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(http_server_requests_seconds_bucket[5m]))",
-            "legendFormat": "响应时间P50"
-          },
-          {
-            "expr": "histogram_quantile(0.90, rate(http_server_requests_seconds_bucket[5m]))",
-            "legendFormat": "响应时间P90"
+            "legendFormat": "请求速率"
           },
           {
             "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))",
-            "legendFormat": "响应时间P95"
+            "legendFormat": "95%响应时间"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket[5m]))",
+            "legendFormat": "99%响应时间"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "请求/秒",
+            "min": 0
           }
         ],
         "gridPos": {
           "h": 8,
           "w": 12,
           "x": 12,
-          "y": 32
+          "y": 0
         }
       },
       {
-        "id": 10,
-        "title": "业务操作分布",
-        "type": "pie",
+        "id": 3,
+        "title": "数据库连接池",
+        "type": "graph",
         "targets": [
           {
-            "expr": "archive_user_registration_total",
-            "legendFormat": "用户注册"
+            "expr": "hikaricp_connections_active",
+            "legendFormat": "活跃连接数"
           },
           {
-            "expr": "archive_document_created_total",
-            "legendFormat": "档案创建"
+            "expr": "hikaricp_connections_idle",
+            "legendFormat": "空闲连接数"
           },
           {
-            "expr": "archive_document_downloaded_total",
-            "legendFormat": "档案下载"
-          },
+            "expr": "hikaricp_connections_pending",
+            "legendFormat": "等待连接数"
+          }
+        ],
+        "yAxes": [
           {
-            "expr": "archive_document_searched_total",
-            "legendFormat": "档案搜索"
-          },
-          {
-            "expr": "archive_document_updated_total",
-            "legendFormat": "档案更新"
-          },
-          {
-            "expr": "archive_document_deleted_total",
-            "legendFormat": "档案删除"
+            "label": "连接数",
+            "min": 0
           }
         ],
         "gridPos": {
           "h": 8,
-          "w": 24,
+          "w": 12,
           "x": 0,
-          "y": 40
+          "y": 8
         }
-      }
-    ],
-    "templating": {
-      "list": [
-        {
-          "name": "instance",
-          "type": "query",
-          "query": "label_values(up{job=\"archive-management-system\"}, instance)",
-          "refresh": 1,
-          "includeAll": true,
-          "multi": true
-        }
-      ]
-    },
-    "annotations": {
-      "list": [
-        {
-          "name": "部署事件",
-          "type": "tags",
-          "datasource": "Prometheus",
-          "enable": true,
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "tags": ["deployment"]
-        }
-      ]
-    },
-    "links": [
-      {
-        "title": "应用日志",
-        "url": "http://localhost:5601/app/kibana#/discover",
-        "type": "link"
       },
       {
-        "title": "系统监控",
-        "url": "http://localhost:3000/d/system",
-        "type": "link"
+        "id": 4,
+        "title": "业务指标",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "archive_created_total",
+            "legendFormat": "档案创建总数"
+          },
+          {
+            "expr": "user_login_total",
+            "legendFormat": "用户登录总数"
+          },
+          {
+            "expr": "document_downloaded_total",
+            "legendFormat": "文档下载总数"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "计数",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "JVM GC统计",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_count[5m])",
+            "legendFormat": "GC暂停次数"
+          },
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum[5m])",
+            "legendFormat": "GC暂停总时间"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "GC次数/秒",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "系统资源使用",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "system_cpu_usage",
+            "legendFormat": "CPU使用率"
+          },
+          {
+            "expr": "process_cpu_usage",
+            "legendFormat": "进程CPU使用率"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU使用率 (%)",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "缓存命中率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "cache_hits_total / (cache_hits_total + cache_misses_total) * 100",
+            "legendFormat": "缓存命中率"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "命中率 (%)",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "错误率统计",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])",
+            "legendFormat": "5xx错误率"
+          },
+          {
+            "expr": "rate(http_server_requests_seconds_count{status=~\"4..\"}[5m])",
+            "legendFormat": "4xx错误率"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "错误率 (次/秒)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
       }
     ]
   }
