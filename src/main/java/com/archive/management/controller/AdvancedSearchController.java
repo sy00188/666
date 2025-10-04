@@ -1,22 +1,22 @@
 package com.archive.management.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
-
-import com.archive.management.service.AdvancedSearchService;
-import com.archive.management.dto.ApiResponse;
+import com.archive.management.common.ApiResponse;
 import com.archive.management.entity.Archive;
 import com.archive.management.entity.User;
+import com.archive.management.service.AdvancedSearchService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 /**
  * 高级搜索控制器
@@ -26,34 +26,32 @@ import java.util.HashMap;
  * @version 1.0
  * @since 2024-01-20
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/search")
+@RequiredArgsConstructor
+@Tag(name = "高级搜索", description = "高级搜索相关接口")
 public class AdvancedSearchController {
 
-    @Autowired
-    private AdvancedSearchService advancedSearchService;
+    private final AdvancedSearchService advancedSearchService;
 
     /**
      * 高级搜索档案
      */
     @PostMapping("/archives/advanced")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Page<Archive>>> advancedSearchArchives(
+    @Operation(summary = "高级搜索档案", description = "根据复杂条件搜索档案")
+    @PreAuthorize("hasAuthority('archive:read')")
+    public ResponseEntity<ApiResponse<IPage<Archive>>> advancedSearchArchives(
             @RequestBody Map<String, Object> searchCriteria,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createTime") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int current,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") int size) {
         try {
-            // 构建分页和排序
-            Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
-            Pageable pageable = PageRequest.of(page, size, sort);
-            
-            // 执行高级搜索
-            Page<Archive> results = advancedSearchService.advancedSearchArchives(searchCriteria, pageable);
+            Page<Archive> page = new Page<>(current, size);
+            IPage<Archive> results = advancedSearchService.advancedSearchArchives(searchCriteria, page);
             
             return ResponseEntity.ok(ApiResponse.success(results, "搜索成功"));
         } catch (Exception e) {
+            log.error("高级搜索档案失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("搜索失败: " + e.getMessage()));
         }
     }
@@ -62,23 +60,19 @@ public class AdvancedSearchController {
      * 高级搜索用户
      */
     @PostMapping("/users/advanced")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<User>>> advancedSearchUsers(
+    @Operation(summary = "高级搜索用户", description = "根据复杂条件搜索用户")
+    @PreAuthorize("hasAuthority('user:read')")
+    public ResponseEntity<ApiResponse<IPage<User>>> advancedSearchUsers(
             @RequestBody Map<String, Object> searchCriteria,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createTime") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int current,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") int size) {
         try {
-            // 构建分页和排序
-            Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
-            Pageable pageable = PageRequest.of(page, size, sort);
-            
-            // 执行高级搜索
-            Page<User> results = advancedSearchService.advancedSearchUsers(searchCriteria, pageable);
+            Page<User> page = new Page<>(current, size);
+            IPage<User> results = advancedSearchService.advancedSearchUsers(searchCriteria, page);
             
             return ResponseEntity.ok(ApiResponse.success(results, "搜索成功"));
         } catch (Exception e) {
+            log.error("高级搜索用户失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("搜索失败: " + e.getMessage()));
         }
     }
@@ -87,14 +81,16 @@ public class AdvancedSearchController {
      * 全文搜索档案
      */
     @GetMapping("/archives/fulltext")
-    @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "全文搜索档案", description = "根据关键词全文搜索档案")
+    @PreAuthorize("hasAuthority('archive:read')")
     public ResponseEntity<ApiResponse<List<Archive>>> fullTextSearchArchives(
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "10") int limit) {
+            @Parameter(description = "搜索关键词") @RequestParam String keyword,
+            @Parameter(description = "结果数量限制") @RequestParam(defaultValue = "10") int limit) {
         try {
             List<Archive> results = advancedSearchService.fullTextSearchArchives(keyword, limit);
             return ResponseEntity.ok(ApiResponse.success(results, "搜索成功"));
         } catch (Exception e) {
+            log.error("全文搜索档案失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("搜索失败: " + e.getMessage()));
         }
     }
@@ -264,14 +260,15 @@ public class AdvancedSearchController {
      * 搜索用户（简单条件）
      */
     @GetMapping("/users/simple")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<User>>> simpleSearchUsers(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String realName,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    @Operation(summary = "简单搜索用户", description = "根据简单条件搜索用户")
+    @PreAuthorize("hasAuthority('user:read')")
+    public ResponseEntity<ApiResponse<IPage<User>>> simpleSearchUsers(
+            @Parameter(description = "用户名") @RequestParam(required = false) String username,
+            @Parameter(description = "真实姓名") @RequestParam(required = false) String realName,
+            @Parameter(description = "邮箱") @RequestParam(required = false) String email,
+            @Parameter(description = "状态") @RequestParam(required = false) Integer status,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int current,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") int size) {
         try {
             // 构建搜索条件
             Map<String, Object> searchCriteria = new HashMap<>();
@@ -281,14 +278,50 @@ public class AdvancedSearchController {
             if (status != null) searchCriteria.put("status", status);
             
             // 构建分页
-            Pageable pageable = PageRequest.of(page, size);
+            Page<User> page = new Page<>(current, size);
             
             // 执行搜索
-            Page<User> results = advancedSearchService.advancedSearchUsers(searchCriteria, pageable);
+            IPage<User> results = advancedSearchService.advancedSearchUsers(searchCriteria, page);
             
             return ResponseEntity.ok(ApiResponse.success(results, "搜索成功"));
         } catch (Exception e) {
+            log.error("简单搜索用户失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("搜索失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取热门搜索关键词
+     */
+    @GetMapping("/hot-keywords")
+    @Operation(summary = "获取热门搜索关键词", description = "获取热门搜索关键词")
+    @PreAuthorize("hasAuthority('search:view')")
+    public ResponseEntity<ApiResponse<List<String>>> getHotSearchKeywords(
+            @Parameter(description = "搜索类型") @RequestParam String type) {
+        try {
+            List<String> hotKeywords = advancedSearchService.getHotSearchKeywords(type);
+            return ResponseEntity.ok(ApiResponse.success(hotKeywords, "获取热门关键词成功"));
+        } catch (Exception e) {
+            log.error("获取热门搜索关键词失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取热门关键词失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 搜索相似档案
+     */
+    @GetMapping("/archives/similar/{archiveId}")
+    @Operation(summary = "搜索相似档案", description = "根据档案ID搜索相似档案")
+    @PreAuthorize("hasAuthority('archive:read')")
+    public ResponseEntity<ApiResponse<List<Archive>>> findSimilarArchives(
+            @Parameter(description = "档案ID") @PathVariable Long archiveId,
+            @Parameter(description = "结果数量限制") @RequestParam(defaultValue = "5") int limit) {
+        try {
+            List<Archive> similarArchives = advancedSearchService.findSimilarArchives(archiveId, limit);
+            return ResponseEntity.ok(ApiResponse.success(similarArchives, "搜索相似档案成功"));
+        } catch (Exception e) {
+            log.error("搜索相似档案失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("搜索相似档案失败: " + e.getMessage()));
         }
     }
 }

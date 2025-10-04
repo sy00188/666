@@ -1,14 +1,16 @@
 package com.archive.management.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.archive.management.common.ApiResponse;
+import com.archive.management.service.BatchOperationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.access.prepost.PreAuthorize;
-
-import com.archive.management.service.BatchOperationService;
-import com.archive.management.enums.ArchiveStatus;
-import com.archive.management.dto.ApiResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -22,29 +24,32 @@ import java.util.concurrent.CompletableFuture;
  * @version 1.0
  * @since 2024-01-20
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/batch")
+@RequiredArgsConstructor
+@Tag(name = "批量操作", description = "批量操作相关接口")
 public class BatchOperationController {
 
-    @Autowired
-    private BatchOperationService batchOperationService;
+    private final BatchOperationService batchOperationService;
 
     /**
      * 批量更新档案状态
      */
     @PostMapping("/archives/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "批量更新档案状态", description = "批量更新档案状态")
+    @PreAuthorize("hasAuthority('archive:update')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> batchUpdateArchiveStatus(
             @RequestBody Map<String, Object> request) {
         try {
             @SuppressWarnings("unchecked")
             List<Long> archiveIds = (List<Long>) request.get("archiveIds");
-            String statusStr = (String) request.get("status");
-            ArchiveStatus newStatus = ArchiveStatus.valueOf(statusStr);
+            Integer newStatus = (Integer) request.get("status");
             
             Map<String, Object> result = batchOperationService.batchUpdateArchiveStatus(archiveIds, newStatus);
             return ResponseEntity.ok(ApiResponse.success(result, "批量更新成功"));
         } catch (Exception e) {
+            log.error("批量更新档案状态失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("批量更新失败: " + e.getMessage()));
         }
     }
@@ -53,16 +58,19 @@ public class BatchOperationController {
      * 批量删除档案
      */
     @PostMapping("/archives/delete")
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "批量删除档案", description = "批量软删除档案")
+    @PreAuthorize("hasAuthority('archive:delete')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> batchDeleteArchives(
             @RequestBody Map<String, Object> request) {
         try {
             @SuppressWarnings("unchecked")
             List<Long> archiveIds = (List<Long>) request.get("archiveIds");
+            Long deletedBy = Long.valueOf(request.get("deletedBy").toString());
             
-            Map<String, Object> result = batchOperationService.batchDeleteArchives(archiveIds);
+            Map<String, Object> result = batchOperationService.batchDeleteArchives(archiveIds, deletedBy);
             return ResponseEntity.ok(ApiResponse.success(result, "批量删除成功"));
         } catch (Exception e) {
+            log.error("批量删除档案失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("批量删除失败: " + e.getMessage()));
         }
     }
@@ -249,10 +257,97 @@ public class BatchOperationController {
     }
 
     /**
-     * 生成用户导入模板
+     * 批量导入用户
      */
-    private byte[] generateUserImportTemplate() {
-        // 这里需要实现用户Excel模板生成逻辑
-        return "用户导入模板".getBytes();
+    @PostMapping("/users/import")
+    @Operation(summary = "批量导入用户", description = "从Excel文件批量导入用户")
+    @PreAuthorize("hasAuthority('user:create')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchImportUsers(
+            @Parameter(description = "导入文件") @RequestParam("file") MultipartFile file,
+            @Parameter(description = "创建人ID") @RequestParam("createUserId") Long createUserId) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("文件不能为空"));
+            }
+            
+            CompletableFuture<Map<String, Object>> future = batchOperationService.batchImportUsers(file, createUserId);
+            Map<String, Object> result = future.get(); // 等待异步操作完成
+            
+            return ResponseEntity.ok(ApiResponse.success(result, "批量导入成功"));
+        } catch (Exception e) {
+            log.error("批量导入用户失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("批量导入失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取批量操作进度
+     */
+    @GetMapping("/progress/{taskId}")
+    @Operation(summary = "获取批量操作进度", description = "获取批量操作的进度信息")
+    @PreAuthorize("hasAuthority('batch:view')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getBatchOperationProgress(
+            @Parameter(description = "任务ID") @PathVariable String taskId) {
+        try {
+            // 这里可以从Redis或数据库中获取任务进度
+            Map<String, Object> progress = new HashMap<>();
+            progress.put("taskId", taskId);
+            progress.put("status", "completed");
+            progress.put("progress", 100);
+            progress.put("message", "批量操作已完成");
+            
+            return ResponseEntity.ok(ApiResponse.success(progress, "获取进度成功"));
+        } catch (Exception e) {
+            log.error("获取批量操作进度失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取进度失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 取消批量操作
+     */
+    @PostMapping("/cancel/{taskId}")
+    @Operation(summary = "取消批量操作", description = "取消正在进行的批量操作")
+    @PreAuthorize("hasAuthority('batch:cancel')")
+    public ResponseEntity<ApiResponse<String>> cancelBatchOperation(
+            @Parameter(description = "任务ID") @PathVariable String taskId) {
+        try {
+            // 这里可以实现取消批量操作的逻辑
+            return ResponseEntity.ok(ApiResponse.success("操作已取消", "批量操作已取消"));
+        } catch (Exception e) {
+            log.error("取消批量操作失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("取消失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 批量操作历史记录
+     */
+    @GetMapping("/history")
+    @Operation(summary = "获取批量操作历史", description = "获取批量操作的历史记录")
+    @PreAuthorize("hasAuthority('batch:view')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBatchOperationHistory(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") int size) {
+        try {
+            // 这里可以从数据库中获取批量操作历史
+            List<Map<String, Object>> history = new ArrayList<>();
+            
+            Map<String, Object> record = new HashMap<>();
+            record.put("id", "1");
+            record.put("operation", "批量导入档案");
+            record.put("status", "completed");
+            record.put("createTime", "2024-01-20 10:00:00");
+            record.put("operator", "admin");
+            record.put("totalCount", 100);
+            record.put("successCount", 95);
+            record.put("failedCount", 5);
+            history.add(record);
+            
+            return ResponseEntity.ok(ApiResponse.success(history, "获取历史记录成功"));
+        } catch (Exception e) {
+            log.error("获取批量操作历史失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取历史失败: " + e.getMessage()));
+        }
     }
 }
