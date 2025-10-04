@@ -1,0 +1,206 @@
+# 测试环境配置
+spring:
+  profiles:
+    active: test
+  
+  # 数据源配置 - 使用H2内存数据库
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: 
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: HikariCP-Test
+      minimum-idle: 1
+      maximum-pool-size: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+    open-in-view: false
+
+  # Redis配置 - 使用嵌入式Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 1
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+          max-wait: 2000ms
+        shutdown-timeout: 100ms
+
+  # 消息队列配置 - 禁用RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 15000
+    listener:
+      simple:
+        acknowledge-mode: none
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 1
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+      location: /tmp
+
+  # 缓存配置
+  cache:
+    type: simple
+    cache-names: archives,users,permissions
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.archive.management.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    lazy-loading-enabled: false
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    auto-mapping-unknown-column-behavior: warning
+    default-executor-type: reuse
+    default-statement-timeout: 25
+    default-fetch-size: 100
+    safe-row-bounds-enabled: false
+    local-cache-scope: session
+    jdbc-type-for-null: other
+    lazy-load-trigger-methods: equals,clone,hashCode,toString
+    default-scripting-language: org.apache.ibatis.scripting.xmltags.XMLLanguageDriver
+    call-setters-on-nulls: false
+    return-instance-for-empty-row: false
+    log-prefix: 
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 分页插件配置
+pagehelper:
+  helper-dialect: h2
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+  page-size-zero: true
+
+# 日志配置
+logging:
+  level:
+    root: WARN
+    com.archive.management: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+    metrics:
+      enabled: true
+
+# 应用自定义配置
+archive:
+  # 文件存储配置
+  file:
+    storage:
+      type: local
+      base-path: ./data/test/files
+      temp-path: ./data/test/temp
+      max-size: 10485760 # 10MB
+      allowed-types: pdf,doc,docx,txt,jpg,jpeg,png
+  
+  # 安全配置
+  security:
+    jwt:
+      secret: test-jwt-secret-key
+      expiration: 3600000 # 1小时
+      refresh-expiration: 86400000 # 24小时
+    password:
+      min-length: 6
+      require-uppercase: false
+      require-lowercase: false
+      require-digit: false
+      require-special: false
+      max-attempts: 3
+      lock-duration: 300000 # 5分钟
+  
+  # 审计配置
+  audit:
+    enabled: true
+    log-requests: true
+    log-responses: false
+    sensitive-fields: password,token,secret
+    retention-days: 7
+  
+  # 缓存配置
+  cache:
+    user-cache-ttl: 300 # 5分钟
+    permission-cache-ttl: 600 # 10分钟
+    config-cache-ttl: 1200 # 20分钟
+    archive-cache-ttl: 300 # 5分钟
+  
+  # 定时任务配置
+  scheduler:
+    enabled: false
+  
+  # 系统监控配置
+  monitor:
+    enabled: false
+  
+  # 备份配置
+  backup:
+    enabled: false

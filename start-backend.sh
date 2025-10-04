@@ -50,6 +50,20 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+        elif self.path == '/api/auth/logout':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            # 模拟登出响应
+            response = {
+                'success': True,
+                'code': 200,
+                'message': '登出成功',
+                'data': None
+            }
+            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()

@@ -1,23 +1,28 @@
 package com.archive.management.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+
+import java.io.Serializable;
 
 /**
- * 服务层统一返回结果类
- * 用于Service层方法的返回值封装
+ * 统一响应结果类
+ * 封装API响应的标准格式
  * 
- * @param <T> 数据类型
  * @author Archive Management System
  * @version 1.0
  * @since 2024-01-20
  */
+@Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Result<T> {
+public class Result<T> implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
-     * 是否成功
+     * 响应状态码
      */
-    private boolean success;
+    private Integer code;
 
     /**
      * 响应消息
@@ -30,231 +35,136 @@ public class Result<T> {
     private T data;
 
     /**
-     * 错误码
+     * 时间戳
      */
-    private String errorCode;
+    private Long timestamp;
 
     /**
-     * 默认构造函数
+     * 请求追踪ID
      */
+    private String traceId;
+
     public Result() {
+        this.timestamp = System.currentTimeMillis();
     }
 
-    /**
-     * 构造函数
-     * 
-     * @param success 是否成功
-     * @param message 消息
-     * @param data 数据
-     */
-    public Result(boolean success, String message, T data) {
-        this.success = success;
+    public Result(Integer code, String message) {
+        this();
+        this.code = code;
         this.message = message;
+    }
+
+    public Result(Integer code, String message, T data) {
+        this(code, message);
         this.data = data;
     }
 
     /**
-     * 构造函数（带错误码）
-     * 
-     * @param success 是否成功
-     * @param message 消息
-     * @param data 数据
-     * @param errorCode 错误码
-     */
-    public Result(boolean success, String message, T data, String errorCode) {
-        this.success = success;
-        this.message = message;
-        this.data = data;
-        this.errorCode = errorCode;
-    }
-
-    // ========== 静态工厂方法 ==========
-
-    /**
-     * 成功结果（无数据）
-     * 
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 成功响应
      */
     public static <T> Result<T> success() {
-        return new Result<>(true, "操作成功", null);
+        return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage());
     }
 
     /**
-     * 成功结果（带数据）
-     * 
-     * @param data 数据
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 成功响应带数据
      */
     public static <T> Result<T> success(T data) {
-        return new Result<>(true, "操作成功", data);
+        return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), data);
     }
 
     /**
-     * 成功结果（带数据和消息）
-     * 
-     * @param data 数据
-     * @param message 消息
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 成功响应带消息和数据
      */
-    public static <T> Result<T> success(T data, String message) {
-        return new Result<>(true, message, data);
+    public static <T> Result<T> success(String message, T data) {
+        return new Result<>(ResultCode.SUCCESS.getCode(), message, data);
     }
 
     /**
-     * 成功结果（仅消息）
-     * 
-     * @param message 消息
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应
      */
-    public static <T> Result<T> success(String message) {
-        return new Result<>(true, message, null);
+    public static <T> Result<T> error() {
+        return new Result<>(ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getMessage());
     }
 
     /**
-     * 失败结果
-     * 
-     * @param message 错误消息
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应带消息
      */
-    public static <T> Result<T> failure(String message) {
-        return new Result<>(false, message, null);
+    public static <T> Result<T> error(String message) {
+        return new Result<>(ResultCode.SYSTEM_ERROR.getCode(), message);
     }
 
     /**
-     * 失败结果（带错误码）
-     * 
-     * @param message 错误消息
-     * @param errorCode 错误码
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应带错误码和消息
      */
-    public static <T> Result<T> failure(String message, String errorCode) {
-        return new Result<>(false, message, null, errorCode);
+    public static <T> Result<T> error(Integer code, String message) {
+        return new Result<>(code, message);
     }
 
     /**
-     * 失败结果（带数据）
-     * 
-     * @param message 错误消息
-     * @param data 数据
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应带错误码枚举
      */
-    public static <T> Result<T> failure(String message, T data) {
-        return new Result<>(false, message, data);
+    public static <T> Result<T> error(ResultCode resultCode) {
+        return new Result<>(resultCode.getCode(), resultCode.getMessage());
     }
 
     /**
-     * 条件结果
-     * 
-     * @param condition 条件
-     * @param successData 成功时的数据
-     * @param failureMessage 失败时的消息
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应带错误码枚举和数据
      */
-    public static <T> Result<T> condition(boolean condition, T successData, String failureMessage) {
-        return condition ? success(successData) : failure(failureMessage);
+    public static <T> Result<T> error(ResultCode resultCode, T data) {
+        return new Result<>(resultCode.getCode(), resultCode.getMessage(), data);
     }
 
     /**
-     * 条件结果（仅消息）
-     * 
-     * @param condition 条件
-     * @param successMessage 成功消息
-     * @param failureMessage 失败消息
-     * @param <T> 数据类型
-     * @return Result<T>
+     * 失败响应带错误码枚举和自定义消息
      */
-    public static <T> Result<T> condition(boolean condition, String successMessage, String failureMessage) {
-        return condition ? success(successMessage) : failure(failureMessage);
+    public static <T> Result<T> error(ResultCode resultCode, String message) {
+        return new Result<>(resultCode.getCode(), message);
     }
-
-    // ========== 便捷方法 ==========
 
     /**
      * 判断是否成功
-     * 
-     * @return 是否成功
      */
     public boolean isSuccess() {
-        return success;
+        return ResultCode.SUCCESS.getCode().equals(this.code);
     }
 
     /**
      * 判断是否失败
-     * 
-     * @return 是否失败
      */
-    public boolean isFailure() {
-        return !success;
+    public boolean isError() {
+        return !isSuccess();
     }
 
     /**
-     * 获取数据，如果失败则返回null
-     * 
-     * @return 数据或null
+     * 设置追踪ID
      */
-    public T getDataOrNull() {
-        return success ? data : null;
+    public Result<T> traceId(String traceId) {
+        this.traceId = traceId;
+        return this;
     }
 
     /**
-     * 获取数据，如果失败则返回默认值
-     * 
-     * @param defaultValue 默认值
-     * @return 数据或默认值
+     * 设置数据
      */
-    public T getDataOrDefault(T defaultValue) {
-        return success ? data : defaultValue;
-    }
-
-    // ========== Getter and Setter ==========
-
-    public boolean getSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
+    public Result<T> data(T data) {
         this.data = data;
+        return this;
     }
 
-    public String getErrorCode() {
-        return errorCode;
+    /**
+     * 设置消息
+     */
+    public Result<T> message(String message) {
+        this.message = message;
+        return this;
     }
 
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
-    }
-
-    @Override
-    public String toString() {
-        return "Result{" +
-                "success=" + success +
-                ", message='" + message + '\'' +
-                ", data=" + data +
-                ", errorCode='" + errorCode + '\'' +
-                '}';
+    /**
+     * 设置错误码
+     */
+    public Result<T> code(Integer code) {
+        this.code = code;
+        return this;
     }
 }

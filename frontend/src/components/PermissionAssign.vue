@@ -1,307 +1,338 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="dialogTitle"
-    width="800px"
-    :close-on-click-modal="false"
-    @close="handleClose"
-  >
-    <div class="permission-assign">
-      <div class="role-info">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="角色名称">
-            {{ roleData?.name }}
-          </el-descriptions-item>
-          <el-descriptions-item label="角色编码">
-            {{ roleData?.code }}
-          </el-descriptions-item>
-          <el-descriptions-item label="角色描述" :span="2">
-            {{ roleData?.description || "暂无描述" }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </div>
+  <div class="permission-assign">
+    <div class="assign-header">
+      <h3>权限分配</h3>
+      <p class="assign-description">
+        为角色 <strong>{{ role?.name }}</strong> 分配权限，支持菜单权限、操作权限和API权限
+      </p>
+    </div>
 
-      <div class="permission-tree-container">
-        <div class="tree-header">
-          <h4>权限分配</h4>
-          <div class="tree-actions">
-            <el-button size="small" @click="expandAll">展开全部</el-button>
-            <el-button size="small" @click="collapseAll">收起全部</el-button>
-            <el-button size="small" @click="checkAll">全选</el-button>
-            <el-button size="small" @click="uncheckAll">取消全选</el-button>
+    <div class="assign-content">
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <div class="permission-tree-container">
+            <div class="tree-header">
+              <span>权限树</span>
+              <div class="tree-actions">
+                <el-button size="small" @click="expandAll">展开全部</el-button>
+                <el-button size="small" @click="collapseAll">收起全部</el-button>
+                <el-button size="small" @click="selectAll">全选</el-button>
+                <el-button size="small" @click="unselectAll">取消全选</el-button>
+              </div>
+            </div>
+            
+            <el-tree
+              ref="permissionTreeRef"
+              :data="permissionTree"
+              :props="treeProps"
+              :default-checked-keys="checkedKeys"
+              :default-expanded-keys="expandedKeys"
+              show-checkbox
+              node-key="id"
+              check-strictly
+              :filter-node-method="filterNode"
+              class="permission-tree"
+            >
+              <template #default="{ node, data }">
+                <div class="tree-node">
+                  <el-icon v-if="data.icon" class="node-icon">
+                    <component :is="data.icon" />
+                  </el-icon>
+                  <span class="node-label">{{ data.name }}</span>
+                  <el-tag
+                    v-if="data.type"
+                    :type="getPermissionTypeTag(data.type)"
+                    size="small"
+                    class="node-tag"
+                  >
+                    {{ getPermissionTypeText(data.type) }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-tree>
           </div>
-        </div>
+        </el-col>
 
-        <el-tree
-          ref="permissionTreeRef"
-          :data="permissionTree"
-          :props="treeProps"
-          :default-checked-keys="checkedPermissions"
-          show-checkbox
-          node-key="id"
-          check-strictly
-          :expand-on-click-node="false"
-          v-loading="loading"
-          class="permission-tree"
+        <el-col :span="12">
+          <div class="selected-permissions">
+            <div class="selected-header">
+              <span>已选权限 ({{ selectedPermissions.length }})</span>
+              <el-button size="small" @click="clearSelected">清空</el-button>
+            </div>
+            
+            <div class="selected-list">
+              <el-scrollbar height="400px">
+                <div
+                  v-for="permission in selectedPermissions"
+                  :key="permission.id"
+                  class="selected-item"
+                >
+                  <div class="item-content">
+                    <el-icon v-if="permission.icon" class="item-icon">
+                      <component :is="permission.icon" />
+                    </el-icon>
+                    <span class="item-label">{{ permission.name }}</span>
+                    <el-tag
+                      :type="getPermissionTypeTag(permission.type)"
+                      size="small"
+                    >
+                      {{ getPermissionTypeText(permission.type) }}
+                    </el-tag>
+                  </div>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    text
+                    @click="removePermission(permission.id)"
+                  >
+                    移除
+                  </el-button>
+                </div>
+              </el-scrollbar>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+
+      <div class="permission-summary">
+        <el-alert
+          :title="`已选择 ${selectedPermissions.length} 个权限`"
+          type="info"
+          :closable="false"
+          show-icon
         >
-          <template #default="{ node, data }">
-            <div class="permission-node">
-              <el-icon v-if="data.icon" class="permission-icon">
-                <component :is="data.icon" />
-              </el-icon>
-              <span class="permission-name">{{ node.label }}</span>
-              <el-tag
-                :type="getPermissionTypeTag(data.type)"
-                size="small"
-                class="permission-type"
-              >
-                {{ getPermissionTypeLabel(data.type) }}
-              </el-tag>
-              <span v-if="data.description" class="permission-desc">
-                {{ data.description }}
-              </span>
+          <template #default>
+            <div class="summary-stats">
+              <span>菜单权限: {{ getPermissionCountByType('MENU') }}</span>
+              <span>操作权限: {{ getPermissionCountByType('BUTTON') }}</span>
+              <span>API权限: {{ getPermissionCountByType('API') }}</span>
             </div>
           </template>
-        </el-tree>
+        </el-alert>
       </div>
     </div>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          确定
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+    <div class="assign-actions">
+      <el-button @click="handleCancel">取消</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="submitting">
+        确定分配
+      </el-button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
-import { ElMessage, ElTree } from "element-plus";
-import {
-  getPermissionTreeWithRoleSelection,
-  assignRolePermissions,
-} from "@/api/modules/role";
-import type {
-  Role,
-  PermissionTreeNode,
-  RolePermissionAssignForm,
-} from "@/types/role";
-import { PermissionType } from "@/types/role";
+import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
+import { ElMessage, ElTree, type TreeNode } from "element-plus";
+import { getPermissionTree, getRolePermissions, assignRolePermissions } from "@/api/modules/role";
+import type { Role, Permission, PermissionTreeNode } from "@/types/role";
 
-// 定义组件属性
+// Props
 interface Props {
-  visible: boolean;
-  roleData?: Role | null;
-}
-
-// 定义事件
-interface Emits {
-  (e: "update:visible", value: boolean): void;
-  (e: "success"): void;
+  role?: Partial<Role>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  visible: false,
-  roleData: null,
+  role: () => ({}),
 });
 
-const emit = defineEmits<Emits>();
+// Emits
+const emit = defineEmits<{
+  submit: [permissionIds: string[]];
+  cancel: [];
+}>();
 
 // 响应式数据
 const permissionTreeRef = ref<InstanceType<typeof ElTree>>();
-const permissionTree = ref<PermissionTreeNode[]>([]);
-const checkedPermissions = ref<string[]>([]);
-const loading = ref(false);
 const submitting = ref(false);
+const permissionTree = ref<PermissionTreeNode[]>([]);
+const checkedKeys = ref<string[]>([]);
+const expandedKeys = ref<string[]>([]);
+const selectedPermissions = ref<Permission[]>([]);
 
-// 树形组件属性配置
+// 树形组件配置
 const treeProps = {
   children: "children",
   label: "name",
 };
 
 // 计算属性
-const dialogTitle = computed(() => {
-  return props.roleData ? `分配权限 - ${props.roleData.name}` : "分配权限";
-});
+const hasSelectedPermissions = computed(() => selectedPermissions.value.length > 0);
 
-// 监听对话框显示状态
+// 监听角色变化
 watch(
-  () => props.visible,
-  (newVal) => {
-    if (newVal && props.roleData) {
-      loadPermissionTree();
+  () => props.role,
+  (newRole) => {
+    if (newRole?.id) {
+      loadRolePermissions();
     }
   },
+  { immediate: true }
 );
 
-// 获取权限类型标签样式
-function getPermissionTypeTag(
-  type: PermissionType,
-): "primary" | "success" | "warning" | "info" | "danger" {
-  const typeMap: Record<
-    PermissionType,
-    "primary" | "success" | "warning" | "info" | "danger"
-  > = {
-    [PermissionType.MENU]: "primary",
-    [PermissionType.BUTTON]: "success",
-    [PermissionType.API]: "warning",
-    [PermissionType.DATA]: "info",
-  };
-  return typeMap[type] || "info";
-}
-
-// 获取权限类型标签文本
-function getPermissionTypeLabel(type: PermissionType): string {
-  const typeMap = {
-    [PermissionType.MENU]: "菜单",
-    [PermissionType.BUTTON]: "按钮",
-    [PermissionType.API]: "接口",
-    [PermissionType.DATA]: "数据",
-  };
-  return typeMap[type] || "未知";
-}
+// 监听选中的权限变化
+watch(
+  checkedKeys,
+  (newKeys) => {
+    updateSelectedPermissions(newKeys);
+  },
+  { deep: true }
+);
 
 // 加载权限树
-async function loadPermissionTree() {
-  if (!props.roleData?.id) return;
-
-  loading.value = true;
+const loadPermissionTree = async () => {
   try {
-    const response = await getPermissionTreeWithRoleSelection(
-      props.roleData.id.toString(),
-    );
+    const response = await getPermissionTree();
     if (response.success) {
-      permissionTree.value = response.data || [];
-      // 提取已选中的权限ID
-      checkedPermissions.value = extractCheckedPermissions(
-        permissionTree.value,
-      );
-
-      // 等待DOM更新后设置选中状态
-      await nextTick();
-      if (permissionTreeRef.value) {
-        permissionTreeRef.value.setCheckedKeys(checkedPermissions.value);
-      }
-    } else {
-      ElMessage.error(response.message || "加载权限树失败");
+      permissionTree.value = response.data;
+      // 默认展开第一级
+      expandedKeys.value = response.data.map(item => item.id);
     }
   } catch (error) {
     console.error("加载权限树失败:", error);
     ElMessage.error("加载权限树失败");
-  } finally {
-    loading.value = false;
   }
-}
+};
 
-// 提取已选中的权限ID
-function extractCheckedPermissions(tree: PermissionTreeNode[]): string[] {
-  const checked: string[] = [];
+// 加载角色权限
+const loadRolePermissions = async () => {
+  if (!props.role?.id) return;
 
-  function traverse(nodes: PermissionTreeNode[]) {
-    for (const node of nodes) {
-      if (node.checked) {
-        checked.push(node.id.toString());
-      }
-      if (node.children && node.children.length > 0) {
-        traverse(node.children);
-      }
+  try {
+    const response = await getRolePermissions(props.role.id);
+    if (response.success) {
+      checkedKeys.value = response.data.map(permission => permission.id);
     }
+  } catch (error) {
+    console.error("加载角色权限失败:", error);
+    ElMessage.error("加载角色权限失败");
   }
+};
 
-  traverse(tree);
-  return checked;
-}
+// 更新选中的权限列表
+const updateSelectedPermissions = (checkedKeys: string[]) => {
+  const flattenPermissions = (permissions: PermissionTreeNode[]): Permission[] => {
+    const result: Permission[] = [];
+    permissions.forEach(permission => {
+      if (checkedKeys.includes(permission.id)) {
+        result.push(permission);
+      }
+      if (permission.children && permission.children.length > 0) {
+        result.push(...flattenPermissions(permission.children));
+      }
+    });
+    return result;
+  };
+
+  selectedPermissions.value = flattenPermissions(permissionTree.value);
+};
 
 // 展开全部
-function expandAll() {
-  if (permissionTreeRef.value) {
-    const allKeys = getAllNodeKeys(permissionTree.value);
-    allKeys.forEach((key) => {
-      const node = permissionTreeRef.value?.getNode(key);
-      if (node) {
-        node.expanded = true;
+const expandAll = () => {
+  const getAllKeys = (permissions: PermissionTreeNode[]): string[] => {
+    const keys: string[] = [];
+    permissions.forEach(permission => {
+      keys.push(permission.id);
+      if (permission.children && permission.children.length > 0) {
+        keys.push(...getAllKeys(permission.children));
       }
     });
-  }
-}
+    return keys;
+  };
+  expandedKeys.value = getAllKeys(permissionTree.value);
+};
 
 // 收起全部
-function collapseAll() {
-  if (permissionTreeRef.value) {
-    const allKeys = getAllNodeKeys(permissionTree.value);
-    allKeys.forEach((key) => {
-      const node = permissionTreeRef.value?.getNode(key);
-      if (node) {
-        node.expanded = false;
-      }
-    });
-  }
-}
+const collapseAll = () => {
+  expandedKeys.value = [];
+};
 
 // 全选
-function checkAll() {
-  if (permissionTreeRef.value) {
-    const allKeys = getAllNodeKeys(permissionTree.value);
-    permissionTreeRef.value.setCheckedKeys(allKeys);
-  }
-}
+const selectAll = () => {
+  const getAllKeys = (permissions: PermissionTreeNode[]): string[] => {
+    const keys: string[] = [];
+    permissions.forEach(permission => {
+      keys.push(permission.id);
+      if (permission.children && permission.children.length > 0) {
+        keys.push(...getAllKeys(permission.children));
+      }
+    });
+    return keys;
+  };
+  checkedKeys.value = getAllKeys(permissionTree.value);
+};
 
 // 取消全选
-function uncheckAll() {
-  if (permissionTreeRef.value) {
-    permissionTreeRef.value.setCheckedKeys([]);
+const unselectAll = () => {
+  checkedKeys.value = [];
+};
+
+// 清空选中
+const clearSelected = () => {
+  checkedKeys.value = [];
+};
+
+// 移除权限
+const removePermission = (permissionId: string) => {
+  checkedKeys.value = checkedKeys.value.filter(id => id !== permissionId);
+};
+
+// 过滤节点
+const filterNode = (value: string, data: PermissionTreeNode) => {
+  if (!value) return true;
+  return data.name.includes(value);
+};
+
+// 获取权限类型文本
+const getPermissionTypeText = (type: string) => {
+  const typeMap: Record<string, string> = {
+    MENU: "菜单",
+    BUTTON: "操作",
+    API: "API",
+  };
+  return typeMap[type] || type;
+};
+
+// 获取权限类型标签
+const getPermissionTypeTag = (type: string): "primary" | "success" | "warning" | "info" | "danger" => {
+  const tagMap: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
+    MENU: "primary",
+    BUTTON: "success",
+    API: "warning",
+  };
+  return tagMap[type] || "info";
+};
+
+// 获取指定类型的权限数量
+const getPermissionCountByType = (type: string) => {
+  return selectedPermissions.value.filter(permission => permission.type === type).length;
+};
+
+// 提交分配
+const handleSubmit = async () => {
+  if (!props.role?.id) {
+    ElMessage.error("角色信息不完整");
+    return;
   }
-}
 
-// 获取所有节点的key
-function getAllNodeKeys(tree: PermissionTreeNode[]): string[] {
-  const keys: string[] = [];
-
-  function traverse(nodes: PermissionTreeNode[]) {
-    for (const node of nodes) {
-      keys.push(node.id.toString());
-      if (node.children && node.children.length > 0) {
-        traverse(node.children);
-      }
-    }
-  }
-
-  traverse(tree);
-  return keys;
-}
-
-// 提交权限分配
-async function handleSubmit() {
-  if (!props.roleData?.id || !permissionTreeRef.value) return;
-
-  const checkedKeys = permissionTreeRef.value.getCheckedKeys() as string[];
-  const halfCheckedKeys =
-    permissionTreeRef.value.getHalfCheckedKeys() as string[];
-
-  // 合并全选和半选的权限ID
-  const allSelectedKeys = [...checkedKeys, ...halfCheckedKeys];
-
-  if (allSelectedKeys.length === 0) {
+  if (selectedPermissions.value.length === 0) {
     ElMessage.warning("请至少选择一个权限");
     return;
   }
 
-  submitting.value = true;
   try {
-    const assignForm: RolePermissionAssignForm = {
-      roleId: props.roleData.id,
-      permissionIds: allSelectedKeys,
-    };
+    submitting.value = true;
 
-    const response = await assignRolePermissions(assignForm);
+    const permissionIds = selectedPermissions.value.map(permission => permission.id);
+    
+    const response = await assignRolePermissions({
+      roleId: props.role.id,
+      permissionIds,
+    });
+
     if (response.success) {
       ElMessage.success("权限分配成功");
-      emit("success");
-      handleClose();
+      emit("submit", permissionIds);
     } else {
       ElMessage.error(response.message || "权限分配失败");
     }
@@ -311,102 +342,180 @@ async function handleSubmit() {
   } finally {
     submitting.value = false;
   }
-}
+};
 
-// 关闭对话框
-function handleClose() {
-  emit("update:visible", false);
-  // 重置数据
-  permissionTree.value = [];
-  checkedPermissions.value = [];
-}
+// 取消操作
+const handleCancel = () => {
+  emit("cancel");
+};
+
+// 生命周期
+onMounted(() => {
+  loadPermissionTree();
+});
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .permission-assign {
+  .assign-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e4e7ed;
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .assign-description {
+      margin: 0;
+      color: #606266;
+      font-size: 14px;
+    }
+  }
+
+  .assign-content {
+    margin-bottom: 24px;
+  }
+
+  .permission-tree-container {
+    border: 1px solid #e4e7ed;
+    border-radius: 6px;
+    overflow: hidden;
+
+    .tree-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f5f7fa;
+      border-bottom: 1px solid #e4e7ed;
+      font-weight: 600;
+      color: #303133;
+
+      .tree-actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+
+    .permission-tree {
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+
+      .tree-node {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+
+        .node-icon {
+          font-size: 16px;
+          color: #409eff;
+        }
+
+        .node-label {
+          flex: 1;
+          font-size: 14px;
+        }
+
+        .node-tag {
+          margin-left: auto;
+        }
+      }
+    }
+  }
+
+  .selected-permissions {
+    border: 1px solid #e4e7ed;
+    border-radius: 6px;
+    overflow: hidden;
+
+    .selected-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f5f7fa;
+      border-bottom: 1px solid #e4e7ed;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .selected-list {
+      .selected-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f2f5;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .item-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+
+          .item-icon {
+            font-size: 16px;
+            color: #409eff;
+          }
+
+          .item-label {
+            flex: 1;
+            font-size: 14px;
+          }
+        }
+
+        &:hover {
+          background: #f5f7fa;
+        }
+      }
+    }
+  }
+
+  .permission-summary {
+    margin-top: 20px;
+
+    .summary-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 8px;
+
+      span {
+        font-size: 14px;
+        color: #606266;
+      }
+    }
+  }
+
+  .assign-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e4e7ed;
+  }
+}
+
+:deep(.el-tree) {
+  .el-tree-node__content {
+    padding: 8px 0;
+  }
+
+  .el-checkbox {
+    margin-right: 8px;
+  }
+}
+
+:deep(.el-scrollbar__view) {
   padding: 0;
-}
-
-.role-info {
-  margin-bottom: 20px;
-}
-
-.permission-tree-container {
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.tree-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.tree-header h4 {
-  margin: 0;
-  color: var(--el-text-color-primary);
-}
-
-.tree-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.permission-tree {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.permission-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  padding: 4px 0;
-}
-
-.permission-icon {
-  color: var(--el-color-primary);
-}
-
-.permission-name {
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.permission-type {
-  margin-left: auto;
-}
-
-.permission-desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-left: 8px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* 树形组件样式优化 */
-:deep(.el-tree-node__content) {
-  height: auto;
-  min-height: 32px;
-  padding: 4px 0;
-}
-
-:deep(.el-tree-node__label) {
-  flex: 1;
-}
-
-/* 加载状态样式 */
-:deep(.el-loading-mask) {
-  border-radius: 4px;
 }
 </style>

@@ -1,18 +1,11 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    :title="dialogTitle"
-    width="800px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    @close="handleClose"
-  >
+  <div class="role-form">
     <el-form
       ref="formRef"
       :model="formData"
-      :rules="rules"
+      :rules="formRules"
       label-width="100px"
-      :disabled="props.mode === 'view'"
+      :disabled="mode === 'view'"
     >
       <el-row :gutter="20">
         <el-col :span="12">
@@ -30,37 +23,15 @@
             <el-input
               v-model="formData.code"
               placeholder="请输入角色编码"
-              maxlength="20"
+              maxlength="50"
               show-word-limit
-              :disabled="props.mode === 'edit'"
             />
+            <div class="form-tip">角色编码用于系统内部识别，建议使用英文和下划线</div>
           </el-form-item>
         </el-col>
       </el-row>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="角色状态" prop="status">
-            <el-select v-model="formData.status" placeholder="请选择角色状态">
-              <el-option label="启用" value="active" />
-              <el-option label="禁用" value="inactive" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="排序值" prop="sort">
-            <el-input-number
-              v-model="formData.sort"
-              :min="0"
-              :max="9999"
-              controls-position="right"
-              placeholder="请输入排序值"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-form-item label="角色描述">
+      <el-form-item label="角色描述" prop="description">
         <el-input
           v-model="formData.description"
           type="textarea"
@@ -71,393 +42,302 @@
         />
       </el-form-item>
 
-      <el-form-item label="权限配置">
-        <div class="permission-tree-container">
-          <el-tree
-            ref="permissionTreeRef"
-            :data="permissionTree"
-            :props="treeProps"
-            show-checkbox
-            node-key="id"
-            :default-checked-keys="checkedPermissions"
-            :check-strictly="false"
-            @check="handlePermissionCheck"
-            v-loading="permissionLoading"
-          >
-            <template #default="{ node, data }">
-              <div class="permission-node">
-                <el-icon v-if="data.icon" class="permission-icon">
-                  <component :is="data.icon" />
-                </el-icon>
-                <span class="permission-name">{{ node.label }}</span>
-                <el-tag
-                  :type="getPermissionTypeTag(data.type)"
-                  size="small"
-                  class="permission-type"
-                >
-                  {{ getPermissionTypeLabel(data.type) }}
-                </el-tag>
-              </div>
-            </template>
-          </el-tree>
-        </div>
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="角色状态" prop="status">
+            <el-radio-group v-model="formData.status">
+              <el-radio value="active">启用</el-radio>
+              <el-radio value="inactive">禁用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="排序" prop="sort">
+            <el-input-number
+              v-model="formData.sort"
+              :min="0"
+              :max="9999"
+              controls-position="right"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-form-item label="角色类型" prop="isSystem">
+        <el-radio-group v-model="formData.isSystem" :disabled="mode === 'edit'">
+          <el-radio :value="false">自定义角色</el-radio>
+          <el-radio :value="true">系统角色</el-radio>
+        </el-radio-group>
+        <div class="form-tip">系统角色不允许删除，建议谨慎设置</div>
+      </el-form-item>
+
+      <el-form-item label="数据权限" prop="dataScope">
+        <el-radio-group v-model="formData.dataScope">
+          <el-radio value="all">全部数据权限</el-radio>
+          <el-radio value="custom">自定义数据权限</el-radio>
+          <el-radio value="dept">本部门数据权限</el-radio>
+          <el-radio value="deptAndChild">本部门及以下数据权限</el-radio>
+          <el-radio value="self">仅本人数据权限</el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.dataScope === 'custom'"
+        label="数据权限范围"
+        prop="deptIds"
+      >
+        <el-tree-select
+          v-model="formData.deptIds"
+          :data="deptTreeData"
+          :props="{ label: 'name', value: 'id', children: 'children' }"
+          multiple
+          check-strictly
+          placeholder="请选择数据权限范围"
+          style="width: 100%"
+        />
+      </el-form-item>
+
+      <el-form-item label="备注" prop="remark">
+        <el-input
+          v-model="formData.remark"
+          type="textarea"
+          :rows="2"
+          placeholder="请输入备注信息"
+          maxlength="500"
+          show-word-limit
+        />
       </el-form-item>
     </el-form>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
-          v-if="props.mode !== 'view'"
-          type="primary"
-          :loading="loading"
-          @click="handleSubmit"
-        >
-          {{ props.mode === "create" ? "创建" : "更新" }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+    <div class="form-actions" v-if="mode !== 'view'">
+      <el-button @click="handleCancel">取消</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="submitting">
+        确定
+      </el-button>
+    </div>
+
+    <div class="form-actions" v-else>
+      <el-button @click="handleCancel">关闭</el-button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
-import { ElMessage, ElMessageBox, ElTree } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
-import {
-  createRole,
-  updateRole,
-  getPermissionTree,
-  checkRoleCodeAvailable,
-} from "@/api/modules/role";
-import type {
-  Role,
-  CreateRoleForm,
-  UpdateRoleForm,
-  Permission,
-  PermissionTreeNode,
-} from "@/types/role";
-import { RoleStatus, PermissionType } from "@/types/role";
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { ElMessage, ElForm, type FormInstance, type FormRules } from "element-plus";
+import { createRole, updateRole, checkRoleCodeAvailable } from "@/api/modules/role";
+import { getDepartmentTree } from "@/api/modules/department";
+import type { Role, CreateRoleForm, UpdateRoleForm, Department } from "@/types/role";
 
-// 定义组件属性
+// Props
 interface Props {
-  visible: boolean;
+  role?: Partial<Role>;
   mode: "create" | "edit" | "view";
-  roleData?: Role;
-}
-
-// 定义事件
-interface Emits {
-  (e: "update:visible", value: boolean): void;
-  (e: "success"): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  role: () => ({}),
   mode: "create",
-  roleData: undefined,
 });
 
-const emit = defineEmits<Emits>();
+// Emits
+const emit = defineEmits<{
+  submit: [data: CreateRoleForm | UpdateRoleForm];
+  cancel: [];
+}>();
 
-// 表单引用
+// 响应式数据
 const formRef = ref<FormInstance>();
-const permissionTreeRef = ref<InstanceType<typeof ElTree>>();
+const submitting = ref(false);
+const deptTreeData = ref<Department[]>([]);
 
 // 表单数据
-const formData = reactive<CreateRoleForm>({
+const formData = reactive<CreateRoleForm & { id?: string }>({
   name: "",
   code: "",
   description: "",
-  status: RoleStatus.ACTIVE,
-  type: "custom",
+  status: "active",
   sort: 0,
-  permissions: [],
+  isSystem: false,
+  dataScope: "all",
+  deptIds: [],
+  remark: "",
 });
 
-// 权限树数据
-const permissionTree = ref<PermissionTreeNode[]>([]);
-const checkedPermissions = ref<string[]>([]);
-
-// 加载状态
-const loading = ref(false);
-const permissionLoading = ref(false);
-
-// 树形组件属性配置
-const treeProps = {
-  children: "children",
-  label: "name",
-};
-
 // 表单验证规则
-const rules = reactive<FormRules>({
+const formRules: FormRules = {
   name: [
     { required: true, message: "请输入角色名称", trigger: "blur" },
-    {
-      min: 2,
-      max: 50,
-      message: "角色名称长度在 2 到 50 个字符",
-      trigger: "blur",
-    },
+    { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" },
   ],
   code: [
     { required: true, message: "请输入角色编码", trigger: "blur" },
+    { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" },
+    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: "角色编码只能包含字母、数字和下划线，且以字母开头", trigger: "blur" },
     {
-      pattern: /^[A-Z_][A-Z0-9_]*$/,
-      message:
-        "角色编码只能包含大写字母、数字和下划线，且以大写字母或下划线开头",
+      validator: (rule: any, value: string, callback: any) => {
+        if (value && value !== props.role?.code) {
+          checkRoleCodeAvailable(value, props.role?.id)
+            .then((res) => {
+              if (res.data) {
+                callback(new Error("角色编码已存在"));
+              } else {
+                callback();
+              }
+            })
+            .catch(() => {
+              callback();
+            });
+        } else {
+          callback();
+        }
+      },
       trigger: "blur",
     },
-    { validator: validateRoleCode, trigger: "blur" },
   ],
   status: [{ required: true, message: "请选择角色状态", trigger: "change" }],
-  sort: [
-    { required: true, message: "请输入排序值", trigger: "blur" },
+  dataScope: [{ required: true, message: "请选择数据权限", trigger: "change" }],
+  deptIds: [
     {
-      type: "number",
-      min: 0,
-      max: 9999,
-      message: "排序值必须在 0 到 9999 之间",
-      trigger: "blur",
+      validator: (rule: any, value: string[], callback: any) => {
+        if (formData.dataScope === "custom" && (!value || value.length === 0)) {
+          callback(new Error("请选择数据权限范围"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "change",
     },
   ],
-});
+};
 
 // 计算属性
-const dialogVisible = computed({
-  get: () => props.visible,
-  set: (value) => emit("update:visible", value),
-});
+const isEdit = computed(() => props.mode === "edit");
+const isView = computed(() => props.mode === "view");
 
-const dialogTitle = computed(() => {
-  const titles = {
-    create: "创建角色",
-    edit: "编辑角色",
-    view: "查看角色",
-  };
-  return titles[props.mode];
-});
+// 监听角色变化
+watch(
+  () => props.role,
+  (newRole) => {
+    if (newRole && Object.keys(newRole).length > 0) {
+      Object.assign(formData, {
+        id: newRole.id,
+        name: newRole.name || "",
+        code: newRole.code || "",
+        description: newRole.description || "",
+        status: newRole.status || "active",
+        sort: newRole.sort || 0,
+        isSystem: newRole.isSystem || false,
+        dataScope: newRole.dataScope || "all",
+        deptIds: newRole.deptIds || [],
+        remark: newRole.remark || "",
+      });
+    }
+  },
+  { immediate: true, deep: true }
+);
 
-// 自定义验证器
-function validateRoleCode(
-  rule: any,
-  value: string,
-  callback: (error?: Error) => void,
-) {
-  if (!value) {
-    callback();
-    return;
-  }
-
-  // 使用异步验证
-  checkRoleCodeAvailable(
-    value,
-    props.mode === "edit" ? props.roleData?.id : undefined,
-  )
-    .then((response) => {
-      if (!response.data) {
-        callback(new Error("角色编码已存在"));
-      } else {
-        callback();
-      }
-    })
-    .catch(() => {
-      callback(new Error("验证角色编码失败"));
-    });
-}
-
-// 获取权限类型标签样式
-function getPermissionTypeTag(
-  type: PermissionType,
-): "primary" | "success" | "warning" | "info" | "danger" {
-  const typeMap: Record<
-    PermissionType,
-    "primary" | "success" | "warning" | "info" | "danger"
-  > = {
-    [PermissionType.MENU]: "primary",
-    [PermissionType.BUTTON]: "success",
-    [PermissionType.API]: "warning",
-    [PermissionType.DATA]: "info",
-  };
-  return typeMap[type] || "info";
-}
-
-// 获取权限类型标签文本
-function getPermissionTypeLabel(type: PermissionType): string {
-  const typeMap = {
-    [PermissionType.MENU]: "菜单",
-    [PermissionType.BUTTON]: "按钮",
-    [PermissionType.API]: "接口",
-    [PermissionType.DATA]: "数据",
-  };
-  return typeMap[type] || "未知";
-}
-
-// 加载权限树
-async function loadPermissionTree() {
+// 加载部门树
+const loadDepartmentTree = async () => {
   try {
-    permissionLoading.value = true;
-    const response = await getPermissionTree();
-    permissionTree.value = response.data || [];
+    const response = await getDepartmentTree();
+    if (response.success) {
+      deptTreeData.value = response.data;
+    }
   } catch (error) {
-    console.error("加载权限树失败:", error);
-    ElMessage.error("加载权限树失败");
-  } finally {
-    permissionLoading.value = false;
+    console.error("加载部门树失败:", error);
   }
-}
-
-// 处理权限选择
-function handlePermissionCheck(data: PermissionTreeNode, checked: any) {
-  const checkedKeys = permissionTreeRef.value?.getCheckedKeys() || [];
-  const halfCheckedKeys = permissionTreeRef.value?.getHalfCheckedKeys() || [];
-  formData.permissions = [...checkedKeys, ...halfCheckedKeys] as string[];
-}
-
-// 初始化表单数据
-function initFormData() {
-  if (props.mode === "edit" && props.roleData) {
-    Object.assign(formData, {
-      name: props.roleData.name,
-      code: props.roleData.code,
-      description: props.roleData.description,
-      status: props.roleData.status,
-      type: props.roleData.type,
-      sort: props.roleData.sort,
-      permissions: props.roleData.permissionIds || [],
-    });
-    checkedPermissions.value = props.roleData.permissionIds || [];
-  } else {
-    // 重置表单数据
-    Object.assign(formData, {
-      name: "",
-      code: "",
-      description: "",
-      status: RoleStatus.ACTIVE,
-      type: "custom",
-      sort: 0,
-      permissions: [],
-    });
-    checkedPermissions.value = [];
-  }
-
-  // 清除表单验证
-  nextTick(() => {
-    formRef.value?.clearValidate();
-  });
-}
+};
 
 // 提交表单
-async function handleSubmit() {
+const handleSubmit = async () => {
   if (!formRef.value) return;
 
   try {
-    const valid = await formRef.value.validate();
-    if (!valid) return;
+    await formRef.value.validate();
+    submitting.value = true;
 
-    loading.value = true;
-
-    // 获取选中的权限
-    const checkedKeys = permissionTreeRef.value?.getCheckedKeys() || [];
-    const halfCheckedKeys = permissionTreeRef.value?.getHalfCheckedKeys() || [];
-    const allPermissions = [...checkedKeys, ...halfCheckedKeys] as string[];
-
-    const submitData = {
-      ...formData,
-      permissions: allPermissions,
-    };
-
-    if (props.mode === "create") {
-      await createRole(submitData as CreateRoleForm);
-      ElMessage.success("创建角色成功");
-    } else if (props.mode === "edit" && props.roleData) {
-      await updateRole(props.roleData.id, submitData as UpdateRoleForm);
-      ElMessage.success("更新角色成功");
+    const submitData = { ...formData };
+    
+    if (isEdit.value) {
+      emit("submit", submitData as UpdateRoleForm);
+    } else {
+      emit("submit", submitData as CreateRoleForm);
     }
-
-    emit("success");
-    handleClose();
   } catch (error) {
-    console.error("提交失败:", error);
-    ElMessage.error(props.mode === "create" ? "创建角色失败" : "更新角色失败");
+    console.error("表单验证失败:", error);
   } finally {
-    loading.value = false;
+    submitting.value = false;
   }
-}
+};
 
-// 关闭对话框
-function handleClose() {
-  emit("update:visible", false);
-}
+// 取消操作
+const handleCancel = () => {
+  emit("cancel");
+};
 
-// 监听对话框显示状态
-watch(
-  () => props.visible,
-  (visible) => {
-    if (visible) {
-      initFormData();
-      loadPermissionTree();
-    }
-  },
-  { immediate: true },
-);
+// 重置表单
+const resetForm = () => {
+  Object.assign(formData, {
+    id: undefined,
+    name: "",
+    code: "",
+    description: "",
+    status: "active",
+    sort: 0,
+    isSystem: false,
+    dataScope: "all",
+    deptIds: [],
+    remark: "",
+  });
+  formRef.value?.clearValidate();
+};
 
-// 监听角色数据变化
-watch(
-  () => props.roleData,
-  () => {
-    if (props.visible) {
-      initFormData();
-    }
-  },
-  { deep: true },
-);
+// 暴露方法给父组件
+defineExpose({
+  resetForm,
+  validate: () => formRef.value?.validate(),
+  clearValidate: () => formRef.value?.clearValidate(),
+});
 
+// 生命周期
 onMounted(() => {
-  if (props.visible) {
-    loadPermissionTree();
-  }
+  loadDepartmentTree();
 });
 </script>
 
-<style scoped>
-.permission-tree-container {
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  padding: 10px;
-  max-height: 300px;
-  overflow-y: auto;
+<style scoped lang="scss">
+.role-form {
+  .form-tip {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e4e7ed;
+  }
 }
 
-.permission-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
+:deep(.el-form-item) {
+  margin-bottom: 20px;
 }
 
-.permission-icon {
-  font-size: 16px;
-  color: var(--el-color-primary);
+:deep(.el-radio-group) {
+  .el-radio {
+    margin-right: 20px;
+    margin-bottom: 8px;
+  }
 }
 
-.permission-name {
-  flex: 1;
-  font-size: 14px;
-}
-
-.permission-type {
-  margin-left: auto;
-}
-
-.dialog-footer {
-  text-align: right;
-}
-
-:deep(.el-tree-node__content) {
-  height: 32px;
-}
-
-:deep(.el-tree-node__label) {
-  flex: 1;
+:deep(.el-tree-select) {
+  width: 100%;
 }
 </style>

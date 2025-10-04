@@ -1,0 +1,142 @@
+groups:
+  - name: archive-management-alerts
+    rules:
+      # 应用可用性告警
+      - alert: ApplicationDown
+        expr: up{job="archive-management-system"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "档案管理系统应用不可用"
+          description: "应用 {{ $labels.instance }} 已停止响应超过1分钟"
+
+      # 高错误率告警
+      - alert: HighErrorRate
+        expr: rate(archive_error_count_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "应用错误率过高"
+          description: "应用 {{ $labels.instance }} 错误率超过10%"
+
+      # 响应时间过长告警
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "应用响应时间过长"
+          description: "应用 {{ $labels.instance }} 95%响应时间超过2秒"
+
+      # 数据库连接池告警
+      - alert: DatabaseConnectionPoolHigh
+        expr: archive_database_connections_active / archive_database_connections_total > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库连接池使用率过高"
+          description: "数据库连接池使用率超过80%"
+
+      # 数据库连接池耗尽告警
+      - alert: DatabaseConnectionPoolExhausted
+        expr: archive_database_connections_waiting > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "数据库连接池耗尽"
+          description: "有 {{ $value }} 个请求正在等待数据库连接"
+
+      # JVM内存使用率告警
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM堆内存使用率过高"
+          description: "JVM堆内存使用率超过80%"
+
+      # JVM内存使用率严重告警
+      - alert: CriticalMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "JVM堆内存使用率严重过高"
+          description: "JVM堆内存使用率超过90%"
+
+      # 磁盘空间告警
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足"
+          description: "磁盘空间使用率超过90%"
+
+      # 磁盘空间严重告警
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间严重不足"
+          description: "磁盘空间使用率超过95%"
+
+      # CPU使用率告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "CPU使用率超过80%"
+
+      # 高并发操作告警
+      - alert: HighConcurrentOperations
+        expr: archive_system_concurrent_operations > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "并发操作数过高"
+          description: "当前并发操作数: {{ $value }}"
+
+      # 业务指标异常告警
+      - alert: LowUserActivity
+        expr: rate(archive_user_login_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "用户活跃度异常"
+          description: "过去1小时用户登录率过低"
+
+      # 档案操作异常告警
+      - alert: LowDocumentActivity
+        expr: rate(archive_document_created_total[1h]) < 0.01
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "档案操作异常"
+          description: "过去1小时档案创建率过低"
+
+      # 系统重启告警
+      - alert: SystemRestart
+        expr: increase(process_start_time_seconds[1h]) > 0
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "系统重启"
+          description: "应用在过去1小时内重启了 {{ $value }} 次"

@@ -1,27 +1,34 @@
 package com.archive.management.exception;
 
-import com.archive.management.common.ApiResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.archive.management.common.Result;
+import com.archive.management.common.ResultCode;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import java.util.HashMap;
-import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import java.sql.SQLException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
@@ -32,282 +39,247 @@ import java.util.Set;
  * @since 2024-01-20
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
     /**
-     * 处理基础异常（统一异常处理）
-     */
-    @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBaseException(BaseException e, HttpServletRequest request) {
-        logger.warn("业务异常: {} - 请求路径: {} - 响应码: {}", e.getMessage(), request.getRequestURI(), e.getResponseCode().getCode());
-        
-        // 使用正确的ApiResponse.error方法
-        ApiResponse<Object> response = ApiResponse.error(e.getResponseCode().getCode(), e.getMessage());
-        
-        // 根据响应码确定HTTP状态码
-        HttpStatus httpStatus = determineHttpStatus(e.getResponseCode().getCode());
-        return ResponseEntity.status(httpStatus).body(response);
-    }
-
-    /**
-     * 根据响应码确定HTTP状态码
-     */
-    private HttpStatus determineHttpStatus(int code) {
-        if (code >= 1000 && code < 2000) {
-            return HttpStatus.BAD_REQUEST; // 参数错误
-        } else if (code >= 2000 && code < 3000) {
-            return HttpStatus.UNAUTHORIZED; // 认证错误
-        } else if (code >= 3000 && code < 4000) {
-            return HttpStatus.FORBIDDEN; // 权限错误
-        } else if (code >= 4000 && code < 5000) {
-            return HttpStatus.NOT_FOUND; // 资源错误
-        } else if (code >= 5000 && code < 6000) {
-            return HttpStatus.CONFLICT; // 业务错误
-        } else if (code >= 6000 && code < 7000) {
-            return HttpStatus.INTERNAL_SERVER_ERROR; // 系统错误
-        } else if (code >= 7000 && code < 8000) {
-            return HttpStatus.SERVICE_UNAVAILABLE; // 数据库错误
-        } else if (code >= 8000 && code < 9000) {
-            return HttpStatus.BAD_GATEWAY; // 外部服务错误
-        } else if (code >= 9000 && code < 10000) {
-            return HttpStatus.INSUFFICIENT_STORAGE; // 文件操作错误
-        } else {
-            return HttpStatus.INTERNAL_SERVER_ERROR; // 默认
-        }
-    }
-
-    /**
-     * 处理业务异常（保持向后兼容）
+     * 处理业务异常
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBusinessException(BusinessException e, HttpServletRequest request) {
-        logger.warn("业务异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException e, HttpServletRequest request) {
+        log.warn("业务异常: {} - {}", request.getRequestURI(), e.getMessage());
         
-        // 如果BusinessException已经继承BaseException，则委托给BaseException处理器
-        if (e instanceof BaseException) {
-            return handleBaseException((BaseException) e, request);
-        }
-        
-        // 兼容旧版本BusinessException
-        ApiResponse<Object> response = ApiResponse.error(e.getCode(), e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.BUSINESS_ERROR.getCode(), e.getMessage()));
     }
 
     /**
-     * 处理认证异常
+     * 处理用户不存在异常
      */
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(AuthenticationException e, HttpServletRequest request) {
-        logger.warn("认证异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Result<Void>> handleUserNotFoundException(UserNotFoundException e, HttpServletRequest request) {
+        log.warn("用户不存在: {} - {}", request.getRequestURI(), e.getMessage());
         
-        String message = "认证失败";
-        if (e instanceof BadCredentialsException) {
-            message = "用户名或密码错误";
-        }
-        
-        ApiResponse<Object> response = ApiResponse.error(401, message);
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(ResultCode.USER_NOT_FOUND.getCode(), e.getMessage()));
     }
 
     /**
-     * 处理权限不足异常
+     * 处理档案不存在异常
      */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
-        logger.warn("权限不足异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    @ExceptionHandler(ArchiveNotFoundException.class)
+    public ResponseEntity<Result<Void>> handleArchiveNotFoundException(ArchiveNotFoundException e, HttpServletRequest request) {
+        log.warn("档案不存在: {} - {}", request.getRequestURI(), e.getMessage());
         
-        ApiResponse<Object> response = ApiResponse.error(403, "权限不足，无法访问该资源");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(ResultCode.ARCHIVE_NOT_FOUND.getCode(), e.getMessage()));
     }
 
     /**
-     * 处理参数验证异常（@Valid注解）
+     * 处理参数验证异常
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
-        logger.warn("参数验证异常 - 请求路径: {}", request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
+        log.warn("参数验证失败: {} - {}", request.getRequestURI(), e.getMessage());
         
-        Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
         
-        ApiResponse<Object> response = ApiResponse.error(400, "参数验证失败");
-        response.setData(errors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_VALID_ERROR.getCode(), "参数验证失败: " + errorMessage));
     }
 
     /**
      * 处理绑定异常
      */
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBindException(BindException e, HttpServletRequest request) {
-        logger.warn("绑定异常 - 请求路径: {}", request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleBindException(BindException e, HttpServletRequest request) {
+        log.warn("参数绑定失败: {} - {}", request.getRequestURI(), e.getMessage());
         
-        Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
         
-        ApiResponse<Object> response = ApiResponse.error(400, "参数绑定失败");
-        response.setData(errors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_VALID_ERROR.getCode(), "参数绑定失败: " + errorMessage));
     }
 
     /**
-     * 处理约束违反异常（@Validated注解）
+     * 处理约束违反异常
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleConstraintViolationException(ConstraintViolationException e, HttpServletRequest request) {
-        logger.warn("约束违反异常 - 请求路径: {}", request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleConstraintViolationException(ConstraintViolationException e, HttpServletRequest request) {
+        log.warn("约束违反: {} - {}", request.getRequestURI(), e.getMessage());
         
-        Map<String, String> errors = new HashMap<>();
-        Set<ConstraintViolation<?>> violations = e.getConstraintViolations();
-        for (ConstraintViolation<?> violation : violations) {
-            String fieldName = violation.getPropertyPath().toString();
-            String errorMessage = violation.getMessage();
-            errors.put(fieldName, errorMessage);
-        }
+        String errorMessage = e.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
         
-        ApiResponse<Object> response = ApiResponse.error(400, "参数约束违反");
-        response.setData(errors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_VALID_ERROR.getCode(), "约束违反: " + errorMessage));
     }
 
     /**
-     * 处理参数类型不匹配异常
+     * 处理认证异常
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Result<Void>> handleAuthenticationException(AuthenticationException e, HttpServletRequest request) {
+        log.warn("认证失败: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        String message = "认证失败";
+        if (e instanceof BadCredentialsException) {
+            message = "用户名或密码错误";
+        } else if (e instanceof DisabledException) {
+            message = "账户已被禁用";
+        } else if (e instanceof LockedException) {
+            message = "账户已被锁定";
+        }
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(ResultCode.UNAUTHORIZED.getCode(), message));
+    }
+
+    /**
+     * 处理访问拒绝异常
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Result<Void>> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+        log.warn("访问被拒绝: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Result.error(ResultCode.FORBIDDEN.getCode(), "访问被拒绝，权限不足"));
+    }
+
+    /**
+     * 处理数据库访问异常
+     */
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Result<Void>> handleDataAccessException(DataAccessException e, HttpServletRequest request) {
+        log.error("数据库访问异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.error(ResultCode.DATABASE_ERROR.getCode(), "数据库操作失败"));
+    }
+
+    /**
+     * 处理SQL异常
+     */
+    @ExceptionHandler(SQLException.class)
+    public ResponseEntity<Result<Void>> handleSQLException(SQLException e, HttpServletRequest request) {
+        log.error("SQL异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.error(ResultCode.DATABASE_ERROR.getCode(), "数据库操作失败"));
+    }
+
+    /**
+     * 处理文件上传大小超限异常
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Result<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e, HttpServletRequest request) {
+        log.warn("文件上传大小超限: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.FILE_SIZE_EXCEEDED.getCode(), "文件大小超出限制"));
+    }
+
+    /**
+     * 处理HTTP消息不可读异常
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e, HttpServletRequest request) {
+        log.warn("HTTP消息不可读: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_ERROR.getCode(), "请求参数格式错误"));
+    }
+
+    /**
+     * 处理请求方法不支持异常
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Result<Void>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        log.warn("请求方法不支持: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Result.error(ResultCode.METHOD_NOT_ALLOWED.getCode(), "请求方法不支持"));
+    }
+
+    /**
+     * 处理缺少请求参数异常
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<Void>> handleMissingServletRequestParameterException(MissingServletRequestParameterException e, HttpServletRequest request) {
+        log.warn("缺少请求参数: {} - {}", request.getRequestURI(), e.getMessage());
+        
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_ERROR.getCode(), "缺少必要参数: " + e.getParameterName()));
+    }
+
+    /**
+     * 处理方法参数类型不匹配异常
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
-        logger.warn("参数类型不匹配异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+        log.warn("参数类型不匹配: {} - {}", request.getRequestURI(), e.getMessage());
         
-        String message = String.format("参数 '%s' 的值 '%s' 类型不正确，期望类型为 %s", 
-                e.getName(), e.getValue(), e.getRequiredType().getSimpleName());
-        
-        ApiResponse<Object> response = ApiResponse.error(400, message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_ERROR.getCode(), "参数类型错误: " + e.getName()));
     }
 
     /**
-     * 处理资源未找到异常
+     * 处理404异常
      */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException e, HttpServletRequest request) {
-        logger.warn("资源未找到异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<Result<Void>> handleNoHandlerFoundException(NoHandlerFoundException e, HttpServletRequest request) {
+        log.warn("请求路径不存在: {} - {}", request.getRequestURI(), e.getMessage());
         
-        ApiResponse<Object> response = ApiResponse.error(404, e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(ResultCode.NOT_FOUND.getCode(), "请求路径不存在"));
     }
 
     /**
-     * 处理数据完整性违反异常
+     * 处理空指针异常
      */
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(DataIntegrityViolationException e, HttpServletRequest request) {
-        logger.error("数据完整性违反异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<Result<Void>> handleNullPointerException(NullPointerException e, HttpServletRequest request) {
+        log.error("空指针异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
         
-        String message = "数据操作失败，可能存在重复数据或违反约束条件";
-        if (e.getMessage().contains("Duplicate entry")) {
-            message = "数据已存在，不能重复添加";
-        } else if (e.getMessage().contains("foreign key constraint")) {
-            message = "数据关联约束违反，无法执行操作";
-        }
-        
-        ApiResponse<Object> response = ApiResponse.error(409, message);
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.error(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误"));
     }
 
     /**
      * 处理非法参数异常
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
-        logger.warn("非法参数异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
+    public ResponseEntity<Result<Void>> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
+        log.warn("非法参数: {} - {}", request.getRequestURI(), e.getMessage());
         
-        ApiResponse<Object> response = ApiResponse.error(400, "参数错误: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    /**
-     * 处理非法状态异常
-     */
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(IllegalStateException e, HttpServletRequest request) {
-        logger.warn("非法状态异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
-        
-        ApiResponse<Object> response = ApiResponse.error(400, "操作状态错误: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_ERROR.getCode(), "参数错误: " + e.getMessage()));
     }
 
     /**
      * 处理运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
-        logger.error("运行时异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI(), e);
+    public ResponseEntity<Result<Void>> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
+        log.error("运行时异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
         
-        ApiResponse<Object> response = ApiResponse.error(500, "系统内部错误，请稍后重试");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.error(ResultCode.SYSTEM_ERROR.getCode(), "系统运行异常"));
     }
 
     /**
-     * 处理所有未捕获的异常
+     * 处理其他所有异常
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleException(Exception e, HttpServletRequest request) {
-        logger.error("未知异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI(), e);
+    public ResponseEntity<Result<Void>> handleException(Exception e, HttpServletRequest request) {
+        log.error("未知异常: {} - {}", request.getRequestURI(), e.getMessage(), e);
         
-        ApiResponse<Object> response = ApiResponse.error(500, "系统发生未知错误，请联系管理员");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    /**
-     * 处理文件上传异常
-     */
-    @ExceptionHandler(FileUploadException.class)
-    public ResponseEntity<ApiResponse<Object>> handleFileUploadException(FileUploadException e, HttpServletRequest request) {
-        logger.warn("文件上传异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
-        
-        ApiResponse<Object> response = ApiResponse.error(400, "文件上传失败: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    /**
-     * 处理文件下载异常
-     */
-    @ExceptionHandler(FileDownloadException.class)
-    public ResponseEntity<ApiResponse<Object>> handleFileDownloadException(FileDownloadException e, HttpServletRequest request) {
-        logger.warn("文件下载异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI());
-        
-        ApiResponse<Object> response = ApiResponse.error(400, "文件下载失败: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    /**
-     * 处理数据库异常
-     */
-    @ExceptionHandler(DatabaseException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDatabaseException(DatabaseException e, HttpServletRequest request) {
-        logger.error("数据库异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI(), e);
-        
-        ApiResponse<Object> response = ApiResponse.error(503, "数据库操作异常，请稍后重试");
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-    }
-
-    /**
-     * 处理外部服务异常
-     */
-    @ExceptionHandler(ExternalServiceException.class)
-    public ResponseEntity<ApiResponse<Object>> handleExternalServiceException(ExternalServiceException e, HttpServletRequest request) {
-        logger.error("外部服务异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI(), e);
-        
-        ApiResponse<Object> response = ApiResponse.error(502, "外部服务异常: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.error(ResultCode.SYSTEM_ERROR.getCode(), "系统内部错误"));
     }
 }
