@@ -14,7 +14,7 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import javax.sql.DataSource;
+import jakarta.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,20 +47,21 @@ public class DatabaseOptimizationConfig {
 
     /**
      * 数据库连接池优化配置
+     * 注意：这里不重复定义dataSource Bean，而是通过配置属性来优化现有的数据源
      */
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.hikari")
-    public DataSource dataSource() {
-        com.zaxxer.hikari.HikariDataSource dataSource = new com.zaxxer.hikari.HikariDataSource();
-        dataSource.setMaximumPoolSize(properties.getConnectionPool().getMaxPoolSize());
-        dataSource.setMinimumIdle(properties.getConnectionPool().getMinIdle());
-        dataSource.setConnectionTimeout(properties.getConnectionPool().getConnectionTimeout());
-        dataSource.setIdleTimeout(properties.getConnectionPool().getIdleTimeout());
-        dataSource.setMaxLifetime(properties.getConnectionPool().getMaxLifetime());
-        dataSource.setLeakDetectionThreshold(properties.getConnectionPool().getLeakDetectionThreshold());
-        dataSource.setConnectionTestQuery("SELECT 1");
-        dataSource.setPoolName("ArchiveManagementPool");
-        return dataSource;
+    public com.zaxxer.hikari.HikariConfig hikariConfig() {
+        com.zaxxer.hikari.HikariConfig config = new com.zaxxer.hikari.HikariConfig();
+        config.setMaximumPoolSize(properties.getConnectionPool().getMaxPoolSize());
+        config.setMinimumIdle(properties.getConnectionPool().getMinIdle());
+        config.setConnectionTimeout(properties.getConnectionPool().getConnectionTimeout());
+        config.setIdleTimeout(properties.getConnectionPool().getIdleTimeout());
+        config.setMaxLifetime(properties.getConnectionPool().getMaxLifetime());
+        config.setLeakDetectionThreshold(properties.getConnectionPool().getLeakDetectionThreshold());
+        config.setConnectionTestQuery("SELECT 1");
+        config.setPoolName("ArchiveManagementPool");
+        return config;
     }
 
     /**

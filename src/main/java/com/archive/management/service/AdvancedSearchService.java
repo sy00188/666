@@ -12,7 +12,7 @@ import com.archive.management.entity.User;
 import com.archive.management.repository.ArchiveRepository;
 import com.archive.management.repository.UserRepository;
 
-import javax.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
