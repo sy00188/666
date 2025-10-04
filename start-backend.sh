@@ -233,7 +233,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path == '/api/system/activities/recent':
+        elif self.path == '/api/system/activities/recent' or self.path == '/system/activities/recent':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -284,7 +284,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 ]
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path == '/api/system/todos/pending':
+        elif self.path == '/api/system/todos/pending' or self.path == '/system/todos/pending':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -335,7 +335,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 ]
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path == '/api/system/statistics/borrow-trend':
+        elif self.path == '/api/system/statistics/borrow-trend' or self.path == '/system/statistics/borrow-trend':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -353,7 +353,7 @@ class ArchiveHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-        elif self.path == '/api/system/statistics/user-activity':
+        elif self.path == '/api/system/statistics/user-activity' or self.path == '/system/statistics/user-activity':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')

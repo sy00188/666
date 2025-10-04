@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ActionButton: typeof import('./src/components/common/ActionButton.vue')['default']
+    AddUsersToRole: typeof import('./src/components/AddUsersToRole.vue')['default']
     AppHeader: typeof import('./src/components/Layout/AppHeader.vue')['default']
     AppSidebar: typeof import('./src/components/Layout/AppSidebar.vue')['default']
     ArchiveTrendChart: typeof import('./src/components/dashboard/ArchiveTrendChart.vue')['default']
@@ -69,6 +70,7 @@ declare module 'vue' {
     GaugeChart: typeof import('./src/components/charts/GaugeChart.vue')['default']
     HeatmapChart: typeof import('./src/components/charts/HeatmapChart.vue')['default']
     ImageUpload: typeof import('./src/components/common/ImageUpload.vue')['default']
+    ImportRole: typeof import('./src/components/ImportRole.vue')['default']
     InteractiveChart: typeof import('./src/components/charts/InteractiveChart.vue')['default']
     LoadingSpinner: typeof import('./src/components/common/LoadingSpinner.vue')['default']
     MainLayout: typeof import('./src/components/Layout/MainLayout.vue')['default']
@@ -80,6 +82,7 @@ declare module 'vue' {
     ReportGenerator: typeof import('./src/components/reports/ReportGenerator.vue')['default']
     ReportList: typeof import('./src/components/reports/ReportList.vue')['default']
     RoleForm: typeof import('./src/components/RoleForm.vue')['default']
+    RoleUsers: typeof import('./src/components/RoleUsers.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SankeyChart: typeof import('./src/components/charts/SankeyChart.vue')['default']

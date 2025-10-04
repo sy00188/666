@@ -52,11 +52,11 @@ import { RefreshRight } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 import { useDashboard } from "@/composables/useDashboard";
-import type { BorrowTrendData } from "@/api/statistics";
+import type { BorrowTrend } from "@/api/statistics";
 
 // Props
 interface Props {
-  data?: BorrowTrendData;
+  data?: BorrowTrend;
   height?: string;
 }
 
@@ -87,14 +87,15 @@ const loading = computed(() => loadingState.borrowTrend);
 const error = computed(() => errorState.borrowTrend);
 
 // 获取趋势图表配置
-const getTrendChartOption = (data: BorrowTrendData) => {
-  const dates = data.trends.map((item) => item.date);
-  const borrowCounts = data.trends.map((item) => item.borrowCount);
-  const returnCounts = data.trends.map((item) => item.returnCount);
+const getTrendChartOption = (data: BorrowTrend) => {
+  // 适配后端API返回的数据结构
+  const dates = data.dates || [];
+  const borrowCounts = data.borrowCounts || [];
+  const returnCounts = data.returnCounts || [];
 
   return {
     title: {
-      text: `总借阅: ${data.totalBorrow} | 总归还: ${data.totalReturn}`,
+      text: `总借阅: ${borrowCounts.reduce((a, b) => a + b, 0)} | 总归还: ${returnCounts.reduce((a, b) => a + b, 0)}`,
       textStyle: {
         fontSize: 14,
         fontWeight: "normal",
@@ -169,11 +170,14 @@ const getTrendChartOption = (data: BorrowTrendData) => {
 };
 
 // 获取状态分布图表配置
-const getStatusChartOption = (data: BorrowTrendData) => {
+const getStatusChartOption = (data: BorrowTrend) => {
+  const totalBorrow = data.borrowCounts?.reduce((a, b) => a + b, 0) || 0;
+  const totalReturn = data.returnCounts?.reduce((a, b) => a + b, 0) || 0;
+  
   const statusData = [
-    { name: "已借出", value: data.totalBorrow - data.totalReturn },
-    { name: "已归还", value: data.totalReturn },
-    { name: "逾期", value: Math.floor(data.totalBorrow * 0.1) }, // 模拟逾期数据
+    { name: "已借出", value: totalBorrow - totalReturn },
+    { name: "已归还", value: totalReturn },
+    { name: "逾期", value: Math.floor(totalBorrow * 0.1) }, // 模拟逾期数据
   ];
 
   return {
@@ -234,7 +238,7 @@ const getStatusChartOption = (data: BorrowTrendData) => {
 };
 
 // 获取部门统计图表配置
-const getDepartmentChartOption = (data: BorrowTrendData) => {
+const getDepartmentChartOption = (data: BorrowTrend) => {
   // 模拟部门数据
   const departments = ["技术部", "市场部", "人事部", "财务部", "行政部"];
   const departmentData = departments.map((dept) => ({
@@ -296,7 +300,7 @@ const getDepartmentChartOption = (data: BorrowTrendData) => {
 };
 
 // 获取图表配置
-const getChartOption = (data: BorrowTrendData) => {
+const getChartOption = (data: BorrowTrend) => {
   switch (selectedType.value) {
     case "trend":
       return getTrendChartOption(data);
@@ -341,7 +345,7 @@ const initChart = async () => {
 };
 
 // 更新图表
-const updateChart = (data: BorrowTrendData) => {
+const updateChart = (data: BorrowTrend) => {
   if (!chartInstance.value || !data) return;
 
   try {

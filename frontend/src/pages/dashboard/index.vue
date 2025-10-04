@@ -177,7 +177,7 @@ const archiveChartRef = ref<HTMLElement>();
 const borrowChartRef = ref<HTMLElement>();
 
 // 用户信息
-const userInfo = computed(() => authStore.user || {});
+const userInfo = computed(() => authStore.user || { name: '用户' });
 
 // 当前日期
 const currentDate = computed(() => {
@@ -222,7 +222,7 @@ const statsData = computed(() => {
       },
       {
         key: "monthlyViews",
-        label: "本月访问",
+        label: "本月操作",
         value: "0",
         change: "+0%",
         trend: "stable",
@@ -233,11 +233,16 @@ const statsData = computed(() => {
   }
 
   const { archiveCount, borrowTrend, userActivity } = dashboardData.value;
+  
+  // 安全地计算借阅统计数据
+  const totalBorrow = borrowTrend?.borrowCounts?.reduce((a, b) => a + b, 0) || 0;
+  const totalReturn = borrowTrend?.returnCounts?.reduce((a, b) => a + b, 0) || 0;
+  
   return [
     {
       key: "totalArchives",
       label: "档案总数",
-      value: archiveCount.total.toLocaleString(),
+      value: (archiveCount?.totalCount || 0).toLocaleString(),
       change: "+12.5%",
       trend: "up",
       color: "#409eff",
@@ -246,7 +251,7 @@ const statsData = computed(() => {
     {
       key: "activeBorrows",
       label: "在借档案",
-      value: (borrowTrend.totalBorrow - borrowTrend.totalReturn).toString(),
+      value: (totalBorrow - totalReturn).toString(),
       change: "+5.2%",
       trend: "up",
       color: "#67c23a",
@@ -255,7 +260,7 @@ const statsData = computed(() => {
     {
       key: "totalUsers",
       label: "用户总数",
-      value: userActivity.totalUsers.toString(),
+      value: (userActivity?.totalUsers || 0).toString(),
       change: "+8.1%",
       trend: "up",
       color: "#e6a23c",
@@ -263,8 +268,8 @@ const statsData = computed(() => {
     },
     {
       key: "monthlyViews",
-      label: "本月访问",
-      value: userActivity.monthlyViews.toLocaleString(),
+      label: "本月操作",
+      value: (userActivity?.operationCount || 0).toLocaleString(),
       change: "-2.3%",
       trend: "down",
       color: "#f56c6c",

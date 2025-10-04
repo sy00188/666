@@ -72,25 +72,25 @@ export class StatisticsAPI {
 
   // 获取借阅趋势数据
   static async getBorrowTrend(): Promise<BorrowTrend> {
-    const response = await request.get<BorrowTrend>('/api/system/statistics/borrow-trend')
+    const response = await request.get<BorrowTrend>('/system/statistics/borrow-trend')
     return response.data
   }
 
   // 获取用户活跃度数据
   static async getUserActivity(): Promise<UserActivity> {
-    const response = await request.get<UserActivity>('/api/system/statistics/user-activity')
+    const response = await request.get<UserActivity>('/system/statistics/user-activity')
     return response.data
   }
 
   // 获取最新动态数据
   static async getRecentActivities(): Promise<RecentActivity[]> {
-    const response = await request.get<RecentActivity[]>('/api/system/activities/recent')
+    const response = await request.get<RecentActivity[]>('/system/activities/recent')
     return response.data
   }
 
   // 获取待办事项数据
   static async getTodoItems(): Promise<TodoItem[]> {
-    const response = await request.get<TodoItem[]>('/api/system/todos/pending')
+    const response = await request.get<TodoItem[]>('/system/todos/pending')
     return response.data
   }
 
