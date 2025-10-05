@@ -103,9 +103,7 @@
             微信登录
           </el-button>
           <el-button class="social-btn qq-btn" @click="handleQQLogin">
-            <el-icon class="social-icon">
-              <User />
-            </el-icon>
+            <div class="qq-icon">Q</div>
             QQ登录
           </el-button>
         </div>
@@ -128,6 +126,12 @@
       v-model:visible="wechatDialogVisible"
       @success="handleWeChatLoginSuccess"
     />
+
+    <!-- QQ登录对话框 -->
+    <QQLoginDialog
+      v-model:visible="qqDialogVisible"
+      @success="handleQQLoginSuccess"
+    />
   </div>
 </template>
 
@@ -138,12 +142,14 @@ import { ElMessage, ElForm } from "element-plus";
 import { Document, Right, ChatDotRound, User, Lock } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores";
 import WeChatLoginDialog from "@/components/WeChatLoginDialog.vue";
+import QQLoginDialog from "@/components/QQLoginDialog.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-// 微信登录对话框
+// 第三方登录对话框
 const wechatDialogVisible = ref(false);
+const qqDialogVisible = ref(false);
 
 // 表单引用
 const loginFormRef = ref<InstanceType<typeof ElForm>>();
@@ -233,12 +239,12 @@ const handleWechatLogin = () => {
 const handleWeChatLoginSuccess = async (data: any) => {
   try {
     // 保存token和用户信息到store
-    if (data.accessToken) {
-      await authStore.setToken(data.accessToken);
+    if (data.token) {
+      authStore.token = data.token;
       
       // 如果有用户信息，也保存
-      if (data.userInfo) {
-        await authStore.setUser(data.userInfo);
+      if (data.user) {
+        authStore.user = data.user;
       }
       
       ElMessage.success("微信登录成功");
@@ -258,7 +264,34 @@ const handleWeChatLoginSuccess = async (data: any) => {
 
 // 处理QQ登录
 const handleQQLogin = () => {
-  ElMessage.info("QQ登录功能开发中...");
+  qqDialogVisible.value = true;
+};
+
+// QQ登录成功回调
+const handleQQLoginSuccess = async (data: any) => {
+  try {
+    // 保存token和用户信息到store
+    if (data.token) {
+      authStore.token = data.token;
+      
+      // 如果有用户信息，也保存
+      if (data.user) {
+        authStore.user = data.user;
+      }
+      
+      ElMessage.success("QQ登录成功");
+      
+      // 关闭对话框
+      qqDialogVisible.value = false;
+      
+      // 跳转到首页
+      const redirect = router.currentRoute.value.query.redirect as string;
+      router.push(redirect || "/dashboard");
+    }
+  } catch (error: any) {
+    console.error("QQ登录处理失败:", error);
+    ElMessage.error(error.message || "登录处理失败");
+  }
 };
 
 // 刷新验证码
@@ -530,6 +563,39 @@ onMounted(() => {
     
     :deep(.el-icon) {
       font-size: 18px;
+    }
+    
+    &.wechat-btn {
+      &:hover {
+        border-color: #07c160;
+        color: #07c160;
+      }
+    }
+    
+    &.qq-btn {
+      &:hover {
+        border-color: #12b7f5;
+        color: #12b7f5;
+      }
+      
+      .qq-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #12b7f5;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+      }
+      
+      &:hover .qq-icon {
+        background: #0ea5e9;
+        transform: scale(1.1);
+      }
     }
   }
 }

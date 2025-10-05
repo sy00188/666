@@ -101,4 +101,37 @@ export const authApi = {
   unbindWeChatAccount: (): Promise<AuthResponse> => {
     return request.post("/auth/wechat/unbind");
   },
+
+  // ==================== QQ登录相关接口 ====================
+
+  // 获取QQ登录二维码
+  getQQQRCode: (): Promise<AuthResponse<import("@/types/auth").QQLoginResponse>> => {
+    return request.get("/auth/qq/qrcode");
+  },
+
+  // 模拟QQ登录
+  mockQQLogin: (
+    data: import("@/types/auth").QQLoginRequest
+  ): Promise<AuthResponse<any>> => {
+    return request.post("/auth/qq/mock-login", data);
+  },
+
+  // 检查QQ登录状态
+  checkQQLoginStatus: (
+    state: string
+  ): Promise<AuthResponse<import("@/types/auth").QQLoginStatus>> => {
+    return request.get(`/auth/qq/status/${state}`);
+  },
+
+  // 绑定QQ账号
+  bindQQAccount: (
+    data: import("@/types/auth").QQBindRequest
+  ): Promise<AuthResponse<any>> => {
+    return request.post("/auth/qq/bind", data);
+  },
+
+  // 解绑QQ账号
+  unbindQQAccount: (): Promise<AuthResponse> => {
+    return request.post("/auth/qq/unbind");
+  },
 };

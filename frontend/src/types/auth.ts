@@ -159,3 +159,49 @@ export interface WeChatBindRequest {
   phone?: string;
   realName?: string;
 }
+
+// QQ登录响应接口
+export interface QQLoginResponse {
+  state: string;
+  qrcodeUrl?: string;
+  expiresIn: number;
+  mockMode: boolean;
+  message: string;
+}
+
+// QQ登录状态接口
+export interface QQLoginStatus {
+  status: "pending" | "success" | "expired" | "error" | "binding_required";
+  message: string;
+  openid?: string;
+  nickname?: string;
+  avatar?: string;
+  userId?: number;
+  loginResponse?: LoginResponseData;
+}
+
+// QQ用户信息接口
+export interface QQUserInfo {
+  openid: string;
+  nickname: string;
+  avatar?: string;
+}
+
+// QQ登录请求接口
+export interface QQLoginRequest {
+  state: string;
+  mockQQId?: string;
+  mockNickname?: string;
+}
+
+// QQ账号绑定请求接口
+export interface QQBindRequest {
+  state: string;
+  username?: string;
+  password?: string;
+  createNew: boolean;
+  newUsername?: string;
+  email?: string;
+  phone?: string;
+  realName?: string;
+}

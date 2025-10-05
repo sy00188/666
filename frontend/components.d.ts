@@ -79,6 +79,7 @@ declare module 'vue' {
     PageTabs: typeof import('./src/components/common/PageTabs.vue')['default']
     PermissionAssign: typeof import('./src/components/PermissionAssign.vue')['default']
     PermissionGuard: typeof import('./src/components/PermissionGuard.vue')['default']
+    QQLoginDialog: typeof import('./src/components/QQLoginDialog.vue')['default']
     RadarChart: typeof import('./src/components/charts/RadarChart.vue')['default']
     ReportGenerator: typeof import('./src/components/reports/ReportGenerator.vue')['default']
     ReportList: typeof import('./src/components/reports/ReportList.vue')['default']
