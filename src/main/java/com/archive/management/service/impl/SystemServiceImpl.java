@@ -2,6 +2,7 @@ package com.archive.management.service.impl;
 
 import com.archive.management.dto.request.*;
 import com.archive.management.dto.response.*;
+import com.archive.management.dto.UserResponse;
 import com.archive.management.entity.*;
 import com.archive.management.mapper.*;
 import com.archive.management.service.SystemService;
@@ -50,7 +51,7 @@ public class SystemServiceImpl implements SystemService {
     private ArchiveMapper archiveMapper;
     
     @Autowired
-    private BorrowRecordMapper borrowRecordMapper;
+    private BorrowMapper borrowRecordMapper;
 
     // ==================== 部门管理 ====================
 
@@ -661,7 +662,7 @@ public class SystemServiceImpl implements SystemService {
 
     @Override
     @Transactional
-    public SystemConfigResponse createSystemConfig(SystemConfigCreateRequest request) {
+    public SystemConfigResponse createSystemConfig(ConfigCreateRequest request) {
         // 参数验证
         ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
         ValidationUtil.validateRequired(result, request.getConfigKey(), "配置键");
@@ -700,7 +701,7 @@ public class SystemServiceImpl implements SystemService {
 
     @Override
     @Transactional
-    public SystemConfigResponse updateSystemConfig(Long configId, SystemConfigUpdateRequest request) {
+    public SystemConfigResponse updateSystemConfig(Long configId, ConfigUpdateRequest request) {
         // 参数验证
         ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
         ValidationUtil.validateRequired(result, configId, "配置ID");
@@ -784,7 +785,7 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
-    public PageResult<SystemConfigResponse> querySystemConfigs(SystemConfigQueryRequest request) {
+    public PageResult<SystemConfigResponse> querySystemConfigs(ConfigQueryRequest request) {
         // 构建查询条件
         Map<String, Object> params = new HashMap<>();
         if (StringUtils.hasText(request.getConfigKey())) {

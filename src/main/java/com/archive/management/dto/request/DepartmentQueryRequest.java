@@ -2,6 +2,7 @@ package com.archive.management.dto.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 /**
  * 部门查询请求DTO
@@ -41,6 +42,11 @@ public class DepartmentQueryRequest {
      * 部门状态（ACTIVE-启用，INACTIVE-禁用）
      */
     private String status;
+
+    /**
+     * 部门状态列表（支持多状态查询）
+     */
+    private List<String> statuses;
 
     /**
      * 创建时间开始
@@ -204,6 +210,15 @@ public class DepartmentQueryRequest {
 
     public void setSortOrder(String sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    // 添加getStatuses方法
+    public List<String> getStatuses() {
+        return this.statuses;
+    }
+
+    public void setStatuses(List<String> statuses) {
+        this.statuses = statuses;
     }
 
     @Override

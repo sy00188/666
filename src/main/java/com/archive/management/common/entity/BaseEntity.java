@@ -35,6 +35,15 @@ public abstract class BaseEntity implements Serializable {
     @TableField(value = "create_user_id", fill = FieldFill.INSERT)
     private Long createUserId;
 
+    // 添加兼容性方法，支持setCreateBy调用
+    public void setCreateBy(Long createBy) {
+        this.createUserId = createBy;
+    }
+
+    public Long getCreateBy() {
+        return this.createUserId;
+    }
+
     /**
      * 更新时间
      */
@@ -47,6 +56,15 @@ public abstract class BaseEntity implements Serializable {
      */
     @TableField(value = "update_user_id", fill = FieldFill.INSERT_UPDATE)
     private Long updateUserId;
+
+    // 添加兼容性方法，支持setUpdateBy调用
+    public void setUpdateBy(Long updateBy) {
+        this.updateUserId = updateBy;
+    }
+
+    public Long getUpdateBy() {
+        return this.updateUserId;
+    }
 
     /**
      * 是否删除（逻辑删除）

@@ -32,6 +32,27 @@ public interface PermissionMapper extends BaseMapper<Permission> {
     Permission findByPermissionCode(@Param("permissionCode") String permissionCode);
 
     /**
+     * 根据权限编码检查是否存在
+     * 
+     * @param code 权限编码
+     * @return 是否存在
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_permission WHERE permission_code = #{code} AND deleted = 0")
+    boolean existsByCode(@Param("code") String code);
+
+    /**
+     * 根据角色ID查询权限列表
+     * 
+     * @param roleId 角色ID
+     * @return 权限列表
+     */
+    @Select("SELECT p.* FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "WHERE rp.role_id = #{roleId} AND p.deleted = 0 " +
+            "ORDER BY p.sort_order ASC, p.create_time DESC")
+    List<Permission> selectByRoleId(@Param("roleId") Long roleId);
+
+    /**
      * 根据权限名称查找权限
      * 
      * @param permissionName 权限名称
@@ -388,6 +409,15 @@ public interface PermissionMapper extends BaseMapper<Permission> {
      */
     @Select("SELECT COUNT(*) FROM sys_permission WHERE parent_id = #{parentId} AND deleted = 0")
     long getChildrenCount(@Param("parentId") Long parentId);
+
+    /**
+     * 根据父权限ID统计权限数量
+     * 
+     * @param parentId 父权限ID
+     * @return 权限数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_permission WHERE parent_id = #{parentId} AND deleted = 0")
+    long countByParentId(@Param("parentId") Long parentId);
 
     /**
      * 获取权限的所有子权限ID

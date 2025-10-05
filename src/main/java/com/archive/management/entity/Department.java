@@ -353,4 +353,9 @@ public class Department implements Serializable {
     public String getName() {
         return this.name;
     }
+
+    // 添加缺失的getter方法
+    public Integer getSort() {
+        return this.sortOrder;
+    }
 }

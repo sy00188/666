@@ -320,6 +320,16 @@ public class Permission extends BaseEntity implements Serializable {
         this.sortOrder = sortOrder;
     }
 
+    // 添加setSort方法以兼容SystemServiceImpl中的调用
+    public void setSort(Integer sort) {
+        this.sortOrder = sort;
+    }
+
+    // 添加getSort方法以兼容SystemServiceImpl中的调用
+    public Integer getSort() {
+        return this.sortOrder;
+    }
+
     /**
      * 备注
      */

@@ -23,6 +23,63 @@ import java.util.Map;
 public interface UserMapper extends BaseMapper<User> {
 
     /**
+     * 根据部门ID查询用户列表
+     */
+    @Select("SELECT * FROM sys_user WHERE department_id = #{departmentId} AND deleted = 0 ORDER BY create_time DESC")
+    List<User> selectByDepartmentId(@Param("departmentId") Long departmentId);
+
+    /**
+     * 根据角色ID统计用户数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_user u " +
+            "INNER JOIN sys_user_role ur ON u.id = ur.user_id " +
+            "WHERE ur.role_id = #{roleId} AND u.deleted = 0")
+    long countByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 根据角色ID查询用户列表
+     */
+    @Select("SELECT u.* FROM sys_user u " +
+            "INNER JOIN sys_user_role ur ON u.id = ur.user_id " +
+            "WHERE ur.role_id = #{roleId} AND u.deleted = 0")
+    List<User> selectByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 统计总用户数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE deleted = 0")
+    Long countTotal();
+
+    /**
+     * 统计活跃用户数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE status = 1 AND deleted = 0")
+    Long countActive();
+
+    /**
+     * 统计在线用户数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE online_status = 1 AND deleted = 0")
+    Long countOnline();
+
+    /**
+     * 查询用户活动统计
+     */
+    List<Map<String, Object>> selectActivityStatistics(@Param("days") int days);
+
+    /**
+     * 根据用户名查询用户
+     */
+    @Select("SELECT * FROM sys_user WHERE username = #{username} AND deleted = 0")
+    User selectByUsername(@Param("username") String username);
+
+    /**
+     * 根据邮箱查询用户
+     */
+    @Select("SELECT * FROM sys_user WHERE email = #{email} AND deleted = 0")
+    User selectByEmail(@Param("email") String email);
+
+    /**
      * 根据用户名查找用户
      * 
      * @param username 用户名

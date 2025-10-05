@@ -23,6 +23,30 @@ import java.util.Map;
 public interface RoleMapper extends BaseMapper<Role> {
 
     /**
+     * 根据角色编码检查是否存在
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_role WHERE role_code = #{roleCode} AND deleted = 0")
+    boolean existsByCode(@Param("roleCode") String roleCode);
+
+    /**
+     * 根据参数统计角色数量
+     */
+    int countByParams(@Param("params") Map<String, Object> params);
+
+    /**
+     * 根据参数分页查询角色
+     */
+    List<Role> selectByParams(@Param("params") Map<String, Object> params, 
+                             @Param("offset") int offset, 
+                             @Param("limit") Integer limit);
+
+    /**
+     * 查询所有启用的角色
+     */
+    @Select("SELECT * FROM sys_role WHERE status = 1 AND deleted = 0 ORDER BY sort_order ASC")
+    List<Role> selectAllEnabled();
+
+    /**
      * 根据角色编码查找角色
      * 
      * @param roleCode 角色编码
@@ -450,4 +474,29 @@ public interface RoleMapper extends BaseMapper<Role> {
             "FROM sys_role WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
             "AND deleted = 0 GROUP BY DATE(create_time) ORDER BY createDate ASC")
     List<Map<String, Object>> getRoleCreationTrendStatistics(@Param("days") int days);
+
+    /**
+     * 删除角色的所有权限关联
+     */
+    @Delete("DELETE FROM sys_role_permission WHERE role_id = #{roleId}")
+    void deleteRolePermissions(@Param("roleId") Long roleId);
+
+    /**
+     * 批量插入角色权限关联
+     */
+    @Insert("<script>" +
+            "INSERT INTO sys_role_permission (role_id, permission_id) VALUES " +
+            "<foreach collection='permissionIds' item='permissionId' separator=','>" +
+            "(#{roleId}, #{permissionId})" +
+            "</foreach>" +
+            "</script>")
+    void batchInsertRolePermissions(@Param("roleId") Long roleId, @Param("permissionIds") List<Long> permissionIds);
+
+    /**
+     * 根据权限ID统计关联的角色数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_role_permission rp " +
+            "INNER JOIN sys_role r ON rp.role_id = r.id " +
+            "WHERE rp.permission_id = #{permissionId} AND r.deleted = 0")
+    long countByPermissionId(@Param("permissionId") Long permissionId);
 }

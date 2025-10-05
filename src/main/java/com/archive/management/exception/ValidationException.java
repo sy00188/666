@@ -138,14 +138,14 @@ public class ValidationException extends BaseException {
     }
 
     /**
-     * 兼容性构造函数 - 多个验证错误
+     * 构造函数 - 接受错误映射
      * 
-     * @param errors 验证错误列表
+     * @param errorMap 错误映射
      */
-    public ValidationException(List<ValidationError> errors) {
+    public ValidationException(Map<String, List<String>> errorMap) {
         super(ResponseCode.PARAM_ERROR, "参数验证失败");
-        this.errors = errors != null ? new ArrayList<>(errors) : new ArrayList<>();
-        this.errorMap = new HashMap<>();
+        this.errors = new ArrayList<>();
+        this.errorMap = errorMap != null ? new HashMap<>(errorMap) : new HashMap<>();
     }
 
     // 常用静态方法

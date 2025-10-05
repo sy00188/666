@@ -59,7 +59,7 @@ public interface SystemService {
     List<DepartmentResponse> getDepartmentTree();
     
     /**
-     * 获取部门下的所有用户
+     * 获取部门用户列表
      * @param departmentId 部门ID
      * @return 用户列表
      */
@@ -179,7 +179,7 @@ public interface SystemService {
      * @param request 配置创建请求
      * @return 配置响应信息
      */
-    SystemConfigResponse createSystemConfig(SystemConfigCreateRequest request);
+    ConfigResponse createSystemConfig(ConfigCreateRequest request);
     
     /**
      * 更新系统配置
@@ -187,7 +187,7 @@ public interface SystemService {
      * @param request 配置更新请求
      * @return 配置响应信息
      */
-    SystemConfigResponse updateSystemConfig(Long configId, SystemConfigUpdateRequest request);
+    ConfigResponse updateSystemConfig(Long configId, ConfigUpdateRequest request);
     
     /**
      * 删除系统配置
@@ -207,27 +207,27 @@ public interface SystemService {
      * @param configKey 配置键
      * @return 配置响应信息
      */
-    SystemConfigResponse getConfigByKey(String configKey);
+    ConfigResponse getConfigByKey(String configKey);
     
     /**
      * 分页查询系统配置
      * @param request 查询请求
-     * @return 分页配置列表
+     * @return 分页结果
      */
-    PageResult<SystemConfigResponse> querySystemConfigs(SystemConfigQueryRequest request);
+    PageResult<ConfigResponse> querySystemConfigs(ConfigQueryRequest request);
     
     /**
-     * 批量更新系统配置
+     * 批量更新配置
      * @param configs 配置键值对
      */
     void batchUpdateConfigs(Map<String, String> configs);
     
     /**
-     * 获取系统配置分组
+     * 根据分组获取配置列表
      * @param group 配置分组
      * @return 配置列表
      */
-    List<SystemConfigResponse> getConfigsByGroup(String group);
+    List<ConfigResponse> getConfigsByGroup(String group);
 
     // ==================== 系统统计 ====================
     

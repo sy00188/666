@@ -367,7 +367,7 @@ public class Role implements Serializable {
         this.roleName = name;
     }
 
-    public void setSort(int sort) {
+    public void setSort(Integer sort) {
         this.sortOrder = sort;
     }
 

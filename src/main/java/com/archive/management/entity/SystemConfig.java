@@ -233,6 +233,15 @@ public class SystemConfig implements Serializable {
     @TableField(value = "create_by", fill = FieldFill.INSERT)
     private Long createBy;
 
+    // 添加兼容性setter方法
+    public void setCreateBy(Long createBy) {
+        this.createBy = createBy;
+    }
+
+    public Long getCreateBy() {
+        return this.createBy;
+    }
+
     /**
      * 创建时间
      */
@@ -245,6 +254,15 @@ public class SystemConfig implements Serializable {
      */
     @TableField(value = "update_by", fill = FieldFill.INSERT_UPDATE)
     private Long updateBy;
+
+    // 添加兼容性setter方法
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
+
+    public Long getUpdateBy() {
+        return this.updateBy;
+    }
 
     /**
      * 更新时间

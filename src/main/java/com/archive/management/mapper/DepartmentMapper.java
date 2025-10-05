@@ -281,6 +281,36 @@ public interface DepartmentMapper extends BaseMapper<Department> {
     List<Map<String, Object>> getDepartmentUserStatistics();
 
     /**
+     * 根据部门代码检查是否存在
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_department WHERE dept_code = #{deptCode} AND deleted = 0")
+    boolean existsByCode(@Param("deptCode") String deptCode);
+
+    /**
+     * 根据父部门ID统计子部门数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_department WHERE parent_id = #{parentId} AND deleted = 0")
+    int countByParentId(@Param("parentId") Long parentId);
+
+    /**
+     * 根据参数统计部门数量
+     */
+    int countByParams(@Param("params") Map<String, Object> params);
+
+    /**
+     * 根据参数分页查询部门
+     */
+    List<Department> selectByParams(@Param("params") Map<String, Object> params, 
+                                   @Param("offset") int offset, 
+                                   @Param("limit") Integer limit);
+
+    /**
+     * 查询所有启用的部门
+     */
+    @Select("SELECT * FROM sys_department WHERE status = 1 AND deleted = 0 ORDER BY sort_order ASC")
+    List<Department> selectAllEnabled();
+
+    /**
      * 查询指定部门及其所有子部门
      */
     @Select("WITH RECURSIVE dept_tree AS (" +
@@ -294,4 +324,12 @@ public interface DepartmentMapper extends BaseMapper<Department> {
             ") " +
             "SELECT * FROM dept_tree ORDER BY depth, dept_level")
     List<Department> selectDepartmentWithChildren(@Param("deptId") Long deptId);
+
+    /**
+     * 获取部门创建趋势统计
+     */
+    @Select("SELECT DATE(create_time) as createDate, COUNT(*) as departmentCount " +
+            "FROM sys_department WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
+            "AND deleted = 0 GROUP BY DATE(create_time) ORDER BY createDate ASC")
+    List<Map<String, Object>> getDepartmentCreationTrendStatistics(@Param("days") int days);
 }
