@@ -662,7 +662,7 @@ public class SystemServiceImpl implements SystemService {
 
     @Override
     @Transactional
-    public SystemConfigResponse createSystemConfig(ConfigCreateRequest request) {
+    public ConfigResponse createSystemConfig(ConfigCreateRequest request) {
         // 参数验证
         ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
         ValidationUtil.validateRequired(result, request.getConfigKey(), "配置键");
@@ -696,22 +696,18 @@ public class SystemServiceImpl implements SystemService {
         // 记录审计日志
         AuditLogUtil.log("CREATE_CONFIG", "创建系统配置: " + config.getConfigKey(), config.getId());
 
-        return convertToSystemConfigResponse(config);
+        return convertToConfigResponse(config);
     }
 
     @Override
     @Transactional
-    public SystemConfigResponse updateSystemConfig(Long configId, ConfigUpdateRequest request) {
+    public ConfigResponse updateSystemConfig(Long configId, ConfigUpdateRequest request) {
         // 参数验证
         ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
-        ValidationUtil.validateRequired(result, configId, "配置ID");
-        ValidationUtil.validateRequired(result, request.getConfigValue(), "配置值");
-        
-        if (!result.isValid()) {
-            Map<String, List<String>> errorMap = new HashMap<>();
-            errorMap.put("validation", result.getErrors());
-            throw new ValidationException(errorMap);
-        }
+        ValidationUtil.validateNotNull(result, configId, "配置ID不能为空");
+        ValidationUtil.validateNotBlank(result, request.getConfigValue(), "配置值不能为空");
+        ValidationUtil.validateNotBlank(result, request.getConfigGroup(), "配置分组不能为空");
+        ValidationUtil.throwIfHasErrors(result);
 
         // 检查配置是否存在
         SystemConfig config = systemConfigMapper.selectById(configId);
@@ -731,7 +727,7 @@ public class SystemServiceImpl implements SystemService {
         // 记录审计日志
         AuditLogUtil.log("UPDATE_CONFIG", "更新系统配置: " + config.getConfigKey(), config.getId());
 
-        return convertToSystemConfigResponse(config);
+        return convertToConfigResponse(config);
     }
 
     @Override
@@ -771,17 +767,81 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
-    public SystemConfigResponse getConfigByKey(String configKey) {
-        if (!StringUtils.hasText(configKey)) {
-            throw new ValidationException("配置键不能为空");
-        }
+    public ConfigResponse getConfigByKey(String configKey) {
+        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
+        ValidationUtil.validateNotBlank(result, configKey, "配置键不能为空");
+        ValidationUtil.throwIfHasErrors(result);
 
         SystemConfig config = systemConfigMapper.selectByKey(configKey);
         if (config == null) {
-            throw new BusinessException("配置不存在");
+            throw new BusinessException("配置不存在: " + configKey);
         }
 
-        return convertToSystemConfigResponse(config);
+        return convertToConfigResponse(config);
+    }
+
+    @Override
+    public PageResult<ConfigResponse> querySystemConfigs(ConfigQueryRequest request) {
+        Map<String, Object> params = new HashMap<>();
+        if (StringUtils.hasText(request.getConfigKey())) {
+            params.put("configKey", request.getConfigKey());
+        }
+        if (StringUtils.hasText(request.getConfigGroup())) {
+            params.put("configGroup", request.getConfigGroup());
+        }
+        if (request.getIsSystem() != null) {
+            params.put("isSystem", request.getIsSystem());
+        }
+
+        long total = systemConfigMapper.countByParams(params);
+        if (total == 0) {
+            return new PageResult<>(0, Collections.emptyList());
+        }
+
+        List<SystemConfig> configs = systemConfigMapper.selectByParams(params, 
+            (request.getPageNum() - 1) * request.getPageSize(), request.getPageSize());
+        
+        List<ConfigResponse> responses = configs.stream()
+                .map(this::convertToConfigResponse)
+                .collect(Collectors.toList());
+
+        return new PageResult<>(total, responses);
+    }
+
+    @Override
+    public List<ConfigResponse> getConfigsByGroup(String group) {
+        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
+        ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
+        ValidationUtil.throwIfHasErrors(result);
+
+        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
+        return configs.stream()
+                .map(this::convertToConfigResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<SystemConfigResponse> getConfigsByGroup(String group) {
+        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
+        ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
+        ValidationUtil.throwIfHasErrors(result);
+
+        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
+        return configs.stream()
+            .map(this::convertToSystemConfigResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<SystemConfigResponse> getConfigsByGroup(String group) {
+        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
+        ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
+        ValidationUtil.throwIfHasErrors(result);
+
+        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
+        return configs.stream()
+            .map(this::convertToSystemConfigResponse)
+            .collect(Collectors.toList());
     }
 
     @Override

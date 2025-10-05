@@ -1,9 +1,17 @@
 <template>
   <div class="login-page">
     <div class="login-form">
+      <!-- 头部图标和标题 -->
       <div class="form-header">
-        <h2>用户登录</h2>
-        <p>欢迎使用档案管理系统</p>
+        <div class="logo-container">
+          <div class="logo-icon">
+            <el-icon :size="28">
+              <Document />
+            </el-icon>
+          </div>
+        </div>
+        <h2 class="title">档案管理系统</h2>
+        <p class="subtitle">请登录您的账户</p>
       </div>
 
       <el-form
@@ -13,26 +21,35 @@
         size="large"
         @keyup.enter="handleLogin"
       >
+        <!-- 用户名输入框 -->
         <el-form-item prop="username">
+          <div class="input-label">
+            <el-icon :size="16"><User /></el-icon>
+            <span>用户名</span>
+          </div>
           <el-input
             v-model="loginForm.username"
             placeholder="请输入用户名"
-            prefix-icon="User"
             clearable
           />
         </el-form-item>
 
+        <!-- 密码输入框 -->
         <el-form-item prop="password">
+          <div class="input-label">
+            <el-icon :size="16"><Lock /></el-icon>
+            <span>密码</span>
+          </div>
           <el-input
             v-model="loginForm.password"
             type="password"
             placeholder="请输入密码"
-            prefix-icon="Lock"
             show-password
             clearable
           />
         </el-form-item>
 
+        <!-- 验证码 -->
         <el-form-item prop="captcha" v-if="showCaptcha">
           <div class="captcha-container">
             <el-input
@@ -48,6 +65,7 @@
           </div>
         </el-form-item>
 
+        <!-- 记住我和忘记密码 -->
         <el-form-item>
           <div class="form-options">
             <el-checkbox v-model="loginForm.rememberMe"> 记住我 </el-checkbox>
@@ -57,6 +75,7 @@
           </div>
         </el-form-item>
 
+        <!-- 登录按钮 -->
         <el-form-item>
           <el-button
             type="primary"
@@ -65,17 +84,43 @@
             @click="handleLogin"
             class="login-btn"
           >
-            {{ loading ? "登录中..." : "登录" }}
+            <el-icon class="login-icon">
+              <Right />
+            </el-icon>
+            <span>登录</span>
           </el-button>
         </el-form-item>
 
-        <el-form-item>
-          <div class="register-link">
-            还没有账号？
-            <el-link type="primary" @click="goToRegister"> 立即注册 </el-link>
-          </div>
-        </el-form-item>
+        <!-- 分割线 -->
+        <div class="divider"></div>
+
+        <!-- 第三方登录 -->
+        <div class="social-login">
+          <el-button class="social-btn wechat-btn" @click="handleWechatLogin">
+            <el-icon class="social-icon">
+              <ChatDotRound />
+            </el-icon>
+            微信登录
+          </el-button>
+          <el-button class="social-btn qq-btn" @click="handleQQLogin">
+            <el-icon class="social-icon">
+              <User />
+            </el-icon>
+            QQ登录
+          </el-button>
+        </div>
       </el-form>
+
+      <!-- 底部版权信息 -->
+      <div class="footer">
+        <p class="copyright">© 2024 档案管理系统. 咸阳市市双科.</p>
+        <div class="status-indicators">
+          <span class="status-dot online"></span>
+          <span class="status-text">系统正常</span>
+          <span class="status-dot connected"></span>
+          <span class="status-text">数据库连接</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -84,6 +129,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElForm } from "element-plus";
+import { Document, Right, ChatDotRound, User, Lock } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores";
 
 const router = useRouter();
@@ -162,10 +208,20 @@ const handleLogin = async () => {
       refreshCaptcha();
     }
 
-    ElMessage.error(error.message || "登录失败，请检查用户名和密码");
+    ElMessage.error(error.message || "登录失败，请重试");
   } finally {
     loading.value = false;
   }
+};
+
+// 处理微信登录
+const handleWechatLogin = () => {
+  ElMessage.info("微信登录功能开发中...");
+};
+
+// 处理QQ登录
+const handleQQLogin = () => {
+  ElMessage.info("QQ登录功能开发中...");
 };
 
 // 刷新验证码
@@ -173,14 +229,14 @@ const refreshCaptcha = () => {
   captchaUrl.value = `/api/auth/captcha?t=${Date.now()}`;
 };
 
+// 跳转到忘记密码页面
+const goToForgotPassword = () => {
+  ElMessage.info("忘记密码功能开发中...");
+};
+
 // 跳转到注册页面
 const goToRegister = () => {
   router.push("/auth/register");
-};
-
-// 跳转到忘记密码页面
-const goToForgotPassword = () => {
-  router.push("/auth/forgot-password");
 };
 
 // 组件挂载时的操作
@@ -208,39 +264,102 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: $spacing-lg;
+  padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 .login-form {
   width: 100%;
-  max-width: 400px;
-  padding: $spacing-xl * 2;
-  background: $bg-color;
-  border-radius: $border-radius-large;
-  box-shadow: $box-shadow-light;
+  max-width: 450px;
+  padding: 48px 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .form-header {
   text-align: center;
-  margin-bottom: $spacing-xl * 2;
+  margin-bottom: 32px;
+}
 
-  h2 {
-    font-size: $font-size-extra-large;
-    font-weight: 600;
-    color: $text-primary;
-    margin-bottom: $spacing-sm;
+.logo-container {
+  margin-bottom: 20px;
+
+  .logo-icon {
+    width: 64px;
+    height: 64px;
+    background: #4285f4;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    .el-icon {
+      color: white;
+    }
   }
+}
 
-  p {
-    color: $text-regular;
-    font-size: $font-size-medium;
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 16px 0 8px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
+}
+
+.input-label {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  
+  .el-icon {
+    color: #666;
+  }
+}
+
+.el-form-item {
+  margin-bottom: 24px;
+}
+
+.el-input {
+  
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+    padding: 0 16px;
+    height: 48px;
+    
+    &:hover {
+      border-color: #4285f4;
+    }
+    
+    &.is-focus {
+      border-color: #4285f4;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    }
+  }
+  
+  :deep(.el-input__inner) {
+    height: 46px;
+    line-height: 46px;
+    font-size: 14px;
   }
 }
 
 .captcha-container {
   display: flex;
-  gap: $spacing-md;
+  gap: 12px;
 
   .el-input {
     flex: 1;
@@ -250,8 +369,8 @@ onMounted(() => {
 .captcha-image {
   position: relative;
   cursor: pointer;
-  border: 1px solid $border-base;
-  border-radius: $border-radius-base;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   overflow: hidden;
 
   img {
@@ -269,7 +388,7 @@ onMounted(() => {
     bottom: 0;
     background: rgba(0, 0, 0, 0.7);
     color: white;
-    font-size: $font-size-small;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -284,77 +403,165 @@ onMounted(() => {
 
 .form-options {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  width: 100%;
+  align-items: center;
+  margin: 16px 0;
+  font-size: 14px;
+
+  :deep(.el-checkbox__label) {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .el-link {
+    font-size: 14px;
+  }
 }
 
 .login-btn {
   width: 100%;
   height: 48px;
-  font-size: $font-size-medium;
-  font-weight: 500;
-  background: linear-gradient(
-    135deg,
-    $primary-color 0%,
-    color.adjust($primary-color, $lightness: 10%) 100%
-  );
+  background: #4285f4;
   border: none;
-  transition: all 0.3s ease;
-
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+    background: #3367d6;
+  }
+  
+  :deep(.el-icon) {
+    font-size: 16px;
   }
 }
 
-.register-link {
+.divider {
   text-align: center;
-  color: $text-regular;
-  font-size: $font-size-medium;
+  margin: 24px 0;
+  position: relative;
+  color: #999;
+  font-size: 14px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
+    z-index: 1;
+  }
+  
+  &::after {
+    content: '或';
+    background: white;
+    padding: 0 16px;
+    position: relative;
+    z-index: 2;
+  }
 }
 
-// 表单样式增强
-:deep(.el-form-item) {
-  margin-bottom: $spacing-lg;
-
-  .el-input {
-    .el-input__wrapper {
-      height: 48px;
-      border-radius: $border-radius-base;
-      box-shadow: 0 0 0 1px $border-base inset;
-      transition: all 0.2s;
-
-      &:hover {
-        box-shadow: 0 0 0 1px $primary-color inset;
-      }
-
-      &.is-focus {
-        box-shadow: 0 0 0 1px $primary-color inset;
-      }
+.social-login {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  
+  .social-btn {
+    flex: 1;
+    height: 48px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    color: #666;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    
+    &:hover {
+      border-color: #4285f4;
+      color: #4285f4;
     }
-
-    .el-input__inner {
-      font-size: $font-size-medium;
+    
+    :deep(.el-icon) {
+      font-size: 18px;
     }
   }
+}
 
-  .el-form-item__error {
-    font-size: $font-size-small;
+.footer {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-top: 16px;
+  
+  .copyright {
+    margin-bottom: 12px;
+  }
+  
+  .status-indicators {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d9d9d9;
+      
+      &.online {
+        background: #52c41a;
+      }
+      
+      &.connected {
+        background: #4285f4;
+      }
+    }
+    
+    .status-text {
+      font-size: 13px;
+      margin-right: 12px;
+      
+      &:last-child {
+        margin-right: 0;
+      }
+    }
   }
 }
 
 // 响应式设计
 @media (max-width: 480px) {
-  .login-form {
-    padding: $spacing-xl;
+  .login-page {
+    padding: 16px;
   }
-
+  
+  .login-form {
+    padding: 24px;
+  }
+  
   .captcha-container {
     flex-direction: column;
 
     .captcha-image {
       align-self: center;
+    }
+  }
+  
+  .social-login {
+    flex-direction: column;
+    
+    .social-btn {
+      width: 100%;
     }
   }
 }

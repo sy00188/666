@@ -1,30 +1,6 @@
 <template>
   <div class="auth-layout">
     <div class="auth-container">
-      <!-- 左侧背景区域 -->
-      <div class="auth-background">
-        <div class="background-content">
-          <div class="logo">
-            <h1>档案管理系统</h1>
-            <p>Archive Management System</p>
-          </div>
-          <div class="features">
-            <div class="feature-item">
-              <el-icon><Document /></el-icon>
-              <span>智能档案管理</span>
-            </div>
-            <div class="feature-item">
-              <el-icon><Lock /></el-icon>
-              <span>安全权限控制</span>
-            </div>
-            <div class="feature-item">
-              <el-icon><DataAnalysis /></el-icon>
-              <span>数据统计分析</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 右侧表单区域 -->
       <div class="auth-form">
         <div class="form-container">
@@ -43,11 +19,11 @@ import { Document, Lock, DataAnalysis } from "@element-plus/icons-vue";
 .auth-layout {
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 20px;
   margin: 0;
   position: fixed;
   top: 0;
@@ -56,13 +32,15 @@ import { Document, Lock, DataAnalysis } from "@element-plus/icons-vue";
 
 .auth-container {
   display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  max-width: 1200px;
-  min-height: 600px;
-  background: $bg-color;
-  border-radius: $border-radius-large;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  max-width: 100%;
+  min-height: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .auth-background {
@@ -128,41 +106,29 @@ import { Document, Lock, DataAnalysis } from "@element-plus/icons-vue";
 }
 
 .auth-form {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $spacing-xl * 2;
+  padding: 0;
 }
 
 .form-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 100%;
 }
 
 // 响应式设计
 @media (max-width: 768px) {
   .auth-layout {
-    padding: 0;
+    padding: $spacing-md;
   }
 
   .auth-container {
-    flex-direction: column;
     min-height: auto;
-    margin: $spacing-md;
+    margin: 0;
     border-radius: $border-radius-large;
-  }
-
-  .auth-background {
-    min-height: 200px;
-
-    .logo h1 {
-      font-size: $font-size-extra-large;
-    }
-
-    .features {
-      display: none;
-    }
+    max-width: 100%;
   }
 
   .auth-form {
@@ -172,7 +138,7 @@ import { Document, Lock, DataAnalysis } from "@element-plus/icons-vue";
 
 @media (max-width: 480px) {
   .auth-container {
-    margin: $spacing-sm;
+    margin: 0;
   }
 
   .auth-form {

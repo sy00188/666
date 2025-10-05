@@ -1,68 +1,61 @@
-#!/usr/bin/env python3
-"""
-交互式审查门控脚本 (final_review_gate.py)
-用于RIPER-5协议中EXECUTE模式的条件性交互式步骤审查
-"""
-
+# final_review_gate.py
 import sys
-import signal
-
-def signal_handler(sig, frame):
-    """处理中断信号"""
-    print("\n[GATE] 审查门控被用户中断")
-    sys.exit(0)
-
-def main():
-    """主函数：处理用户输入并格式化输出"""
-    # 注册信号处理器
-    signal.signal(signal.SIGINT, signal_handler)
-    
-    print("[GATE] 交互式审查门控已激活")
-    print("[GATE] 请输入您的子提示来进行迭代修改，或输入结束关键字来完成审查")
-    print("[GATE] 结束关键字：TASK_COMPLETE, 完成, 下一步, DONE, FINISH, 继续")
-    print("[GATE] 输入 'help' 查看帮助信息")
-    print("-" * 50)
-    
-    # 结束关键字列表
-    end_keywords = {
-        'TASK_COMPLETE', '完成', '下一步', 'DONE', 'FINISH', '继续',
-        'task_complete', 'done', 'finish'
-    }
-    
-    try:
-        while True:
-            # 获取用户输入
-            user_input = input("[REVIEW] > ").strip()
-            
-            # 检查是否为空输入
-            if not user_input:
-                continue
-                
-            # 检查帮助命令
-            if user_input.lower() == 'help':
-                print("[GATE] 帮助信息：")
-                print("  - 输入任何文本作为子提示，AI将根据您的指令进行迭代修改")
-                print("  - 输入结束关键字来完成当前步骤的审查")
-                print(f"  - 结束关键字：{', '.join(sorted(end_keywords))}")
-                continue
-            
-            # 检查是否为结束关键字
-            if user_input in end_keywords:
-                print(f"[GATE] 检测到结束关键字：{user_input}")
-                print("[GATE] 交互式审查结束")
-                break
-            
-            # 输出格式化的用户子提示
-            print(f"USER_REVIEW_SUB_PROMPT: {user_input}")
-            
-    except EOFError:
-        print("\n[GATE] 检测到EOF，审查门控结束")
-    except KeyboardInterrupt:
-        print("\n[GATE] 审查门控被用户中断")
-    except Exception as e:
-        print(f"[GATE] 发生错误：{e}")
-    
-    print("[GATE] 审查门控脚本退出")
+import os
 
 if __name__ == "__main__":
-    main()
+    
+    try:
+        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
+        sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
+    except Exception:
+        pass 
+
+    print("Review Gate: 当前步骤已完成。请输入您对【本步骤】的指令 (或输入关键字如 '完成', 'next' 来结束对本步骤的审查):", flush=True) 
+    
+    active_session = True
+    while active_session:
+        try:
+            
+            line = sys.stdin.readline()
+            
+            if not line:  # EOF
+                print("--- REVIEW GATE: STDIN已关闭 (EOF), 退出脚本 ---", flush=True) 
+                active_session = False
+                break
+            
+            user_input = line.strip()
+            
+            user_input_lower = user_input.lower() # 英文输入转小写以便不区分大小写匹配
+            
+            # 结束当前步骤审查的关键字
+            english_exit_keywords = [
+                'task_complete', 'continue', 'next', 'end', 'complete', 'endtask', 'continue_task', 'end_task'
+            ]
+            chinese_exit_keywords = [
+                '没问题', '继续', '下一步', '完成', '结束任务', '结束'
+            ]
+            
+            is_exit_keyword_detected = False
+            if user_input_lower in english_exit_keywords:
+                is_exit_keyword_detected = True
+            else:
+                for ch_keyword in chinese_exit_keywords: # 中文关键字精确匹配
+                    if user_input == ch_keyword:
+                        is_exit_keyword_detected = True
+                        break
+                        
+            if is_exit_keyword_detected:
+                print(f"--- REVIEW GATE: 用户通过 '{user_input}' 结束了对【本步骤】的审查 ---", flush=True) 
+                active_session = False
+                break
+            elif user_input: 
+                print(f"USER_REVIEW_SUB_PROMPT: {user_input}", flush=True) # AI需要监听此格式
+            
+        except KeyboardInterrupt:
+            print("--- REVIEW GATE: 用户通过Ctrl+C中断了【本步骤】的审查 ---", flush=True) 
+            active_session = False
+            break
+        except Exception as e:
+            print(f"--- REVIEW GATE 【本步骤】脚本错误: {e} ---", flush=True) 
+            active_session = False
+            break
