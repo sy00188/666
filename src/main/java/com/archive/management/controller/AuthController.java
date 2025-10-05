@@ -57,6 +57,9 @@ public class AuthController {
     @Autowired
     private CaptchaService captchaService;
 
+    @Autowired
+    private com.archive.management.service.WeChatService weChatService;
+
     /**
      * 用户登录
      */
@@ -407,5 +410,383 @@ public class AuthController {
         userInfo.put("createTime", user.getCreateTime());
         userInfo.put("lastLoginTime", user.getLastLoginTime());
         return userInfo;
+    }
+
+    // ==================== 微信登录相关接口 ====================
+
+    /**
+     * 获取微信登录二维码
+     */
+    @Operation(summary = "获取微信登录二维码", description = "生成微信登录二维码或模拟登录信息")
+    @GetMapping("/wechat/qrcode")
+    public ResponseEntity<Map<String, Object>> getWeChatQRCode() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            com.archive.management.dto.WeChatLoginResponse loginResponse = weChatService.generateLoginQRCode();
+            
+            response.put("code", 200);
+            response.put("message", "生成成功");
+            response.put("data", loginResponse);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("生成微信登录二维码失败", e);
+            
+            response.put("code", 500);
+            response.put("message", "生成失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * 处理微信授权回调
+     */
+    @Operation(summary = "微信授权回调", description = "处理微信OAuth回调")
+    @GetMapping("/wechat/callback")
+    public ResponseEntity<String> handleWeChatCallback(
+            @Parameter(description = "授权code") @RequestParam(required = false) String code,
+            @Parameter(description = "state") @RequestParam String state,
+            @Parameter(description = "错误代码") @RequestParam(required = false) String error) {
+        
+        try {
+            com.archive.management.dto.WeChatCallbackRequest callbackRequest = new com.archive.management.dto.WeChatCallbackRequest();
+            callbackRequest.setCode(code);
+            callbackRequest.setState(state);
+            callbackRequest.setError(error);
+            
+            com.archive.management.dto.WeChatUserInfo weChatUserInfo = weChatService.handleCallback(callbackRequest);
+            
+            // 检查该微信是否已绑定系统账号
+            User user = weChatService.findUserByOpenid(weChatUserInfo.getOpenid());
+            
+            if (user != null) {
+                // 已绑定，直接登录成功
+                weChatService.saveLoginState(state, weChatUserInfo, user.getId());
+            } else {
+                // 未绑定，需要引导用户绑定
+                weChatService.saveLoginState(state, weChatUserInfo, null);
+            }
+            
+            // 返回一个HTML页面，关闭当前窗口并通知父页面
+            String html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>微信登录</title>
+                </head>
+                <body>
+                    <script>
+                        window.opener && window.opener.postMessage({type: 'wechat_login_callback', state: '%s'}, '*');
+                        window.close();
+                    </script>
+                    <p>授权成功，正在跳转...</p>
+                </body>
+                </html>
+                """.formatted(state);
+            
+            return ResponseEntity.ok()
+                    .header("Content-Type", "text/html; charset=UTF-8")
+                    .body(html);
+            
+        } catch (Exception e) {
+            logger.error("处理微信回调失败", e);
+            
+            String errorHtml = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>登录失败</title>
+                </head>
+                <body>
+                    <h3>登录失败</h3>
+                    <p>%s</p>
+                    <button onclick="window.close()">关闭</button>
+                </body>
+                </html>
+                """.formatted(e.getMessage());
+            
+            return ResponseEntity.status(500)
+                    .header("Content-Type", "text/html; charset=UTF-8")
+                    .body(errorHtml);
+        }
+    }
+
+    /**
+     * 模拟微信登录
+     */
+    @Operation(summary = "模拟微信登录", description = "开发环境模拟微信登录")
+    @PostMapping("/wechat/mock-login")
+    public ResponseEntity<Map<String, Object>> mockWeChatLogin(
+            @RequestBody com.archive.management.dto.WeChatLoginRequest loginRequest,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        String clientIp = getClientIpAddress(request);
+        
+        try {
+            com.archive.management.dto.WeChatUserInfo weChatUserInfo = weChatService.handleMockLogin(loginRequest);
+            
+            // 检查该微信是否已绑定系统账号
+            User user = weChatService.findUserByOpenid(weChatUserInfo.getOpenid());
+            
+            if (user != null) {
+                // 已绑定，直接登录
+                weChatService.saveLoginState(loginRequest.getState(), weChatUserInfo, user.getId());
+                
+                // 生成JWT令牌
+                CustomUserPrincipal userPrincipal = new CustomUserPrincipal(user);
+                String accessToken = jwtTokenUtil.generateToken(userPrincipal);
+                String refreshToken = jwtTokenUtil.generateRefreshToken(userPrincipal);
+                
+                LoginResponse loginResponse = new LoginResponse();
+                loginResponse.setAccessToken(accessToken);
+                loginResponse.setRefreshToken(refreshToken);
+                loginResponse.setTokenType("Bearer");
+                loginResponse.setExpiresIn((Long) jwtTokenUtil.getJwtConfig().get("expiration"));
+                
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("id", user.getId());
+                userInfo.put("username", user.getUsername());
+                userInfo.put("email", user.getEmail());
+                userInfo.put("realName", user.getRealName());
+                loginResponse.setUserInfo(userInfo);
+                
+                // 记录登录日志
+                weChatService.logOAuthLogin(user.getId(), weChatUserInfo, clientIp, "success", null);
+                
+                response.put("code", 200);
+                response.put("message", "登录成功");
+                response.put("data", loginResponse);
+                
+            } else {
+                // 未绑定，返回需要绑定的状态
+                weChatService.saveLoginState(loginRequest.getState(), weChatUserInfo, null);
+                
+                response.put("code", 202);
+                response.put("message", "需要绑定账号");
+                response.put("data", Map.of(
+                    "bindingRequired", true,
+                    "openid", weChatUserInfo.getOpenid(),
+                    "nickname", weChatUserInfo.getNickname(),
+                    "avatar", weChatUserInfo.getHeadimgurl()
+                ));
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("模拟微信登录失败", e);
+            weChatService.logOAuthLogin(null, null, clientIp, "failed", e.getMessage());
+            
+            response.put("code", 500);
+            response.put("message", "登录失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * 检查微信登录状态
+     */
+    @Operation(summary = "检查微信登录状态", description = "轮询检查微信登录状态")
+    @GetMapping("/wechat/status/{state}")
+    public ResponseEntity<Map<String, Object>> checkWeChatLoginStatus(
+            @Parameter(description = "state") @PathVariable String state,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        String clientIp = getClientIpAddress(request);
+        
+        try {
+            Map<String, Object> statusData = weChatService.checkLoginStatus(state);
+            String status = (String) statusData.get("status");
+            
+            if ("success".equals(status)) {
+                // 登录成功，生成JWT令牌
+                Long userId = statusData.get("userId") != null ? 
+                    Long.valueOf(statusData.get("userId").toString()) : null;
+                
+                if (userId != null) {
+                    User user = userService.findById(userId);
+                    CustomUserPrincipal userPrincipal = new CustomUserPrincipal(user);
+                    String accessToken = jwtTokenUtil.generateToken(userPrincipal);
+                    String refreshToken = jwtTokenUtil.generateRefreshToken(userPrincipal);
+                    
+                    LoginResponse loginResponse = new LoginResponse();
+                    loginResponse.setAccessToken(accessToken);
+                    loginResponse.setRefreshToken(refreshToken);
+                    loginResponse.setTokenType("Bearer");
+                    loginResponse.setExpiresIn((Long) jwtTokenUtil.getJwtConfig().get("expiration"));
+                    
+                    Map<String, Object> userInfo = new HashMap<>();
+                    userInfo.put("id", user.getId());
+                    userInfo.put("username", user.getUsername());
+                    userInfo.put("email", user.getEmail());
+                    userInfo.put("realName", user.getRealName());
+                    loginResponse.setUserInfo(userInfo);
+                    
+                    statusData.put("loginResponse", loginResponse);
+                }
+            }
+            
+            response.put("code", 200);
+            response.put("message", statusData.get("message"));
+            response.put("data", statusData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("检查微信登录状态失败: state={}, IP={}", state, clientIp, e);
+            
+            response.put("code", 500);
+            response.put("message", "查询失败");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * 绑定微信账号
+     */
+    @Operation(summary = "绑定微信账号", description = "将微信账号绑定到系统用户")
+    @PostMapping("/wechat/bind")
+    public ResponseEntity<Map<String, Object>> bindWeChatAccount(
+            @RequestBody com.archive.management.dto.WeChatBindRequest bindRequest,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        String clientIp = getClientIpAddress(request);
+        
+        try {
+            // 获取登录状态中的微信用户信息
+            Map<String, Object> loginState = weChatService.getLoginState(bindRequest.getState());
+            
+            if (loginState == null || !"binding_required".equals(loginState.get("status"))) {
+                response.put("code", 400);
+                response.put("message", "无效的绑定请求");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            com.archive.management.dto.WeChatUserInfo weChatUserInfo = new com.archive.management.dto.WeChatUserInfo();
+            weChatUserInfo.setOpenid((String) loginState.get("openid"));
+            weChatUserInfo.setUnionid((String) loginState.get("unionid"));
+            weChatUserInfo.setNickname((String) loginState.get("nickname"));
+            weChatUserInfo.setHeadimgurl((String) loginState.get("avatar"));
+            
+            User user;
+            
+            if (bindRequest.getCreateNew()) {
+                // 创建新账号并绑定
+                user = weChatService.createUserWithWeChat(bindRequest, weChatUserInfo);
+            } else {
+                // 绑定到现有账号（需要验证密码）
+                Authentication authentication = authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                bindRequest.getUsername(),
+                                bindRequest.getPassword()
+                        )
+                );
+                
+                user = userService.findByUsername(bindRequest.getUsername());
+                weChatService.bindWeChatToUser(user.getId(), weChatUserInfo);
+            }
+            
+            // 更新登录状态
+            weChatService.saveLoginState(bindRequest.getState(), weChatUserInfo, user.getId());
+            
+            // 生成JWT令牌
+            CustomUserPrincipal userPrincipal = new CustomUserPrincipal(user);
+            String accessToken = jwtTokenUtil.generateToken(userPrincipal);
+            String refreshToken = jwtTokenUtil.generateRefreshToken(userPrincipal);
+            
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setAccessToken(accessToken);
+            loginResponse.setRefreshToken(refreshToken);
+            loginResponse.setTokenType("Bearer");
+            loginResponse.setExpiresIn((Long) jwtTokenUtil.getJwtConfig().get("expiration"));
+            
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", user.getId());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("realName", user.getRealName());
+            loginResponse.setUserInfo(userInfo);
+            
+            // 记录登录日志
+            weChatService.logOAuthLogin(user.getId(), weChatUserInfo, clientIp, "success", "绑定成功");
+            
+            response.put("code", 200);
+            response.put("message", "绑定成功");
+            response.put("data", loginResponse);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (BadCredentialsException e) {
+            logger.warn("绑定微信账号失败 - 密码错误: IP={}", clientIp);
+            
+            response.put("code", 401);
+            response.put("message", "用户名或密码错误");
+            return ResponseEntity.status(401).body(response);
+            
+        } catch (Exception e) {
+            logger.error("绑定微信账号失败", e);
+            
+            response.put("code", 500);
+            response.put("message", "绑定失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * 解绑微信账号
+     */
+    @Operation(summary = "解绑微信账号", description = "解除当前用户的微信绑定")
+    @PostMapping("/wechat/unbind")
+    public ResponseEntity<Map<String, Object>> unbindWeChatAccount(HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<>();
+        String clientIp = getClientIpAddress(request);
+        
+        try {
+            // 从token获取当前用户
+            String token = request.getHeader("Authorization");
+            if (token == null || !token.startsWith("Bearer ")) {
+                response.put("code", 401);
+                response.put("message", "未登录");
+                return ResponseEntity.status(401).body(response);
+            }
+            
+            token = token.substring(7);
+            String username = jwtTokenUtil.getUsernameFromToken(token);
+            User user = userService.findByUsername(username);
+            
+            if (user == null) {
+                response.put("code", 404);
+                response.put("message", "用户不存在");
+                return ResponseEntity.status(404).body(response);
+            }
+            
+            boolean success = weChatService.unbindWeChat(user.getId());
+            
+            if (success) {
+                logger.info("解绑微信账号成功: userId={}, IP={}", user.getId(), clientIp);
+                
+                response.put("code", 200);
+                response.put("message", "解绑成功");
+            } else {
+                response.put("code", 500);
+                response.put("message", "解绑失败");
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("解绑微信账号失败, IP={}", clientIp, e);
+            
+            response.put("code", 500);
+            response.put("message", "解绑失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 }

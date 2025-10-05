@@ -106,3 +106,56 @@ export enum UserStatus {
   INACTIVE = "inactive",
   BANNED = "banned",
 }
+
+// ==================== 微信登录相关类型 ====================
+
+// 微信登录响应
+export interface WeChatLoginResponse {
+  state: string;
+  qrcodeUrl?: string;
+  expiresIn: number;
+  mockMode: boolean;
+  message: string;
+}
+
+// 微信登录状态
+export interface WeChatLoginStatus {
+  status: "pending" | "success" | "expired" | "error" | "binding_required";
+  message: string;
+  openid?: string;
+  nickname?: string;
+  avatar?: string;
+  userId?: number;
+  loginResponse?: LoginResponseData;
+}
+
+// 微信用户信息
+export interface WeChatUserInfo {
+  openid: string;
+  unionid?: string;
+  nickname: string;
+  sex?: number;
+  province?: string;
+  city?: string;
+  country?: string;
+  headimgurl?: string;
+}
+
+// 微信登录请求
+export interface WeChatLoginRequest {
+  state: string;
+  mockWechatId?: string;
+  mockNickname?: string;
+}
+
+// 微信绑定请求
+export interface WeChatBindRequest {
+  state: string;
+  username?: string;
+  password?: string;
+  createNew: boolean;
+  newUsername?: string;
+  email?: string;
+  phone?: string;
+  realName?: string;
+}

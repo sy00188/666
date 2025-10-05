@@ -359,6 +359,18 @@ archive:
     path: /data/archive/backup
     retention-days: 30
   
+  # 微信登录配置
+  wechat:
+    enabled: true
+    mock-mode: true  # 开发环境使用模拟模式，生产环境设为false
+    app-id: ${WECHAT_APP_ID:wx1234567890abcdef}  # 微信开放平台AppID
+    app-secret: ${WECHAT_APP_SECRET:your_app_secret_here}  # 微信开放平台AppSecret
+    redirect-uri: ${WECHAT_REDIRECT_URI:http://localhost:8080/api/auth/wechat/callback}  # 授权回调地址
+    scope: snsapi_login  # 应用授权作用域
+    qrcode-expire-minutes: 5  # 二维码过期时间（分钟）
+    state-expire-minutes: 10  # 登录状态过期时间（分钟）
+    auto-register: true  # 是否自动注册新用户
+  
   # 性能配置
   performance:
     async:

@@ -256,4 +256,25 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * @return 用户信息
      */
     Optional<User> findByEmailAndDeletedFalse(String email);
+
+    /**
+     * 根据微信OpenID查找用户
+     * @param wechatOpenid 微信OpenID
+     * @return 用户信息
+     */
+    Optional<User> findByWechatOpenid(String wechatOpenid);
+
+    /**
+     * 根据微信UnionID查找用户
+     * @param wechatUnionid 微信UnionID
+     * @return 用户信息
+     */
+    Optional<User> findByWechatUnionid(String wechatUnionid);
+
+    /**
+     * 检查微信OpenID是否存在
+     * @param wechatOpenid 微信OpenID
+     * @return 是否存在
+     */
+    boolean existsByWechatOpenid(String wechatOpenid);
 }

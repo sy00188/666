@@ -52,6 +52,7 @@ declare module 'vue' {
     ElRow: typeof import('element-plus/es')['ElRow']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
+    ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
@@ -94,6 +95,7 @@ declare module 'vue' {
     StatusTag: typeof import('./src/components/common/StatusTag.vue')['default']
     TreemapChart: typeof import('./src/components/charts/TreemapChart.vue')['default']
     UserForm: typeof import('./src/components/UserForm.vue')['default']
+    WeChatLoginDialog: typeof import('./src/components/WeChatLoginDialog.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

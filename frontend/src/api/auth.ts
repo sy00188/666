@@ -68,4 +68,37 @@ export const authApi = {
   }): Promise<AuthResponse> => {
     return request.post("/auth/reset-password", data);
   },
+
+  // ==================== 微信登录相关接口 ====================
+
+  // 获取微信登录二维码
+  getWeChatQRCode: (): Promise<AuthResponse<import("@/types/auth").WeChatLoginResponse>> => {
+    return request.get("/auth/wechat/qrcode");
+  },
+
+  // 模拟微信登录
+  mockWeChatLogin: (
+    data: import("@/types/auth").WeChatLoginRequest
+  ): Promise<AuthResponse<any>> => {
+    return request.post("/auth/wechat/mock-login", data);
+  },
+
+  // 检查微信登录状态
+  checkWeChatLoginStatus: (
+    state: string
+  ): Promise<AuthResponse<import("@/types/auth").WeChatLoginStatus>> => {
+    return request.get(`/auth/wechat/status/${state}`);
+  },
+
+  // 绑定微信账号
+  bindWeChatAccount: (
+    data: import("@/types/auth").WeChatBindRequest
+  ): Promise<AuthResponse<any>> => {
+    return request.post("/auth/wechat/bind", data);
+  },
+
+  // 解绑微信账号
+  unbindWeChatAccount: (): Promise<AuthResponse> => {
+    return request.post("/auth/wechat/unbind");
+  },
 };

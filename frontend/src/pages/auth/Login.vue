@@ -122,6 +122,12 @@
         </div>
       </div>
     </div>
+
+    <!-- 微信登录对话框 -->
+    <WeChatLoginDialog
+      v-model:visible="wechatDialogVisible"
+      @success="handleWeChatLoginSuccess"
+    />
   </div>
 </template>
 
@@ -131,9 +137,13 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElForm } from "element-plus";
 import { Document, Right, ChatDotRound, User, Lock } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores";
+import WeChatLoginDialog from "@/components/WeChatLoginDialog.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+// 微信登录对话框
+const wechatDialogVisible = ref(false);
 
 // 表单引用
 const loginFormRef = ref<InstanceType<typeof ElForm>>();
@@ -216,7 +226,34 @@ const handleLogin = async () => {
 
 // 处理微信登录
 const handleWechatLogin = () => {
-  ElMessage.info("微信登录功能开发中...");
+  wechatDialogVisible.value = true;
+};
+
+// 微信登录成功回调
+const handleWeChatLoginSuccess = async (data: any) => {
+  try {
+    // 保存token和用户信息到store
+    if (data.accessToken) {
+      await authStore.setToken(data.accessToken);
+      
+      // 如果有用户信息，也保存
+      if (data.userInfo) {
+        await authStore.setUser(data.userInfo);
+      }
+      
+      ElMessage.success("微信登录成功");
+      
+      // 关闭对话框
+      wechatDialogVisible.value = false;
+      
+      // 跳转到首页
+      const redirect = router.currentRoute.value.query.redirect as string;
+      router.push(redirect || "/dashboard");
+    }
+  } catch (error: any) {
+    console.error("微信登录处理失败:", error);
+    ElMessage.error(error.message || "登录处理失败");
+  }
 };
 
 // 处理QQ登录
