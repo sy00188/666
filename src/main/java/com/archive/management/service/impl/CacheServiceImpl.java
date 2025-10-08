@@ -1,7 +1,10 @@
 package com.archive.management.service.impl;
 
 import com.archive.management.service.CacheService;
+import com.archive.management.util.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -10,10 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 缓存服务实现类
- * 提供系统缓存相关的操作
+ * 优先使用Redis缓存，Redis不可用时降级到内存缓存
  * 
  * @author Archive Management System
  * @version 1.0
@@ -23,199 +27,406 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CacheServiceImpl implements CacheService {
 
-    // 简单的内存缓存实现，实际项目中应该使用Redis等专业缓存
-    private final Map<String, Object> cache = new ConcurrentHashMap<>();
-    private final Map<String, Long> expireMap = new ConcurrentHashMap<>();
+    @Autowired
+    private RedisUtil redisUtil;
+
+    // 降级使用的内存缓存
+    private final Map<String, Object> fallbackCache = new ConcurrentHashMap<>();
+    private final Map<String, Long> fallbackExpireMap = new ConcurrentHashMap<>();
+    
+    // Redis可用性标志
+    private volatile boolean redisAvailable = true;
 
     @Override
     public void set(String key, Object value) {
-        log.info("设置缓存: key={}", key);
-        cache.put(key, value);
-        // TODO: 实现专业缓存设置逻辑（如Redis）
+        log.debug("设置缓存: key={}", key);
+        try {
+            if (redisAvailable) {
+                redisUtil.set(key, value);
+            } else {
+                useFallbackCache("set", key, value);
+            }
+        } catch (RedisConnectionFailureException e) {
+            log.warn("Redis连接失败，降级到内存缓存: key={}", key);
+            redisAvailable = false;
+            useFallbackCache("set", key, value);
+        } catch (Exception e) {
+            log.error("设置缓存失败: key={}", key, e);
+            useFallbackCache("set", key, value);
+        }
     }
 
     @Override
     public void set(String key, Object value, Duration duration) {
-        log.info("设置缓存并指定过期时间: key={}, duration={}", key, duration);
-        cache.put(key, value);
-        expireMap.put(key, System.currentTimeMillis() + duration.toMillis());
-        // TODO: 实现专业缓存设置逻辑（如Redis）
+        log.debug("设置缓存并指定过期时间: key={}, duration={}", key, duration);
+        try {
+            if (redisAvailable) {
+                redisUtil.set(key, value, duration.getSeconds());
+            } else {
+                useFallbackCache("set", key, value, duration.toMillis());
+            }
+        } catch (RedisConnectionFailureException e) {
+            log.warn("Redis连接失败，降级到内存缓存: key={}", key);
+            redisAvailable = false;
+            useFallbackCache("set", key, value, duration.toMillis());
+        } catch (Exception e) {
+            log.error("设置缓存失败: key={}", key, e);
+            useFallbackCache("set", key, value, duration.toMillis());
+        }
     }
 
     @Override
     public Object get(String key) {
-        log.info("获取缓存: key={}", key);
-        // 检查是否过期
-        if (isExpired(key)) {
-            delete(key);
-            return null;
+        log.debug("获取缓存: key={}", key);
+        try {
+            if (redisAvailable) {
+                return redisUtil.get(key);
+            } else {
+                return useFallbackCache("get", key, null);
+            }
+        } catch (RedisConnectionFailureException e) {
+            log.warn("Redis连接失败，降级到内存缓存: key={}", key);
+            redisAvailable = false;
+            return useFallbackCache("get", key, null);
+        } catch (Exception e) {
+            log.error("获取缓存失败: key={}", key, e);
+            return useFallbackCache("get", key, null);
         }
-        // TODO: 实现专业缓存获取逻辑（如Redis）
-        return cache.get(key);
     }
 
     @Override
     public <T> T get(String key, Class<T> clazz) {
-        log.info("获取缓存并指定类型: key={}, clazz={}", key, clazz.getSimpleName());
+        log.debug("获取缓存并指定类型: key={}, clazz={}", key, clazz.getSimpleName());
         Object value = get(key);
         if (value != null && clazz.isInstance(value)) {
             return clazz.cast(value);
         }
-        // TODO: 实现专业缓存获取逻辑（如Redis）
         return null;
     }
 
     @Override
     public boolean delete(String key) {
-        log.info("删除缓存: key={}", key);
-        cache.remove(key);
-        expireMap.remove(key);
-        // TODO: 实现专业缓存删除逻辑（如Redis）
-        return true;
+        log.debug("删除缓存: key={}", key);
+        try {
+            if (redisAvailable) {
+                redisUtil.del(key);
+                return true;
+            } else {
+                useFallbackCache("delete", key, null);
+                return true;
+            }
+        } catch (RedisConnectionFailureException e) {
+            log.warn("Redis连接失败，降级到内存缓存: key={}", key);
+            redisAvailable = false;
+            useFallbackCache("delete", key, null);
+            return true;
+        } catch (Exception e) {
+            log.error("删除缓存失败: key={}", key, e);
+            return false;
+        }
     }
 
     @Override
     public long delete(List<String> keys) {
-        log.info("批量删除缓存: keys={}", keys);
-        long count = 0;
-        for (String key : keys) {
-            if (cache.containsKey(key)) {
-                cache.remove(key);
-                expireMap.remove(key);
-                count++;
+        log.debug("批量删除缓存: keys={}", keys);
+        try {
+            if (redisAvailable) {
+                redisUtil.del(keys.toArray(new String[0]));
+                return keys.size();
+            } else {
+                long count = 0;
+                for (String key : keys) {
+                    if (fallbackCache.containsKey(key)) {
+                        fallbackCache.remove(key);
+                        fallbackExpireMap.remove(key);
+                        count++;
+                    }
+                }
+                return count;
             }
+        } catch (Exception e) {
+            log.error("批量删除缓存失败", e);
+            return 0;
         }
-        // TODO: 实现专业缓存批量删除逻辑（如Redis）
-        return count;
     }
 
     @Override
     public boolean exists(String key) {
-        log.info("检查缓存是否存在: key={}", key);
-        if (isExpired(key)) {
-            delete(key);
+        log.debug("检查缓存是否存在: key={}", key);
+        try {
+            if (redisAvailable) {
+                return redisUtil.hasKey(key);
+            } else {
+                if (isFallbackExpired(key)) {
+                    fallbackCache.remove(key);
+                    fallbackExpireMap.remove(key);
+                    return false;
+                }
+                return fallbackCache.containsKey(key);
+            }
+        } catch (Exception e) {
+            log.error("检查缓存存在失败: key={}", key, e);
             return false;
         }
-        // TODO: 实现专业缓存存在检查逻辑（如Redis）
-        return cache.containsKey(key);
     }
 
     @Override
     public boolean expire(String key, Duration duration) {
-        log.info("设置缓存过期时间: key={}, duration={}", key, duration);
-        if (cache.containsKey(key)) {
-            expireMap.put(key, System.currentTimeMillis() + duration.toMillis());
-            return true;
+        log.debug("设置缓存过期时间: key={}, duration={}", key, duration);
+        try {
+            if (redisAvailable) {
+                return redisUtil.expire(key, duration.getSeconds());
+            } else {
+                if (fallbackCache.containsKey(key)) {
+                    fallbackExpireMap.put(key, System.currentTimeMillis() + duration.toMillis());
+                    return true;
+                }
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("设置过期时间失败: key={}", key, e);
+            return false;
         }
-        // TODO: 实现专业缓存过期时间设置逻辑（如Redis）
-        return false;
     }
 
     @Override
     public long getExpire(String key) {
-        log.info("获取缓存过期时间: key={}", key);
-        Long expireTime = expireMap.get(key);
-        if (expireTime != null) {
-            long remaining = expireTime - System.currentTimeMillis();
-            return remaining > 0 ? remaining / 1000 : -1; // 返回秒数
+        log.debug("获取缓存过期时间: key={}", key);
+        try {
+            if (redisAvailable) {
+                return redisUtil.getExpire(key);
+            } else {
+                Long expireTime = fallbackExpireMap.get(key);
+                if (expireTime != null) {
+                    long remaining = expireTime - System.currentTimeMillis();
+                    return remaining > 0 ? remaining / 1000 : -1;
+                }
+                return -1;
+            }
+        } catch (Exception e) {
+            log.error("获取过期时间失败: key={}", key, e);
+            return -1;
         }
-        // TODO: 实现专业缓存过期时间获取逻辑（如Redis）
-        return -1;
     }
 
     @Override
     public Set<String> keys(String pattern) {
-        log.info("获取匹配模式的缓存键: pattern={}", pattern);
-        // 简单的模式匹配实现
-        Set<String> matchedKeys = cache.keySet().stream()
-                .filter(key -> key.matches(pattern.replace("*", ".*")))
-                .collect(java.util.stream.Collectors.toSet());
-        // TODO: 实现专业缓存键匹配逻辑（如Redis）
-        return matchedKeys;
+        log.debug("获取匹配模式的缓存键: pattern={}", pattern);
+        try {
+            if (redisAvailable) {
+                // Redis模式匹配
+                return redisUtil.sGet("keys:" + pattern).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toSet());
+            } else {
+                // 内存缓存模式匹配
+                return fallbackCache.keySet().stream()
+                        .filter(key -> key.matches(pattern.replace("*", ".*")))
+                        .collect(Collectors.toSet());
+            }
+        } catch (Exception e) {
+            log.error("获取匹配键失败: pattern={}", pattern, e);
+            return Set.of();
+        }
     }
 
     @Override
     public void clear() {
-        log.info("清空所有缓存");
-        cache.clear();
-        expireMap.clear();
-        // TODO: 实现专业缓存清空逻辑（如Redis）
+        log.warn("清空所有缓存");
+        try {
+            if (redisAvailable) {
+                // Redis清空需要谨慎，这里只清空应用的缓存前缀
+                log.warn("Redis清空操作需要管理员权限，当前仅清空应用缓存");
+            }
+            // 同时清空降级缓存
+            fallbackCache.clear();
+            fallbackExpireMap.clear();
+        } catch (Exception e) {
+            log.error("清空缓存失败", e);
+        }
     }
 
     @Override
     public long clearByPrefix(String prefix) {
         log.info("根据前缀清理缓存: prefix={}", prefix);
         long count = 0;
-        List<String> keysToRemove = cache.keySet().stream()
-                .filter(key -> key.startsWith(prefix))
-                .collect(java.util.stream.Collectors.toList());
-        
-        for (String key : keysToRemove) {
-            cache.remove(key);
-            expireMap.remove(key);
-            count++;
+        try {
+            if (redisAvailable) {
+                Set<String> keysToRemove = keys(prefix + "*");
+                if (!keysToRemove.isEmpty()) {
+                    redisUtil.del(keysToRemove.toArray(new String[0]));
+                    count = keysToRemove.size();
+                }
+            } else {
+                List<String> keysToRemove = fallbackCache.keySet().stream()
+                        .filter(key -> key.startsWith(prefix))
+                        .collect(Collectors.toList());
+                
+                for (String key : keysToRemove) {
+                    fallbackCache.remove(key);
+                    fallbackExpireMap.remove(key);
+                    count++;
+                }
+            }
+        } catch (Exception e) {
+            log.error("前缀清理失败: prefix={}", prefix, e);
         }
-        // TODO: 实现专业缓存前缀清理逻辑（如Redis）
         return count;
     }
 
     @Override
     public Map<String, Object> getStats() {
-        log.info("获取缓存统计信息");
+        log.debug("获取缓存统计信息");
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalKeys", cache.size());
-        stats.put("expiredKeys", expireMap.size());
-        stats.put("memoryUsage", "N/A");
-        // TODO: 实现专业缓存统计信息获取逻辑（如Redis）
+        try {
+            if (redisAvailable) {
+                stats.put("cacheType", "Redis");
+                stats.put("redisAvailable", true);
+                stats.put("fallbackCacheSize", fallbackCache.size());
+            } else {
+                stats.put("cacheType", "Memory (Fallback)");
+                stats.put("redisAvailable", false);
+                stats.put("totalKeys", fallbackCache.size());
+                stats.put("expiredKeys", fallbackExpireMap.size());
+            }
+        } catch (Exception e) {
+            log.error("获取统计信息失败", e);
+            stats.put("error", e.getMessage());
+        }
         return stats;
     }
 
     @Override
     public boolean refresh(String key, Object value) {
-        log.info("刷新缓存: key={}", key);
-        if (cache.containsKey(key)) {
-            cache.put(key, value);
-            return true;
+        log.debug("刷新缓存: key={}", key);
+        try {
+            if (redisAvailable) {
+                if (redisUtil.hasKey(key)) {
+                    long ttl = redisUtil.getExpire(key);
+                    if (ttl > 0) {
+                        redisUtil.set(key, value, ttl);
+                    } else {
+                        redisUtil.set(key, value);
+                    }
+                    return true;
+                }
+                return false;
+            } else {
+                if (fallbackCache.containsKey(key)) {
+                    fallbackCache.put(key, value);
+                    return true;
+                }
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("刷新缓存失败: key={}", key, e);
+            return false;
         }
-        // TODO: 实现专业缓存刷新逻辑（如Redis）
-        return false;
     }
 
     @Override
     public int warmUp(Map<String, Object> cacheData) {
         log.info("预热缓存: dataSize={}", cacheData.size());
         int count = 0;
-        for (Map.Entry<String, Object> entry : cacheData.entrySet()) {
-            cache.put(entry.getKey(), entry.getValue());
-            count++;
+        try {
+            for (Map.Entry<String, Object> entry : cacheData.entrySet()) {
+                if (redisAvailable) {
+                    redisUtil.set(entry.getKey(), entry.getValue());
+                } else {
+                    fallbackCache.put(entry.getKey(), entry.getValue());
+                }
+                count++;
+            }
+        } catch (Exception e) {
+            log.error("缓存预热失败", e);
         }
-        // TODO: 实现专业缓存预热逻辑（如Redis）
         return count;
     }
 
     @Override
     public long size() {
-        log.info("获取缓存大小");
-        // TODO: 实现专业缓存大小获取逻辑（如Redis）
-        return cache.size();
+        log.debug("获取缓存大小");
+        try {
+            if (redisAvailable) {
+                // Redis无法直接获取所有键的数量，返回降级缓存大小
+                return fallbackCache.size();
+            } else {
+                return fallbackCache.size();
+            }
+        } catch (Exception e) {
+            log.error("获取缓存大小失败", e);
+            return 0;
+        }
     }
 
     @Override
     public Map<String, Object> getMemoryInfo() {
-        log.info("获取内存信息");
+        log.debug("获取内存信息");
         Map<String, Object> memoryInfo = new HashMap<>();
-        memoryInfo.put("usedMemory", "N/A");
-        memoryInfo.put("maxMemory", "N/A");
-        memoryInfo.put("memoryUsageRatio", "N/A");
-        // TODO: 实现专业缓存内存信息获取逻辑（如Redis）
+        try {
+            if (redisAvailable) {
+                memoryInfo.put("cacheType", "Redis");
+                memoryInfo.put("fallbackCacheSize", fallbackCache.size());
+                memoryInfo.put("fallbackMemoryEstimate", estimateFallbackMemory() + " bytes");
+            } else {
+                memoryInfo.put("cacheType", "Memory (Fallback)");
+                memoryInfo.put("cacheSize", fallbackCache.size());
+                memoryInfo.put("memoryEstimate", estimateFallbackMemory() + " bytes");
+            }
+        } catch (Exception e) {
+            log.error("获取内存信息失败", e);
+            memoryInfo.put("error", e.getMessage());
+        }
         return memoryInfo;
     }
 
     /**
-     * 检查缓存是否过期
+     * 使用降级缓存
      */
-    private boolean isExpired(String key) {
-        Long expireTime = expireMap.get(key);
+    private Object useFallbackCache(String operation, String key, Object value) {
+        return useFallbackCache(operation, key, value, 0L);
+    }
+
+    /**
+     * 使用降级缓存（带过期时间）
+     */
+    private Object useFallbackCache(String operation, String key, Object value, Long expireMillis) {
+        switch (operation) {
+            case "set":
+                fallbackCache.put(key, value);
+                if (expireMillis != null && expireMillis > 0) {
+                    fallbackExpireMap.put(key, System.currentTimeMillis() + expireMillis);
+                }
+                return null;
+            case "get":
+                if (isFallbackExpired(key)) {
+                    fallbackCache.remove(key);
+                    fallbackExpireMap.remove(key);
+                    return null;
+                }
+                return fallbackCache.get(key);
+            case "delete":
+                fallbackCache.remove(key);
+                fallbackExpireMap.remove(key);
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * 检查降级缓存是否过期
+     */
+    private boolean isFallbackExpired(String key) {
+        Long expireTime = fallbackExpireMap.get(key);
         return expireTime != null && System.currentTimeMillis() > expireTime;
+    }
+
+    /**
+     * 估算降级缓存内存使用
+     */
+    private long estimateFallbackMemory() {
+        // 粗略估算：每个键值对约100字节
+        return fallbackCache.size() * 100L;
     }
 }

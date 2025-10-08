@@ -21,6 +21,7 @@ const ReportsNew = () => import("@/views/Reports.vue");
 const UserAnalytics = () => import("@/views/UserAnalytics.vue");
 const SystemMonitoring = () => import("@/views/SystemMonitoring.vue");
 const PersonalizationSettings = () => import("@/views/PersonalizationSettings.vue");
+const NotificationCenter = () => import("@/pages/notifications/index.vue");
 
 const routes: RouteRecordRaw[] = [
   {
@@ -313,6 +314,23 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: true,
           icon: "Monitor",
           roles: ["admin"],
+        },
+      },
+    ],
+  },
+  {
+    path: "/notifications",
+    component: DefaultLayout,
+    children: [
+      {
+        path: "",
+        name: "NotificationCenter",
+        component: NotificationCenter,
+        meta: {
+          title: "通知中心",
+          icon: "Bell",
+          requiresAuth: true,
+          roles: ["admin", "user"],
         },
       },
     ],

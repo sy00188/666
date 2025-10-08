@@ -49,18 +49,8 @@
         </el-button>
       </el-tooltip>
 
-      <!-- 消息通知 -->
-      <el-badge
-        :value="unreadCount"
-        :hidden="unreadCount === 0"
-        class="notification-badge"
-      >
-        <el-button type="text" class="header-btn" @click="showNotifications">
-          <el-icon>
-            <Bell />
-          </el-icon>
-        </el-button>
-      </el-badge>
+      <!-- 消息通知（新版） -->
+      <NotificationBell @notification-click="handleNotificationClick" />
 
       <!-- 用户菜单 -->
       <el-dropdown class="user-dropdown" @command="handleUserCommand">
@@ -96,27 +86,6 @@
       </el-dropdown>
     </div>
 
-    <!-- 通知抽屉 -->
-    <el-drawer
-      v-model="notificationDrawer"
-      title="消息通知"
-      direction="rtl"
-      size="400px"
-    >
-      <div class="notification-content">
-        <el-tabs v-model="activeNotificationTab">
-          <el-tab-pane label="全部" name="all">
-            <notification-list :notifications="allNotifications" />
-          </el-tab-pane>
-          <el-tab-pane label="未读" name="unread">
-            <notification-list :notifications="unreadNotifications" />
-          </el-tab-pane>
-          <el-tab-pane label="系统" name="system">
-            <notification-list :notifications="systemNotifications" />
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-    </el-drawer>
   </div>
 </template>
 
@@ -140,7 +109,8 @@ import {
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
-import NotificationList from "@/components/Common/NotificationList.vue";
+import NotificationBell from "@/components/business/NotificationCenter/NotificationBell.vue";
+import type { Notification } from "@/types/notification";
 
 const router = useRouter();
 const appStore = useAppStore();
@@ -148,29 +118,6 @@ const authStore = useAuthStore();
 
 // 响应式数据
 const isFullscreen = ref(false);
-const notificationDrawer = ref(false);
-const activeNotificationTab = ref("all");
-const unreadCount = ref(5); // 模拟未读消息数量
-
-// 模拟通知数据
-const allNotifications = ref([
-  {
-    id: 1,
-    title: "系统更新通知",
-    content: "系统将于今晚22:00进行维护更新",
-    type: "system",
-    read: false,
-    time: "2024-01-20 10:30",
-  },
-  {
-    id: 2,
-    title: "新用户注册",
-    content: "用户张三已成功注册",
-    type: "user",
-    read: true,
-    time: "2024-01-20 09:15",
-  },
-]);
 
 // 计算属性
 const sidebarOpened = computed(() => appStore.sidebarOpened);
@@ -179,14 +126,6 @@ const breadcrumbs = computed(() => appStore.breadcrumbs);
 const isDark = computed(() => appStore.isDark);
 const userName = computed(() => authStore.userName || "用户");
 const userAvatar = computed(() => authStore.userAvatar);
-
-const unreadNotifications = computed(() =>
-  allNotifications.value.filter((n) => !n.read),
-);
-
-const systemNotifications = computed(() =>
-  allNotifications.value.filter((n) => n.type === "system"),
-);
 
 // 方法
 const toggleSidebar = () => {
@@ -207,8 +146,11 @@ const toggleFullscreen = () => {
   }
 };
 
-const showNotifications = () => {
-  notificationDrawer.value = true;
+const handleNotificationClick = (notification: Notification) => {
+  // 处理通知点击，如果有操作URL则跳转
+  if (notification.actionUrl) {
+    router.push(notification.actionUrl);
+  }
 };
 
 const handleUserCommand = async (command: string) => {
@@ -351,15 +293,6 @@ document.addEventListener("fullscreenchange", () => {
         }
       }
     }
-  }
-}
-
-.notification-content {
-  height: 100%;
-
-  :deep(.el-tabs__content) {
-    height: calc(100% - 40px);
-    overflow-y: auto;
   }
 }
 

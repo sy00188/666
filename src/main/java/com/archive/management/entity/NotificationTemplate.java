@@ -1,261 +1,133 @@
 package com.archive.management.entity;
 
-import com.archive.management.common.entity.BaseEntity;
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.experimental.Accessors;
+import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
  * 通知模板实体类
- * 对应数据库表：sys_notification_template
  * 
  * @author Archive Management System
+ * @version 1.0
  * @since 2024-01-01
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-@Accessors(chain = true)
-@TableName("sys_notification_template")
-public class NotificationTemplate extends BaseEntity {
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "sys_notification_templates")
+public class NotificationTemplate {
 
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * 模板ID
-     */
-    @TableId(value = "template_id", type = IdType.AUTO)
-    private Long templateId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     /**
-     * 模板编码（唯一标识）
+     * 模板代码（唯一标识）
      */
-    @NotBlank(message = "模板编码不能为空")
-    @Size(max = 50, message = "模板编码长度不能超过50个字符")
-    @Pattern(regexp = "^[A-Z_][A-Z0-9_]*$", message = "模板编码只能包含大写字母、数字和下划线，且必须以大写字母或下划线开头")
-    @TableField("template_code")
+    @Column(nullable = false, unique = true, length = 100)
     private String templateCode;
 
     /**
      * 模板名称
      */
-    @NotBlank(message = "模板名称不能为空")
-    @Size(max = 100, message = "模板名称长度不能超过100个字符")
-    @TableField("template_name")
+    @Column(nullable = false, length = 200)
     private String templateName;
 
     /**
-     * 模板类型
-     * EMAIL-邮件，SMS-短信，SYSTEM-系统通知，PUSH-推送通知
+     * 模板类型: email, sms, system, wechat
      */
-    @NotBlank(message = "模板类型不能为空")
-    @Pattern(regexp = "^(EMAIL|SMS|SYSTEM|PUSH)$", message = "模板类型只能是EMAIL、SMS、SYSTEM或PUSH")
-    @TableField("template_type")
+    @Column(nullable = false, length = 50)
     private String templateType;
 
     /**
-     * 模板标题
+     * 模板内容
      */
-    @Size(max = 200, message = "模板标题长度不能超过200个字符")
-    @TableField("template_title")
-    private String templateTitle;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
 
     /**
-     * 模板内容（支持Freemarker语法）
+     * 标题模板
      */
-    @NotBlank(message = "模板内容不能为空")
-    @Size(max = 5000, message = "模板内容长度不能超过5000个字符")
-    @TableField("template_content")
-    private String templateContent;
+    @Column(length = 500)
+    private String titleTemplate;
 
     /**
-     * 模板变量（JSON格式）
-     * 存储模板中可用的变量定义和说明
+     * 模板变量（JSON数组）
      */
-    @Size(max = 2000, message = "模板变量长度不能超过2000个字符")
-    @TableField("template_variables")
-    private String templateVariables;
-
-    /**
-     * 模板版本
-     */
-    @NotNull(message = "模板版本不能为空")
-    @Min(value = 1, message = "模板版本必须大于0")
-    @TableField("template_version")
-    private Integer templateVersion;
-
-    /**
-     * 是否为当前版本
-     * 0-否，1-是
-     */
-    @NotNull(message = "当前版本标识不能为空")
-    @Min(value = 0, message = "当前版本标识值不正确")
-    @Max(value = 1, message = "当前版本标识值不正确")
-    @TableField("is_current")
-    private Integer isCurrent;
-
-    /**
-     * 模板状态
-     * 0-禁用，1-启用
-     */
-    @NotNull(message = "模板状态不能为空")
-    @Min(value = 0, message = "模板状态值不正确")
-    @Max(value = 1, message = "模板状态值不正确")
-    @TableField("status")
-    private Integer status;
+    @Column(length = 2000)
+    private String variables;
 
     /**
      * 模板描述
      */
-    @Size(max = 500, message = "模板描述长度不能超过500个字符")
-    @TableField("description")
+    @Column(length = 500)
     private String description;
 
     /**
-     * 发布时间
+     * 是否启用
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField("publish_time")
-    private LocalDateTime publishTime;
+    @Column(nullable = false)
+    private Boolean enabled;
 
     /**
-     * 发布人ID
+     * 优先级: low, normal, high, urgent
      */
-    @TableField("publish_user_id")
-    private Long publishUserId;
-
-    // ==================== 非数据库字段 ====================
+    @Column(length = 50)
+    private String priority;
 
     /**
-     * 创建人姓名（关联查询时使用）
+     * 发送渠道配置（JSON）
      */
-    @TableField(exist = false)
-    private String createUserName;
+    @Column(length = 1000)
+    private String channelConfig;
 
     /**
-     * 发布人姓名（关联查询时使用）
+     * 创建人ID
      */
-    @TableField(exist = false)
-    private String publishUserName;
+    private Long createdBy;
 
     /**
-     * 模板变量Map（用于模板渲染）
+     * 更新人ID
      */
-    @TableField(exist = false)
-    private Map<String, Object> variableMap;
+    private Long updatedBy;
 
     /**
-     * 渲染后的内容（临时存储）
+     * 创建时间
      */
-    @TableField(exist = false)
-    private String renderedContent;
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
     /**
-     * 渲染后的标题（临时存储）
+     * 更新时间
      */
-    @TableField(exist = false)
-    private String renderedTitle;
-
-    // ==================== 业务方法 ====================
+    private LocalDateTime updatedAt;
 
     /**
-     * 判断模板是否启用
-     * 
-     * @return true-启用，false-禁用
+     * 是否删除
      */
-    public boolean isEnabled() {
-        return status != null && status == 1;
-    }
+    private Boolean deleted;
 
-    /**
-     * 判断是否为当前版本
-     * 
-     * @return true-当前版本，false-历史版本
-     */
-    public boolean isCurrentVersion() {
-        return isCurrent != null && isCurrent == 1;
-    }
-
-    /**
-     * 判断是否已发布
-     * 
-     * @return true-已发布，false-未发布
-     */
-    public boolean isPublished() {
-        return publishTime != null && publishUserId != null;
-    }
-
-    /**
-     * 启用模板
-     */
-    public void enable() {
-        this.status = 1;
-    }
-
-    /**
-     * 禁用模板
-     */
-    public void disable() {
-        this.status = 0;
-    }
-
-    /**
-     * 设置为当前版本
-     */
-    public void setAsCurrent() {
-        this.isCurrent = 1;
-    }
-
-    /**
-     * 设置为历史版本
-     */
-    public void setAsHistory() {
-        this.isCurrent = 0;
-    }
-
-    /**
-     * 发布模板
-     * 
-     * @param publishUserId 发布人ID
-     */
-    public void publish(Long publishUserId) {
-        this.publishTime = LocalDateTime.now();
-        this.publishUserId = publishUserId;
-        this.status = 1; // 发布时自动启用
-    }
-
-    /**
-     * 获取模板类型的中文描述
-     * 
-     * @return 中文描述
-     */
-    public String getTemplateTypeDesc() {
-        if (templateType == null) {
-            return "未知";
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (deleted == null) {
+            deleted = false;
         }
-        return switch (templateType) {
-            case "EMAIL" -> "邮件通知";
-            case "SMS" -> "短信通知";
-            case "SYSTEM" -> "系统通知";
-            case "PUSH" -> "推送通知";
-            default -> "未知类型";
-        };
+        if (enabled == null) {
+            enabled = true;
+        }
+        if (priority == null) {
+            priority = "normal";
+        }
     }
 
-    /**
-     * 获取状态的中文描述
-     * 
-     * @return 中文描述
-     */
-    public String getStatusDesc() {
-        if (status == null) {
-            return "未知";
-        }
-        return status == 1 ? "启用" : "禁用";
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

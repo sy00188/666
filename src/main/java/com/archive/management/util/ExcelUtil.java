@@ -1,304 +1,137 @@
 package com.archive.management.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.*;
+import org.springframework.stereotype.Component;
 
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Excel工具类
- * 提供Excel文件读写的常用方法
+ * 支持导入导出功能
  * 
  * @author Archive Management System
  * @version 1.0
- * @since 2024-01-20
+ * @since 2024-01-01
  */
+@Slf4j
+@Component
 public class ExcelUtil {
 
-    /**
-     * Excel文件扩展名
-     */
-    public static final String EXCEL_XLS = ".xls";
-    public static final String EXCEL_XLSX = ".xlsx";
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
-     * 默认日期格式
+     * 导出数据到Excel
      */
-    public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
-    public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
-    /**
-     * 最大行数限制
-     */
-    public static final int MAX_ROWS_XLS = 65536;
-    public static final int MAX_ROWS_XLSX = 1048576;
-
-    // ========== 文件类型检查 ==========
-
-    /**
-     * 检查是否是Excel文件
-     * 
-     * @param fileName 文件名
-     * @return 是否是Excel文件
-     */
-    public static boolean isExcelFile(String fileName) {
-        if (StringUtil.isEmpty(fileName)) {
-            return false;
+    public byte[] exportToExcel(List<Map<String, Object>> dataList, List<String> headers, List<String> keys, String sheetName) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            
+            Sheet sheet = workbook.createSheet(sheetName);
+            
+            // 创建标题样式
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle dataStyle = createDataStyle(workbook);
+            
+            // 创建标题行
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.size(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers.get(i));
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 4000); // 设置列宽
+            }
+            
+            // 填充数据
+            for (int i = 0; i < dataList.size(); i++) {
+                Row row = sheet.createRow(i + 1);
+                Map<String, Object> data = dataList.get(i);
+                
+                for (int j = 0; j < keys.size(); j++) {
+                    Cell cell = row.createCell(j);
+                    Object value = data.get(keys.get(j));
+                    
+                    if (value != null) {
+                        if (value instanceof Number) {
+                            cell.setCellValue(((Number) value).doubleValue());
+                        } else if (value instanceof LocalDateTime) {
+                            cell.setCellValue(((LocalDateTime) value).format(DATE_FORMATTER));
+                        } else {
+                            cell.setCellValue(value.toString());
+                        }
+                    }
+                    
+                    cell.setCellStyle(dataStyle);
+                }
+            }
+            
+            workbook.write(out);
+            return out.toByteArray();
+            
+        } catch (Exception e) {
+            log.error("导出Excel失败", e);
+            throw new RuntimeException("导出Excel失败: " + e.getMessage());
         }
-        
-        String lowerName = fileName.toLowerCase();
-        return lowerName.endsWith(EXCEL_XLS) || lowerName.endsWith(EXCEL_XLSX);
     }
 
     /**
-     * 检查是否是Excel文件
-     * 
-     * @param file 上传文件
-     * @return 是否是Excel文件
+     * 从Excel导入数据
      */
-    public static boolean isExcelFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            return false;
-        }
+    public List<Map<String, Object>> importFromExcel(InputStream inputStream, List<String> keys) {
+        List<Map<String, Object>> dataList = new ArrayList<>();
         
-        String fileName = file.getOriginalFilename();
-        String contentType = file.getContentType();
-        
-        return isExcelFile(fileName) && (
-            "application/vnd.ms-excel".equals(contentType) ||
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".equals(contentType)
-        );
-    }
-
-    /**
-     * 判断是否是xlsx格式
-     * 
-     * @param fileName 文件名
-     * @return 是否是xlsx格式
-     */
-    public static boolean isXlsxFile(String fileName) {
-        return StringUtil.isNotEmpty(fileName) && fileName.toLowerCase().endsWith(EXCEL_XLSX);
-    }
-
-    // ========== 工作簿创建 ==========
-
-    /**
-     * 创建工作簿
-     * 
-     * @param isXlsx 是否创建xlsx格式
-     * @return 工作簿对象
-     */
-    public static Workbook createWorkbook(boolean isXlsx) {
-        return isXlsx ? new XSSFWorkbook() : new HSSFWorkbook();
-    }
-
-    /**
-     * 创建工作簿（根据文件名判断格式）
-     * 
-     * @param fileName 文件名
-     * @return 工作簿对象
-     */
-    public static Workbook createWorkbook(String fileName) {
-        return createWorkbook(isXlsxFile(fileName));
-    }
-
-    /**
-     * 打开工作簿
-     * 
-     * @param inputStream 输入流
-     * @return 工作簿对象
-     * @throws IOException IO异常
-     */
-    public static Workbook openWorkbook(InputStream inputStream) throws IOException {
-        if (inputStream == null) {
-            throw new IllegalArgumentException("输入流不能为空");
-        }
-        
-        return WorkbookFactory.create(inputStream);
-    }
-
-    /**
-     * 打开工作簿
-     * 
-     * @param file 文件
-     * @return 工作簿对象
-     * @throws IOException IO异常
-     */
-    public static Workbook openWorkbook(File file) throws IOException {
-        if (file == null || !file.exists()) {
-            throw new IllegalArgumentException("文件不存在");
-        }
-        
-        return WorkbookFactory.create(file);
-    }
-
-    /**
-     * 打开工作簿
-     * 
-     * @param multipartFile 上传文件
-     * @return 工作簿对象
-     * @throws IOException IO异常
-     */
-    public static Workbook openWorkbook(MultipartFile multipartFile) throws IOException {
-        if (multipartFile == null || multipartFile.isEmpty()) {
-            throw new IllegalArgumentException("上传文件不能为空");
-        }
-        
-        if (!isExcelFile(multipartFile)) {
-            throw new IllegalArgumentException("不是有效的Excel文件");
-        }
-        
-        return openWorkbook(multipartFile.getInputStream());
-    }
-
-    // ========== 工作表操作 ==========
-
-    /**
-     * 创建工作表
-     * 
-     * @param workbook 工作簿
-     * @param sheetName 工作表名称
-     * @return 工作表对象
-     */
-    public static Sheet createSheet(Workbook workbook, String sheetName) {
-        if (workbook == null) {
-            throw new IllegalArgumentException("工作簿不能为空");
-        }
-        
-        return StringUtil.isNotEmpty(sheetName) ? 
-            workbook.createSheet(sheetName) : workbook.createSheet();
-    }
-
-    /**
-     * 获取工作表
-     * 
-     * @param workbook 工作簿
-     * @param sheetIndex 工作表索引
-     * @return 工作表对象
-     */
-    public static Sheet getSheet(Workbook workbook, int sheetIndex) {
-        if (workbook == null) {
-            return null;
-        }
-        
-        return sheetIndex >= 0 && sheetIndex < workbook.getNumberOfSheets() ? 
-            workbook.getSheetAt(sheetIndex) : null;
-    }
-
-    /**
-     * 获取工作表
-     * 
-     * @param workbook 工作簿
-     * @param sheetName 工作表名称
-     * @return 工作表对象
-     */
-    public static Sheet getSheet(Workbook workbook, String sheetName) {
-        if (workbook == null || StringUtil.isEmpty(sheetName)) {
-            return null;
-        }
-        
-        return workbook.getSheet(sheetName);
-    }
-
-    /**
-     * 获取第一个工作表
-     * 
-     * @param workbook 工作簿
-     * @return 工作表对象
-     */
-    public static Sheet getFirstSheet(Workbook workbook) {
-        return getSheet(workbook, 0);
-    }
-
-    // ========== 单元格操作 ==========
-
-    /**
-     * 创建单元格
-     * 
-     * @param row 行对象
-     * @param columnIndex 列索引
-     * @return 单元格对象
-     */
-    public static Cell createCell(Row row, int columnIndex) {
-        if (row == null) {
-            return null;
-        }
-        
-        return row.createCell(columnIndex);
-    }
-
-    /**
-     * 获取单元格
-     * 
-     * @param sheet 工作表
-     * @param rowIndex 行索引
-     * @param columnIndex 列索引
-     * @return 单元格对象
-     */
-    public static Cell getCell(Sheet sheet, int rowIndex, int columnIndex) {
-        if (sheet == null) {
-            return null;
-        }
-        
-        Row row = sheet.getRow(rowIndex);
-        if (row == null) {
-            return null;
-        }
-        
-        return row.getCell(columnIndex);
-    }
-
-    /**
-     * 设置单元格值
-     * 
-     * @param cell 单元格
-     * @param value 值
-     */
-    public static void setCellValue(Cell cell, Object value) {
-        if (cell == null) {
-            return;
-        }
-        
-        if (value == null) {
-            cell.setCellValue("");
-            return;
-        }
-        
-        if (value instanceof String) {
-            cell.setCellValue((String) value);
-        } else if (value instanceof Number) {
-            cell.setCellValue(((Number) value).doubleValue());
-        } else if (value instanceof Boolean) {
-            cell.setCellValue((Boolean) value);
-        } else if (value instanceof Date) {
-            cell.setCellValue((Date) value);
-        } else if (value instanceof LocalDate) {
-            cell.setCellValue(((LocalDate) value).format(DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT)));
-        } else if (value instanceof LocalDateTime) {
-            cell.setCellValue(((LocalDateTime) value).format(DateTimeFormatter.ofPattern(DEFAULT_DATETIME_FORMAT)));
-        } else {
-            cell.setCellValue(value.toString());
+        try (Workbook workbook = WorkbookFactory.create(inputStream)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            
+            // 跳过标题行
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    continue;
+                }
+                
+                Map<String, Object> data = new HashMap<>();
+                boolean hasData = false;
+                
+                for (int j = 0; j < keys.size(); j++) {
+                    Cell cell = row.getCell(j);
+                    Object value = getCellValue(cell);
+                    
+                    if (value != null && !value.toString().trim().isEmpty()) {
+                        data.put(keys.get(j), value);
+                        hasData = true;
+                    }
+                }
+                
+                if (hasData) {
+                    dataList.add(data);
+                }
+            }
+            
+            log.info("从Excel导入数据成功: 共{}条", dataList.size());
+            return dataList;
+            
+        } catch (Exception e) {
+            log.error("导入Excel失败", e);
+            throw new RuntimeException("导入Excel失败: " + e.getMessage());
         }
     }
 
     /**
      * 获取单元格值
-     * 
-     * @param cell 单元格
-     * @return 单元格值
      */
-    public static Object getCellValue(Cell cell) {
+    private Object getCellValue(Cell cell) {
         if (cell == null) {
             return null;
         }
@@ -309,499 +142,487 @@ public class ExcelUtil {
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return cell.getDateCellValue();
-                } else {
-                    double numericValue = cell.getNumericCellValue();
-                    // 判断是否为整数
-                    if (numericValue == Math.floor(numericValue)) {
-                        return (long) numericValue;
-                    } else {
-                        return numericValue;
-                    }
                 }
+                return cell.getNumericCellValue();
             case BOOLEAN:
                 return cell.getBooleanCellValue();
             case FORMULA:
                 return cell.getCellFormula();
-            case BLANK:
             default:
                 return null;
         }
     }
 
     /**
-     * 获取单元格字符串值
-     * 
-     * @param cell 单元格
-     * @return 字符串值
-     */
-    public static String getCellStringValue(Cell cell) {
-        Object value = getCellValue(cell);
-        return value != null ? value.toString().trim() : "";
-    }
-
-    // ========== 样式设置 ==========
-
-    /**
      * 创建标题样式
-     * 
-     * @param workbook 工作簿
-     * @return 样式对象
      */
-    public static CellStyle createHeaderStyle(Workbook workbook) {
-        if (workbook == null) {
-            return null;
-        }
-        
+    private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         
-        // 设置字体
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 12);
-        style.setFont(font);
+        // 背景色
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         
-        // 设置对齐方式
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        
-        // 设置边框
+        // 边框
         style.setBorderTop(BorderStyle.THIN);
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         
-        // 设置背景色
-        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        // 居中
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
+        // 字体
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 11);
+        style.setFont(font);
         
         return style;
     }
 
     /**
      * 创建数据样式
-     * 
-     * @param workbook 工作簿
-     * @return 样式对象
      */
-    public static CellStyle createDataStyle(Workbook workbook) {
-        if (workbook == null) {
-            return null;
-        }
-        
+    private CellStyle createDataStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         
-        // 设置对齐方式
-        style.setAlignment(HorizontalAlignment.LEFT);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        
-        // 设置边框
+        // 边框
         style.setBorderTop(BorderStyle.THIN);
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         
+        // 垂直居中
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
         return style;
     }
 
     /**
-     * 创建日期样式
-     * 
-     * @param workbook 工作簿
-     * @param format 日期格式
-     * @return 样式对象
+     * 验证Excel数据
      */
-    public static CellStyle createDateStyle(Workbook workbook, String format) {
-        if (workbook == null) {
-            return null;
+    public Map<String, Object> validateExcelData(List<Map<String, Object>> dataList, List<String> requiredKeys) {
+        Map<String, Object> result = new HashMap<>();
+        List<String> errors = new ArrayList<>();
+        
+        for (int i = 0; i < dataList.size(); i++) {
+            Map<String, Object> data = dataList.get(i);
+            
+            for (String key : requiredKeys) {
+                if (!data.containsKey(key) || data.get(key) == null || data.get(key).toString().trim().isEmpty()) {
+                    errors.add(String.format("第%d行缺少必填字段: %s", i + 2, key));
+                }
+            }
         }
         
+        result.put("valid", errors.isEmpty());
+        result.put("errors", errors);
+        result.put("totalRecords", dataList.size());
+        
+        return result;
+    }
+    
+    // ==================== 高级Excel功能 ====================
+    
+    /**
+     * 高级导出配置类
+     */
+    public static class AdvancedExportConfig {
+        private List<Map<String, Object>> dataList;
+        private List<String> headers;
+        private List<String> keys;
+        private String sheetName = "Sheet1";
+        private String title; // 顶部标题
+        private boolean autoColumnWidth = true; // 自动列宽
+        private boolean freezeHeader = true; // 冻结表头
+        private Map<Integer, Integer> columnWidths = new HashMap<>(); // 自定义列宽
+        private Map<String, CellStyleConfig> columnStyles = new HashMap<>(); // 列样式配置
+        private List<MergeRegion> mergeRegions = new ArrayList<>(); // 合并单元格
+        private List<FormulaCell> formulaCells = new ArrayList<>(); // 公式单元格
+        private List<DataValidationConfig> validations = new ArrayList<>(); // 数据验证
+        private List<ConditionalFormattingRule> conditionalFormatting = new ArrayList<>(); // 条件格式
+        
+        // Getters and Setters
+        public List<Map<String, Object>> getDataList() { return dataList; }
+        public void setDataList(List<Map<String, Object>> dataList) { this.dataList = dataList; }
+        
+        public List<String> getHeaders() { return headers; }
+        public void setHeaders(List<String> headers) { this.headers = headers; }
+        
+        public List<String> getKeys() { return keys; }
+        public void setKeys(List<String> keys) { this.keys = keys; }
+        
+        public String getSheetName() { return sheetName; }
+        public void setSheetName(String sheetName) { this.sheetName = sheetName; }
+        
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        
+        public boolean isAutoColumnWidth() { return autoColumnWidth; }
+        public void setAutoColumnWidth(boolean autoColumnWidth) { this.autoColumnWidth = autoColumnWidth; }
+        
+        public boolean isFreezeHeader() { return freezeHeader; }
+        public void setFreezeHeader(boolean freezeHeader) { this.freezeHeader = freezeHeader; }
+        
+        public Map<Integer, Integer> getColumnWidths() { return columnWidths; }
+        public void setColumnWidths(Map<Integer, Integer> columnWidths) { this.columnWidths = columnWidths; }
+        
+        public Map<String, CellStyleConfig> getColumnStyles() { return columnStyles; }
+        public void setColumnStyles(Map<String, CellStyleConfig> columnStyles) { this.columnStyles = columnStyles; }
+        
+        public List<MergeRegion> getMergeRegions() { return mergeRegions; }
+        public void setMergeRegions(List<MergeRegion> mergeRegions) { this.mergeRegions = mergeRegions; }
+        
+        public List<FormulaCell> getFormulaCells() { return formulaCells; }
+        public void setFormulaCells(List<FormulaCell> formulaCells) { this.formulaCells = formulaCells; }
+        
+        public List<DataValidationConfig> getValidations() { return validations; }
+        public void setValidations(List<DataValidationConfig> validations) { this.validations = validations; }
+        
+        public List<ConditionalFormattingRule> getConditionalFormatting() { return conditionalFormatting; }
+        public void setConditionalFormatting(List<ConditionalFormattingRule> conditionalFormatting) { 
+            this.conditionalFormatting = conditionalFormatting; 
+        }
+    }
+    
+    /**
+     * 单元格样式配置
+     */
+    public static class CellStyleConfig {
+        private Short backgroundColor;
+        private Short fontColor;
+        private Boolean bold;
+        private Short fontSize;
+        private HorizontalAlignment alignment;
+        private String numberFormat; // 数字格式，如 "#,##0.00"
+        
+        // Getters and Setters
+        public Short getBackgroundColor() { return backgroundColor; }
+        public void setBackgroundColor(Short backgroundColor) { this.backgroundColor = backgroundColor; }
+        
+        public Short getFontColor() { return fontColor; }
+        public void setFontColor(Short fontColor) { this.fontColor = fontColor; }
+        
+        public Boolean getBold() { return bold; }
+        public void setBold(Boolean bold) { this.bold = bold; }
+        
+        public Short getFontSize() { return fontSize; }
+        public void setFontSize(Short fontSize) { this.fontSize = fontSize; }
+        
+        public HorizontalAlignment getAlignment() { return alignment; }
+        public void setAlignment(HorizontalAlignment alignment) { this.alignment = alignment; }
+        
+        public String getNumberFormat() { return numberFormat; }
+        public void setNumberFormat(String numberFormat) { this.numberFormat = numberFormat; }
+    }
+    
+    /**
+     * 合并单元格区域
+     */
+    public static class MergeRegion {
+        private int firstRow;
+        private int lastRow;
+        private int firstCol;
+        private int lastCol;
+        
+        public MergeRegion(int firstRow, int lastRow, int firstCol, int lastCol) {
+            this.firstRow = firstRow;
+            this.lastRow = lastRow;
+            this.firstCol = firstCol;
+            this.lastCol = lastCol;
+        }
+        
+        public int getFirstRow() { return firstRow; }
+        public int getLastRow() { return lastRow; }
+        public int getFirstCol() { return firstCol; }
+        public int getLastCol() { return lastCol; }
+    }
+    
+    /**
+     * 公式单元格
+     */
+    public static class FormulaCell {
+        private int row;
+        private int col;
+        private String formula;
+        
+        public FormulaCell(int row, int col, String formula) {
+            this.row = row;
+            this.col = col;
+            this.formula = formula;
+        }
+        
+        public int getRow() { return row; }
+        public int getCol() { return col; }
+        public String getFormula() { return formula; }
+    }
+    
+    /**
+     * 数据验证配置
+     */
+    public static class DataValidationConfig {
+        private int firstRow;
+        private int lastRow;
+        private int firstCol;
+        private int lastCol;
+        private String[] options; // 下拉选项
+        
+        public DataValidationConfig(int firstRow, int lastRow, int firstCol, int lastCol, String[] options) {
+            this.firstRow = firstRow;
+            this.lastRow = lastRow;
+            this.firstCol = firstCol;
+            this.lastCol = lastCol;
+            this.options = options;
+        }
+        
+        public int getFirstRow() { return firstRow; }
+        public int getLastRow() { return lastRow; }
+        public int getFirstCol() { return firstCol; }
+        public int getLastCol() { return lastCol; }
+        public String[] getOptions() { return options; }
+    }
+    
+    /**
+     * 条件格式规则
+     */
+    public static class ConditionalFormattingRule {
+        private int firstRow;
+        private int lastRow;
+        private int firstCol;
+        private int lastCol;
+        private String condition; // 条件表达式
+        private Short backgroundColor;
+        private Short fontColor;
+        
+        public ConditionalFormattingRule(int firstRow, int lastRow, int firstCol, int lastCol, 
+                                        String condition, Short backgroundColor, Short fontColor) {
+            this.firstRow = firstRow;
+            this.lastRow = lastRow;
+            this.firstCol = firstCol;
+            this.lastCol = lastCol;
+            this.condition = condition;
+            this.backgroundColor = backgroundColor;
+            this.fontColor = fontColor;
+        }
+        
+        public int getFirstRow() { return firstRow; }
+        public int getLastRow() { return lastRow; }
+        public int getFirstCol() { return firstCol; }
+        public int getLastCol() { return lastCol; }
+        public String getCondition() { return condition; }
+        public Short getBackgroundColor() { return backgroundColor; }
+        public Short getFontColor() { return fontColor; }
+    }
+    
+    /**
+     * 高级导出功能
+     */
+    public byte[] advancedExport(AdvancedExportConfig config) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            
+            XSSFSheet sheet = workbook.createSheet(config.getSheetName());
+            int currentRow = 0;
+            
+            // 1. 添加标题（如果有）
+            if (config.getTitle() != null && !config.getTitle().isEmpty()) {
+                Row titleRow = sheet.createRow(currentRow++);
+                Cell titleCell = titleRow.createCell(0);
+                titleCell.setCellValue(config.getTitle());
+                titleCell.setCellStyle(createTitleStyle(workbook));
+                
+                // 合并标题行
+                sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, config.getHeaders().size() - 1));
+                currentRow++; // 空一行
+            }
+            
+            // 2. 创建表头
+            Row headerRow = sheet.createRow(currentRow);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            for (int i = 0; i < config.getHeaders().size(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(config.getHeaders().get(i));
+                cell.setCellStyle(headerStyle);
+            }
+            
+            int headerRowIndex = currentRow;
+            currentRow++;
+            
+            // 3. 填充数据
+            for (int i = 0; i < config.getDataList().size(); i++) {
+                Row row = sheet.createRow(currentRow + i);
+                Map<String, Object> data = config.getDataList().get(i);
+                
+                for (int j = 0; j < config.getKeys().size(); j++) {
+                    Cell cell = row.createCell(j);
+                    Object value = data.get(config.getKeys().get(j));
+                    
+                    // 设置单元格值
+                    setCellValue(cell, value);
+                    
+                    // 应用列样式
+                    if (config.getColumnStyles().containsKey(config.getKeys().get(j))) {
+                        CellStyle customStyle = applyCustomStyle(workbook, config.getColumnStyles().get(config.getKeys().get(j)));
+                        cell.setCellStyle(customStyle);
+                    } else {
+                        cell.setCellStyle(createDataStyle(workbook));
+                    }
+                }
+            }
+            
+            // 4. 设置列宽
+            if (config.isAutoColumnWidth()) {
+                for (int i = 0; i < config.getHeaders().size(); i++) {
+                    sheet.autoSizeColumn(i);
+                    // 增加一点额外宽度
+                    int width = sheet.getColumnWidth(i) + 500;
+                    sheet.setColumnWidth(i, Math.min(width, 255 * 256));
+                }
+            }
+            
+            // 应用自定义列宽
+            config.getColumnWidths().forEach((col, width) -> sheet.setColumnWidth(col, width));
+            
+            // 5. 冻结窗格（冻结表头）
+            if (config.isFreezeHeader()) {
+                sheet.createFreezePane(0, headerRowIndex + 1);
+            }
+            
+            // 6. 合并单元格
+            for (MergeRegion region : config.getMergeRegions()) {
+                sheet.addMergedRegion(new CellRangeAddress(
+                    region.getFirstRow(), region.getLastRow(),
+                    region.getFirstCol(), region.getLastCol()
+                ));
+            }
+            
+            // 7. 添加公式
+            for (FormulaCell formulaCell : config.getFormulaCells()) {
+                Row row = sheet.getRow(formulaCell.getRow());
+                if (row == null) {
+                    row = sheet.createRow(formulaCell.getRow());
+                }
+                Cell cell = row.createCell(formulaCell.getCol());
+                cell.setCellFormula(formulaCell.getFormula());
+            }
+            
+            // 8. 添加数据验证（下拉列表）
+            XSSFDataValidationHelper validationHelper = new XSSFDataValidationHelper(sheet);
+            for (DataValidationConfig validation : config.getValidations()) {
+                CellRangeAddressList addressList = new CellRangeAddressList(
+                    validation.getFirstRow(), validation.getLastRow(),
+                    validation.getFirstCol(), validation.getLastCol()
+                );
+                DataValidationConstraint constraint = validationHelper.createExplicitListConstraint(validation.getOptions());
+                DataValidation dataValidation = validationHelper.createValidation(constraint, addressList);
+                dataValidation.setSuppressDropDownArrow(true);
+                sheet.addValidationData(dataValidation);
+            }
+            
+            // 9. 应用条件格式
+            XSSFSheetConditionalFormatting sheetCF = sheet.getSheetConditionalFormatting();
+            for (ConditionalFormattingRule rule : config.getConditionalFormatting()) {
+                CellRangeAddress[] regions = {new CellRangeAddress(
+                    rule.getFirstRow(), rule.getLastRow(),
+                    rule.getFirstCol(), rule.getLastCol()
+                )};
+                
+                XSSFConditionalFormattingRule cfRule = sheetCF.createConditionalFormattingRule(rule.getCondition());
+                XSSFFontFormatting fontFmt = cfRule.createFontFormatting();
+                if (rule.getFontColor() != null) {
+                    fontFmt.setFontColorIndex(rule.getFontColor());
+                }
+                
+                XSSFPatternFormatting patternFmt = cfRule.createPatternFormatting();
+                if (rule.getBackgroundColor() != null) {
+                    patternFmt.setFillBackgroundColor(new XSSFColor(new byte[]{
+                        (byte)rule.getBackgroundColor().intValue(), 0, 0
+                    }, null));
+                }
+                
+                sheetCF.addConditionalFormatting(regions, cfRule);
+            }
+            
+            workbook.write(out);
+            return out.toByteArray();
+            
+        } catch (Exception e) {
+            log.error("高级Excel导出失败", e);
+            throw new RuntimeException("高级Excel导出失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 创建标题样式
+     */
+    private CellStyle createTitleStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 16);
+        style.setFont(font);
+        
+        return style;
+    }
+    
+    /**
+     * 设置单元格值（支持多种类型）
+     */
+    private void setCellValue(Cell cell, Object value) {
+        if (value == null) {
+            cell.setCellValue("");
+            return;
+        }
+        
+        if (value instanceof Number) {
+            cell.setCellValue(((Number) value).doubleValue());
+        } else if (value instanceof LocalDateTime) {
+            cell.setCellValue(((LocalDateTime) value).format(DATE_FORMATTER));
+        } else if (value instanceof Boolean) {
+            cell.setCellValue((Boolean) value);
+        } else {
+            cell.setCellValue(value.toString());
+        }
+    }
+    
+    /**
+     * 应用自定义样式
+     */
+    private CellStyle applyCustomStyle(Workbook workbook, CellStyleConfig config) {
         CellStyle style = createDataStyle(workbook);
         
-        DataFormat dataFormat = workbook.createDataFormat();
-        style.setDataFormat(dataFormat.getFormat(StringUtil.isNotEmpty(format) ? format : DEFAULT_DATE_FORMAT));
+        if (config.getBackgroundColor() != null) {
+            style.setFillForegroundColor(config.getBackgroundColor());
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        }
+        
+        if (config.getAlignment() != null) {
+            style.setAlignment(config.getAlignment());
+        }
+        
+        if (config.getNumberFormat() != null) {
+            DataFormat format = workbook.createDataFormat();
+            style.setDataFormat(format.getFormat(config.getNumberFormat()));
+        }
+        
+        Font font = workbook.createFont();
+        if (config.getFontColor() != null) {
+            font.setColor(config.getFontColor());
+        }
+        if (config.getBold() != null && config.getBold()) {
+            font.setBold(true);
+        }
+        if (config.getFontSize() != null) {
+            font.setFontHeightInPoints(config.getFontSize());
+        }
+        style.setFont(font);
         
         return style;
-    }
-
-    // ========== 数据导出 ==========
-
-    /**
-     * 导出数据到Excel
-     * 
-     * @param <T> 数据类型
-     * @param data 数据列表
-     * @param headers 表头
-     * @param fieldNames 字段名列表
-     * @param fileName 文件名
-     * @param response HTTP响应
-     * @throws IOException IO异常
-     */
-    public static <T> void exportToExcel(List<T> data, String[] headers, String[] fieldNames, 
-                                        String fileName, HttpServletResponse response) throws IOException {
-        
-        if (headers == null || fieldNames == null || headers.length != fieldNames.length) {
-            throw new IllegalArgumentException("表头和字段名数量不匹配");
-        }
-        
-        // 创建工作簿
-        Workbook workbook = createWorkbook(isXlsxFile(fileName));
-        Sheet sheet = createSheet(workbook, "数据");
-        
-        // 创建样式
-        CellStyle headerStyle = createHeaderStyle(workbook);
-        CellStyle dataStyle = createDataStyle(workbook);
-        
-        // 创建表头
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = createCell(headerRow, i);
-            setCellValue(cell, headers[i]);
-            cell.setCellStyle(headerStyle);
-        }
-        
-        // 填充数据
-        if (data != null && !data.isEmpty()) {
-            for (int i = 0; i < data.size(); i++) {
-                Row dataRow = sheet.createRow(i + 1);
-                T item = data.get(i);
-                
-                for (int j = 0; j < fieldNames.length; j++) {
-                    Cell cell = createCell(dataRow, j);
-                    Object value = getFieldValue(item, fieldNames[j]);
-                    setCellValue(cell, value);
-                    cell.setCellStyle(dataStyle);
-                }
-            }
-        }
-        
-        // 自动调整列宽
-        for (int i = 0; i < headers.length; i++) {
-            sheet.autoSizeColumn(i);
-        }
-        
-        // 输出到响应
-        outputToResponse(workbook, fileName, response);
-    }
-
-    /**
-     * 导出简单数据到Excel
-     * 
-     * @param data 数据列表（Map格式）
-     * @param headers 表头
-     * @param keys 键名列表
-     * @param fileName 文件名
-     * @param response HTTP响应
-     * @throws IOException IO异常
-     */
-    public static void exportMapToExcel(List<Map<String, Object>> data, String[] headers, String[] keys,
-                                       String fileName, HttpServletResponse response) throws IOException {
-        
-        if (headers == null || keys == null || headers.length != keys.length) {
-            throw new IllegalArgumentException("表头和键名数量不匹配");
-        }
-        
-        // 创建工作簿
-        Workbook workbook = createWorkbook(isXlsxFile(fileName));
-        Sheet sheet = createSheet(workbook, "数据");
-        
-        // 创建样式
-        CellStyle headerStyle = createHeaderStyle(workbook);
-        CellStyle dataStyle = createDataStyle(workbook);
-        
-        // 创建表头
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = createCell(headerRow, i);
-            setCellValue(cell, headers[i]);
-            cell.setCellStyle(headerStyle);
-        }
-        
-        // 填充数据
-        if (data != null && !data.isEmpty()) {
-            for (int i = 0; i < data.size(); i++) {
-                Row dataRow = sheet.createRow(i + 1);
-                Map<String, Object> item = data.get(i);
-                
-                for (int j = 0; j < keys.length; j++) {
-                    Cell cell = createCell(dataRow, j);
-                    Object value = item.get(keys[j]);
-                    setCellValue(cell, value);
-                    cell.setCellStyle(dataStyle);
-                }
-            }
-        }
-        
-        // 自动调整列宽
-        for (int i = 0; i < headers.length; i++) {
-            sheet.autoSizeColumn(i);
-        }
-        
-        // 输出到响应
-        outputToResponse(workbook, fileName, response);
-    }
-
-    // ========== 数据导入 ==========
-
-    /**
-     * 从Excel导入数据
-     * 
-     * @param <T> 数据类型
-     * @param multipartFile 上传文件
-     * @param clazz 数据类型
-     * @param fieldNames 字段名列表
-     * @param startRow 开始行（0为第一行）
-     * @return 数据列表
-     * @throws IOException IO异常
-     */
-    public static <T> List<T> importFromExcel(MultipartFile multipartFile, Class<T> clazz, 
-                                             String[] fieldNames, int startRow) throws IOException {
-        
-        if (!isExcelFile(multipartFile)) {
-            throw new IllegalArgumentException("不是有效的Excel文件");
-        }
-        
-        List<T> result = new ArrayList<>();
-        
-        try (Workbook workbook = openWorkbook(multipartFile)) {
-            Sheet sheet = getFirstSheet(workbook);
-            if (sheet == null) {
-                return result;
-            }
-            
-            int lastRowNum = sheet.getLastRowNum();
-            for (int i = Math.max(startRow, 0); i <= lastRowNum; i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) {
-                    continue;
-                }
-                
-                try {
-                    T item = clazz.newInstance();
-                    boolean hasData = false;
-                    
-                    for (int j = 0; j < fieldNames.length; j++) {
-                        Cell cell = row.getCell(j);
-                        Object value = getCellValue(cell);
-                        
-                        if (value != null && StringUtil.isNotEmpty(value.toString())) {
-                            setFieldValue(item, fieldNames[j], value);
-                            hasData = true;
-                        }
-                    }
-                    
-                    if (hasData) {
-                        result.add(item);
-                    }
-                    
-                } catch (Exception e) {
-                    // 跳过无法处理的行
-                }
-            }
-        }
-        
-        return result;
-    }
-
-    /**
-     * 从Excel导入数据（Map格式）
-     * 
-     * @param multipartFile 上传文件
-     * @param keys 键名列表
-     * @param startRow 开始行
-     * @return 数据列表
-     * @throws IOException IO异常
-     */
-    public static List<Map<String, Object>> importMapFromExcel(MultipartFile multipartFile, 
-                                                              String[] keys, int startRow) throws IOException {
-        
-        if (!isExcelFile(multipartFile)) {
-            throw new IllegalArgumentException("不是有效的Excel文件");
-        }
-        
-        List<Map<String, Object>> result = new ArrayList<>();
-        
-        try (Workbook workbook = openWorkbook(multipartFile)) {
-            Sheet sheet = getFirstSheet(workbook);
-            if (sheet == null) {
-                return result;
-            }
-            
-            int lastRowNum = sheet.getLastRowNum();
-            for (int i = Math.max(startRow, 0); i <= lastRowNum; i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) {
-                    continue;
-                }
-                
-                Map<String, Object> item = new HashMap<>();
-                boolean hasData = false;
-                
-                for (int j = 0; j < keys.length; j++) {
-                    Cell cell = row.getCell(j);
-                    Object value = getCellValue(cell);
-                    
-                    item.put(keys[j], value);
-                    
-                    if (value != null && StringUtil.isNotEmpty(value.toString())) {
-                        hasData = true;
-                    }
-                }
-                
-                if (hasData) {
-                    result.add(item);
-                }
-            }
-        }
-        
-        return result;
-    }
-
-    // ========== 辅助方法 ==========
-
-    /**
-     * 输出工作簿到HTTP响应
-     * 
-     * @param workbook 工作簿
-     * @param fileName 文件名
-     * @param response HTTP响应
-     * @throws IOException IO异常
-     */
-    private static void outputToResponse(Workbook workbook, String fileName, HttpServletResponse response) throws IOException {
-        if (workbook == null || response == null) {
-            return;
-        }
-        
-        try {
-            // 设置响应头
-            HttpUtil.setDownloadHeaders(response, fileName);
-            
-            // 输出文件
-            try (OutputStream outputStream = response.getOutputStream()) {
-                workbook.write(outputStream);
-                outputStream.flush();
-            }
-            
-        } finally {
-            workbook.close();
-        }
-    }
-
-    /**
-     * 获取对象字段值
-     * 
-     * @param obj 对象
-     * @param fieldName 字段名
-     * @return 字段值
-     */
-    private static Object getFieldValue(Object obj, String fieldName) {
-        if (obj == null || StringUtil.isEmpty(fieldName)) {
-            return null;
-        }
-        
-        try {
-            Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            return field.get(obj);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * 设置对象字段值
-     * 
-     * @param obj 对象
-     * @param fieldName 字段名
-     * @param value 字段值
-     */
-    private static void setFieldValue(Object obj, String fieldName, Object value) {
-        if (obj == null || StringUtil.isEmpty(fieldName)) {
-            return;
-        }
-        
-        try {
-            Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            
-            Class<?> fieldType = field.getType();
-            Object convertedValue = convertValue(value, fieldType);
-            
-            field.set(obj, convertedValue);
-        } catch (Exception e) {
-            // 忽略转换失败的字段
-        }
-    }
-
-    /**
-     * 转换值类型
-     * 
-     * @param value 原值
-     * @param targetType 目标类型
-     * @return 转换后的值
-     */
-    private static Object convertValue(Object value, Class<?> targetType) {
-        if (value == null || targetType == null) {
-            return null;
-        }
-        
-        String stringValue = value.toString().trim();
-        if (StringUtil.isEmpty(stringValue)) {
-            return null;
-        }
-        
-        try {
-            if (targetType == String.class) {
-                return stringValue;
-            } else if (targetType == Integer.class || targetType == int.class) {
-                return Integer.valueOf(stringValue);
-            } else if (targetType == Long.class || targetType == long.class) {
-                return Long.valueOf(stringValue);
-            } else if (targetType == Double.class || targetType == double.class) {
-                return Double.valueOf(stringValue);
-            } else if (targetType == Float.class || targetType == float.class) {
-                return Float.valueOf(stringValue);
-            } else if (targetType == BigDecimal.class) {
-                return new BigDecimal(stringValue);
-            } else if (targetType == Boolean.class || targetType == boolean.class) {
-                return Boolean.valueOf(stringValue);
-            } else if (targetType == LocalDate.class) {
-                return LocalDate.parse(stringValue, DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT));
-            } else if (targetType == LocalDateTime.class) {
-                return LocalDateTime.parse(stringValue, DateTimeFormatter.ofPattern(DEFAULT_DATETIME_FORMAT));
-            }
-        } catch (Exception e) {
-            // 转换失败返回null
-        }
-        
-        return null;
-    }
-
-    /**
-     * 验证Excel文件大小
-     * 
-     * @param multipartFile 上传文件
-     * @param maxSize 最大大小（字节）
-     * @return 是否有效
-     */
-    public static boolean validateFileSize(MultipartFile multipartFile, long maxSize) {
-        return multipartFile != null && multipartFile.getSize() <= maxSize;
-    }
-
-    /**
-     * 获取Excel文件行数
-     * 
-     * @param multipartFile 上传文件
-     * @return 行数
-     * @throws IOException IO异常
-     */
-    public static int getRowCount(MultipartFile multipartFile) throws IOException {
-        if (!isExcelFile(multipartFile)) {
-            return 0;
-        }
-        
-        try (Workbook workbook = openWorkbook(multipartFile)) {
-            Sheet sheet = getFirstSheet(workbook);
-            return sheet != null ? sheet.getLastRowNum() + 1 : 0;
-        }
     }
 }
