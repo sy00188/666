@@ -455,7 +455,7 @@ import {
   InfoFilled 
 } from '@element-plus/icons-vue'
 import ExportDialog from '@/components/ExportDialog.vue'
-import { exportData } from '@/utils/exportUtils'
+import { exportData as exportDataUtil } from '@/utils/exportUtils'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { 
@@ -1101,7 +1101,7 @@ const clearLogs = () => {
 // 导出处理方法
 const handleExport = async (config) => {
   try {
-    await exportData(config)
+    await exportDataUtil(config)
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('导出失败:', error)
