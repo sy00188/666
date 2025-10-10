@@ -44,6 +44,15 @@ public abstract class BaseEntity implements Serializable {
         return this.createUserId;
     }
 
+    // 添加兼容性方法，支持setCreatedBy调用
+    public void setCreatedBy(Long createdBy) {
+        this.createUserId = createdBy;
+    }
+
+    public Long getCreatedBy() {
+        return this.createUserId;
+    }
+
     /**
      * 更新时间
      */
@@ -63,6 +72,15 @@ public abstract class BaseEntity implements Serializable {
     }
 
     public Long getUpdateBy() {
+        return this.updateUserId;
+    }
+
+    // 添加兼容性方法，支持setUpdatedBy调用
+    public void setUpdatedBy(Long updatedBy) {
+        this.updateUserId = updatedBy;
+    }
+
+    public Long getUpdatedBy() {
         return this.updateUserId;
     }
 

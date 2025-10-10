@@ -126,7 +126,7 @@ public class Result<T> implements Serializable {
      * 判断是否成功
      */
     public boolean isSuccess() {
-        return ResultCode.SUCCESS.getCode().equals(this.code);
+        return this.code != null && this.code.equals(ResultCode.SUCCESS.getCode());
     }
 
     /**

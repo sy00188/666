@@ -654,4 +654,10 @@ public interface ArchiveMapper extends BaseMapper<Archive> {
             "GROUP BY SUBSTRING_INDEX(file_name, '.', -1) " +
             "ORDER BY fileCount DESC")
     List<Map<String, Object>> getArchiveFileExtensionStatistics();
+
+    /**
+     * 统计档案总数
+     */
+    @Select("SELECT COUNT(*) FROM archive WHERE deleted = 0")
+    Long countTotal();
 }

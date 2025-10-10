@@ -196,4 +196,10 @@ public interface BorrowMapper extends BaseMapper<BorrowRecord> {
      */
     @Select("SELECT COUNT(*) FROM borrow_record WHERE archive_id = #{archiveId} AND status = 'BORROWED' AND deleted = 0")
     int countBorrowedByArchiveId(@Param("archiveId") Long archiveId);
+
+    /**
+     * 统计借阅记录总数
+     */
+    @Select("SELECT COUNT(*) FROM borrow_record WHERE deleted = 0")
+    Long countTotal();
 }

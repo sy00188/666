@@ -1174,6 +1174,45 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
+     * 根据角色状态统计数量
+     */
+    @Override
+    public long countRolesByStatus(Integer status) {
+        log.info("根据角色状态统计数量: status={}", status);
+        
+        if (status == null) {
+            throw new IllegalArgumentException("角色状态不能为空");
+        }
+        
+        // 验证状态是否有效
+        if (!RoleStatus.isValid(status)) {
+            throw new IllegalArgumentException("无效的角色状态: " + status);
+        }
+        
+        return roleMapper.countByStatus(status);
+    }
+
+    /**
+     * 根据角色类型统计数量
+     */
+    @Override
+    public long countRolesByType(String roleType) {
+        log.info("根据角色类型统计数量: roleType={}", roleType);
+        
+        if (roleType == null || roleType.trim().isEmpty()) {
+            throw new IllegalArgumentException("角色类型不能为空");
+        }
+        
+        // 验证角色类型是否有效
+        RoleType type = RoleType.fromCode(roleType);
+        if (type == null) {
+            throw new IllegalArgumentException("无效的角色类型: " + roleType);
+        }
+        
+        return roleMapper.countByRoleType(type.getValue());
+    }
+
+    /**
      * 获取角色使用统计
      */
     @Override
@@ -1621,6 +1660,69 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
+     * 查找启用的角色（别名方法）
+     */
+    @Override
+    public List<Role> findEnabledRoles() {
+        return getEnabledRoles();
+    }
+
+    /**
+     * 根据状态查找角色
+     */
+    @Override
+    public List<Role> findRolesByStatus(Integer status) {
+        if (status == null) {
+            throw new IllegalArgumentException("角色状态不能为空");
+        }
+        
+        if (!RoleStatus.isValid(status)) {
+            throw new IllegalArgumentException("无效的角色状态: " + status);
+        }
+        
+        return roleMapper.findByStatus(status);
+    }
+
+    /**
+     * 分页查询角色
+     */
+    @Override
+    public IPage<Role> findRolesWithPagination(Page<Role> page, String roleCode, String roleName, 
+                                               Integer status, String roleType) {
+        if (page == null) {
+            throw new IllegalArgumentException("分页参数不能为空");
+        }
+        
+        // 构建查询条件
+        LambdaQueryWrapper<Role> queryWrapper = new LambdaQueryWrapper<>();
+        
+        if (roleCode != null && !roleCode.trim().isEmpty()) {
+            queryWrapper.like(Role::getRoleCode, roleCode.trim());
+        }
+        
+        if (roleName != null && !roleName.trim().isEmpty()) {
+            queryWrapper.like(Role::getRoleName, roleName.trim());
+        }
+        
+        if (status != null) {
+            queryWrapper.eq(Role::getStatus, status);
+        }
+        
+        if (roleType != null && !roleType.trim().isEmpty()) {
+            RoleType type = RoleType.fromCode(roleType);
+            if (type != null) {
+                queryWrapper.eq(Role::getRoleType, type.getValue());
+            }
+        }
+        
+        queryWrapper.eq(Role::getDeleted, 0);
+        queryWrapper.orderByAsc(Role::getSortOrder);
+        queryWrapper.orderByDesc(Role::getCreateTime);
+        
+        return page(page, queryWrapper);
+    }
+
+    /**
      * 获取禁用的角色
      */
     @Override
@@ -1636,6 +1738,14 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Cacheable(value = "roleCache", key = "'system'")
     public List<Role> getSystemRoles() {
         return roleMapper.findSystemRoles();
+    }
+
+    /**
+     * 查找内置系统角色（别名方法）
+     */
+    @Override
+    public List<Role> findBuiltinRoles() {
+        return getSystemRoles();
     }
 
     /**
@@ -1657,6 +1767,14 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
+     * 查找自定义角色（别名方法）
+     */
+    @Override
+    public List<Role> findCustomRoles() {
+        return getCustomRoles();
+    }
+
+    /**
      * 根据角色类型获取角色
      */
     @Override
@@ -1667,6 +1785,24 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         }
         
         return roleMapper.findByRoleType(roleType);
+    }
+
+    /**
+     * 根据角色类型查找角色（使用字符串类型代码）
+     */
+    @Override
+    public List<Role> findRolesByType(String roleType) {
+        if (roleType == null || roleType.trim().isEmpty()) {
+            throw new IllegalArgumentException("角色类型代码不能为空");
+        }
+        
+        // 验证并转换角色类型
+        RoleType type = RoleType.fromCode(roleType);
+        if (type == null) {
+            throw new IllegalArgumentException("无效的角色类型代码: " + roleType);
+        }
+        
+        return getRolesByType(type.getValue());
     }
 
     /**

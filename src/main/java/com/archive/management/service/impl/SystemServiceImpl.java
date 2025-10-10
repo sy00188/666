@@ -93,7 +93,7 @@ public class SystemServiceImpl implements SystemService {
         department.setDescription(request.getDescription());
         department.setSort(request.getSortOrder() != null ? request.getSortOrder() : 0);
         department.setStatus(1); // 默认启用
-        department.setCreateTime(LocalDateTime.now());
+        // department.setCreateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         department.setCreateBy(SecurityUtils.getCurrentUserId());
 
         departmentMapper.insert(department);
@@ -142,7 +142,7 @@ public class SystemServiceImpl implements SystemService {
         department.setParentId(request.getParentId());
         department.setDescription(request.getDescription());
         department.setSort(request.getSortOrder() != null ? request.getSortOrder() : department.getSort());
-        department.setUpdateTime(LocalDateTime.now());
+        // department.setUpdateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         department.setUpdateBy(SecurityUtils.getCurrentUserId());
 
         departmentMapper.updateById(department);
@@ -280,7 +280,7 @@ public class SystemServiceImpl implements SystemService {
         role.setDescription(request.getDescription());
         role.setSort(request.getSortOrder() != null ? request.getSortOrder() : 0);
         role.setStatus(1); // 默认启用
-        role.setCreateTime(LocalDateTime.now());
+        // role.setCreateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         role.setCreateBy(SecurityUtils.getCurrentUserId());
 
         roleMapper.insert(role);
@@ -321,7 +321,7 @@ public class SystemServiceImpl implements SystemService {
         role.setName(request.getName());
         role.setDescription(request.getDescription());
         role.setSort(request.getSortOrder() != null ? request.getSortOrder() : role.getSort());
-        role.setUpdateTime(LocalDateTime.now());
+        // role.setUpdateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         role.setUpdateBy(SecurityUtils.getCurrentUserId());
 
         roleMapper.updateById(role);
@@ -496,14 +496,15 @@ public class SystemServiceImpl implements SystemService {
         Permission permission = new Permission();
         permission.setPermissionName(request.getName());
         permission.setPermissionCode(request.getCode());
-        permission.setPermissionType(request.getType());
+        // 将String类型转换为Integer类型
+        permission.setPermissionType(request.getType() != null ? Integer.parseInt(request.getType()) : null);
         permission.setParentId(request.getParentId());
         permission.setPermissionPath(request.getPath());
         permission.setHttpMethod(request.getMethod());
         permission.setDescription(request.getDescription());
         permission.setSort(request.getSortOrder() != null ? request.getSortOrder() : 0);
         permission.setStatus(1); // 默认启用
-        permission.setCreateTime(LocalDateTime.now());
+        // permission.setCreateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         permission.setCreateBy(SecurityUtils.getCurrentUserId());
 
         permissionMapper.insert(permission);
@@ -537,13 +538,14 @@ public class SystemServiceImpl implements SystemService {
 
         // 更新权限信息
         permission.setPermissionName(request.getName());
-        permission.setPermissionType(request.getType());
+        // 将String类型转换为Integer类型
+        permission.setPermissionType(request.getType() != null ? Integer.parseInt(request.getType()) : null);
         permission.setParentId(request.getParentId());
         permission.setPermissionPath(request.getPath());
         permission.setHttpMethod(request.getMethod());
         permission.setDescription(request.getDescription());
         permission.setSort(request.getSortOrder() != null ? request.getSortOrder() : permission.getSort());
-        permission.setUpdateTime(LocalDateTime.now());
+        // permission.setUpdateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         permission.setUpdateBy(SecurityUtils.getCurrentUserId());
 
         permissionMapper.updateById(permission);
@@ -685,10 +687,10 @@ public class SystemServiceImpl implements SystemService {
         config.setConfigKey(request.getConfigKey());
         config.setConfigValue(request.getConfigValue());
         config.setConfigGroup(request.getConfigGroup());
-        config.setDescription(request.getDescription());
-        config.setIsSystem(request.getIsSystem() != null ? request.getIsSystem() : false);
-        config.setStatus(1); // 默认启用
-        config.setCreateTime(LocalDateTime.now());
+        config.setConfigDesc(request.getDescription());
+        config.setIsSystem(request.getIsSystem() != null && request.getIsSystem() ? 1 : 0);
+        config.setIsEnabled(1); // 默认启用
+        // config.setCreateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         config.setCreateBy(SecurityUtils.getCurrentUserId());
 
         systemConfigMapper.insert(config);
@@ -718,8 +720,8 @@ public class SystemServiceImpl implements SystemService {
         // 更新配置信息
         config.setConfigValue(request.getConfigValue());
         config.setConfigGroup(request.getConfigGroup());
-        config.setDescription(request.getDescription());
-        config.setUpdateTime(LocalDateTime.now());
+        config.setConfigDesc(request.getDescription());
+        // config.setUpdateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
         config.setUpdateBy(SecurityUtils.getCurrentUserId());
 
         systemConfigMapper.updateById(config);
@@ -745,7 +747,7 @@ public class SystemServiceImpl implements SystemService {
         }
 
         // 检查是否为系统配置
-        if (config.getIsSystem()) {
+        if (config.getIsSystem() != null && config.getIsSystem() == 1) {
             throw new BusinessException("系统配置不能删除");
         }
 
@@ -808,7 +810,6 @@ public class SystemServiceImpl implements SystemService {
         return new PageResult<>(total, responses);
     }
 
-    @Override
     public List<ConfigResponse> getConfigsByGroup(String group) {
         ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
         ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
@@ -818,62 +819,6 @@ public class SystemServiceImpl implements SystemService {
         return configs.stream()
                 .map(this::convertToConfigResponse)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<SystemConfigResponse> getConfigsByGroup(String group) {
-        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
-        ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
-        ValidationUtil.throwIfHasErrors(result);
-
-        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
-        return configs.stream()
-            .map(this::convertToSystemConfigResponse)
-            .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<SystemConfigResponse> getConfigsByGroup(String group) {
-        ValidationUtil.ValidationResult result = ValidationUtil.createValidationResult();
-        ValidationUtil.validateNotBlank(result, group, "配置分组不能为空");
-        ValidationUtil.throwIfHasErrors(result);
-
-        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
-        return configs.stream()
-            .map(this::convertToSystemConfigResponse)
-            .collect(Collectors.toList());
-    }
-
-    @Override
-    public PageResult<SystemConfigResponse> querySystemConfigs(ConfigQueryRequest request) {
-        // 构建查询条件
-        Map<String, Object> params = new HashMap<>();
-        if (StringUtils.hasText(request.getConfigKey())) {
-            params.put("configKey", request.getConfigKey());
-        }
-        if (StringUtils.hasText(request.getConfigGroup())) {
-            params.put("configGroup", request.getConfigGroup());
-        }
-        if (request.getIsSystem() != null) {
-            params.put("isSystem", request.getIsSystem());
-        }
-        if (request.getStatus() != null) {
-            params.put("status", request.getStatus());
-        }
-
-        // 查询总数
-        long total = systemConfigMapper.countByParams(params);
-        
-        // 查询数据
-        List<SystemConfig> configs = systemConfigMapper.selectByParams(params, 
-            (request.getPageNum() - 1) * request.getPageSize(), request.getPageSize());
-
-        // 转换响应
-        List<SystemConfigResponse> responses = configs.stream()
-            .map(this::convertToSystemConfigResponse)
-            .collect(Collectors.toList());
-
-        return new PageResult<>(request.getPageNum(), request.getPageSize(), total, responses);
     }
 
     @Override
@@ -887,7 +832,7 @@ public class SystemServiceImpl implements SystemService {
             SystemConfig config = systemConfigMapper.selectByKey(entry.getKey());
             if (config != null) {
                 config.setConfigValue(entry.getValue());
-                config.setUpdateTime(LocalDateTime.now());
+                // config.setUpdateTime(LocalDateTime.now()); // MyBatis-Plus 自动填充
                 config.setUpdateBy(SecurityUtils.getCurrentUserId());
                 systemConfigMapper.updateById(config);
             }
@@ -895,18 +840,6 @@ public class SystemServiceImpl implements SystemService {
 
         // 记录审计日志
         AuditLogUtil.log("BATCH_UPDATE_CONFIG", "批量更新系统配置", null);
-    }
-
-    @Override
-    public List<SystemConfigResponse> getConfigsByGroup(String group) {
-        if (!StringUtils.hasText(group)) {
-            throw new ValidationException("配置组不能为空");
-        }
-
-        List<SystemConfig> configs = systemConfigMapper.selectByGroup(group);
-        return configs.stream()
-            .map(this::convertToSystemConfigResponse)
-            .collect(Collectors.toList());
     }
 
     // ==================== 统计信息 ====================
@@ -1034,15 +967,15 @@ public class SystemServiceImpl implements SystemService {
         return response;
     }
 
-    private SystemConfigResponse convertToSystemConfigResponse(SystemConfig config) {
-        SystemConfigResponse response = new SystemConfigResponse();
+    private ConfigResponse convertToConfigResponse(SystemConfig config) {
+        ConfigResponse response = new ConfigResponse();
         response.setId(config.getId());
         response.setConfigKey(config.getConfigKey());
         response.setConfigValue(config.getConfigValue());
         response.setConfigGroup(config.getConfigGroup());
-        response.setDescription(config.getDescription());
-        response.setIsSystem(config.getIsSystem());
-        response.setStatus(config.getStatus());
+        response.setDescription(config.getConfigDesc());
+        response.setIsSystem(config.getIsSystem() != null && config.getIsSystem() == 1);
+        response.setStatus(config.getIsEnabled());
         response.setCreateTime(config.getCreateTime());
         response.setUpdateTime(config.getUpdateTime());
         return response;

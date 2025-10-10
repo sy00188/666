@@ -763,4 +763,10 @@ public interface RoleMapper extends BaseMapper<Role> {
             "ORDER BY usage_count DESC")
     List<Map<String, Object>> getPermissionUsageFrequency();
 
+    /**
+     * 统计角色总数
+     */
+    @Select("SELECT COUNT(*) FROM sys_role WHERE deleted = 0")
+    Long countTotal();
+
 }

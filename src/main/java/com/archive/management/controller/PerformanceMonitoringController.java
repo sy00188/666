@@ -172,61 +172,6 @@ public class PerformanceMonitoringController {
         }
     }
 
-    @Operation(summary = "获取详细性能指标", description = "获取系统详细性能指标")
-    @GetMapping("/detailed-metrics")
-    @PreAuthorize("hasAuthority('performance:monitor')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getDetailedMetrics() {
-        try {
-            Map<String, Object> metrics = performanceMonitoringService.getDetailedMetrics();
-            return ResponseEntity.ok(ApiResponse.success(metrics, "详细性能指标获取成功"));
-        } catch (Exception e) {
-            log.error("获取详细性能指标失败", e);
-            return ResponseEntity.badRequest().body(ApiResponse.error("获取详细性能指标失败: " + e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "获取性能报告", description = "生成系统性能分析报告")
-    @GetMapping("/report")
-    @PreAuthorize("hasAuthority('performance:report')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getPerformanceReport(
-            @Parameter(description = "报告类型 (summary, detailed, optimization)") 
-            @RequestParam(defaultValue = "summary") String reportType) {
-        try {
-            Map<String, Object> report = performanceMonitoringService.generatePerformanceReport(reportType);
-            return ResponseEntity.ok(ApiResponse.success(report, "性能报告生成成功"));
-        } catch (Exception e) {
-            log.error("生成性能报告失败", e);
-            return ResponseEntity.badRequest().body(ApiResponse.error("生成性能报告失败: " + e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "获取优化建议", description = "获取系统性能优化建议")
-    @GetMapping("/optimization-suggestions")
-    @PreAuthorize("hasAuthority('performance:optimize')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getOptimizationSuggestions() {
-        try {
-            Map<String, Object> suggestions = performanceMonitoringService.getOptimizationSuggestions();
-            return ResponseEntity.ok(ApiResponse.success(suggestions, "优化建议获取成功"));
-        } catch (Exception e) {
-            log.error("获取优化建议失败", e);
-            return ResponseEntity.badRequest().body(ApiResponse.error("获取优化建议失败: " + e.getMessage()));
-        }
-    }
-
-    @Operation(summary = "记录请求性能", description = "记录请求响应时间")
-    @PostMapping("/record-request")
-    @PreAuthorize("hasAuthority('performance:monitor')")
-    public ResponseEntity<ApiResponse<String>> recordRequestPerformance(
-            @Parameter(description = "响应时间（毫秒）") @RequestParam long responseTime) {
-        try {
-            performanceMonitoringService.recordRequestPerformance(responseTime);
-            return ResponseEntity.ok(ApiResponse.success("请求性能记录成功", "请求性能数据已记录"));
-        } catch (Exception e) {
-            log.error("记录请求性能失败", e);
-            return ResponseEntity.badRequest().body(ApiResponse.error("记录请求性能失败: " + e.getMessage()));
-        }
-    }
-
     @Operation(summary = "获取系统资源信息", description = "获取系统资源使用情况")
     @GetMapping("/system-resources")
     @PreAuthorize("hasAuthority('performance:monitor')")

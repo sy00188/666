@@ -1,5 +1,6 @@
 package com.archive.management.config;
 
+import com.archive.management.config.properties.DatabaseOptimizationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;

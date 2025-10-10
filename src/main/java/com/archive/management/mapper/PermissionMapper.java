@@ -600,4 +600,65 @@ public interface PermissionMapper extends BaseMapper<Permission> {
             "WHERE rp.role_id = #{roleId} AND p.deleted = 0 " +
             "ORDER BY p.sort_order ASC, p.create_time DESC")
     List<Permission> selectPermissionsByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 根据参数统计权限数量
+     * @param params 查询参数
+     * @return 权限数量
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM sys_permission WHERE deleted = 0 " +
+            "<if test='name != null and name != \"\"'> AND permission_name LIKE CONCAT('%', #{name}, '%') </if>" +
+            "<if test='code != null and code != \"\"'> AND permission_code LIKE CONCAT('%', #{code}, '%') </if>" +
+            "<if test='type != null and type != \"\"'> AND permission_type = #{type} </if>" +
+            "<if test='parentId != null'> AND parent_id = #{parentId} </if>" +
+            "<if test='status != null'> AND status = #{status} </if>" +
+            "</script>")
+    long countByParams(Map<String, Object> params);
+
+    /**
+     * 根据参数分页查询权限
+     * @param params 查询参数
+     * @param offset 偏移量
+     * @param limit 每页数量
+     * @return 权限列表
+     */
+    @Select("<script>" +
+            "SELECT * FROM sys_permission WHERE deleted = 0 " +
+            "<if test='params.name != null and params.name != \"\"'> AND permission_name LIKE CONCAT('%', #{params.name}, '%') </if>" +
+            "<if test='params.code != null and params.code != \"\"'> AND permission_code LIKE CONCAT('%', #{params.code}, '%') </if>" +
+            "<if test='params.type != null and params.type != \"\"'> AND permission_type = #{params.type} </if>" +
+            "<if test='params.parentId != null'> AND parent_id = #{params.parentId} </if>" +
+            "<if test='params.status != null'> AND status = #{params.status} </if>" +
+            "ORDER BY sort_order ASC, create_time DESC " +
+            "LIMIT #{offset}, #{limit}" +
+            "</script>")
+    List<Permission> selectByParams(@Param("params") Map<String, Object> params, 
+                                   @Param("offset") int offset, 
+                                   @Param("limit") int limit);
+
+    /**
+     * 查询所有启用的权限
+     * @return 权限列表
+     */
+    @Select("SELECT * FROM sys_permission WHERE deleted = 0 AND status = 1 ORDER BY sort_order ASC, create_time DESC")
+    List<Permission> selectAllEnabled();
+
+    /**
+     * 根据用户ID查询权限列表
+     * @param userId 用户ID
+     * @return 权限列表
+     */
+    @Select("SELECT DISTINCT p.* FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND p.deleted = 0 AND p.status = 1 " +
+            "ORDER BY p.sort_order ASC, p.create_time DESC")
+    List<Permission> selectByUserId(@Param("userId") Long userId);
+
+    /**
+     * 统计权限总数
+     */
+    @Select("SELECT COUNT(*) FROM sys_permission WHERE deleted = 0")
+    Long countTotal();
 }

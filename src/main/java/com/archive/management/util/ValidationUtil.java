@@ -622,6 +622,44 @@ public class ValidationUtil {
         }
     }
 
+    /**
+     * 验证对象不为null
+     * 
+     * @param result 验证结果
+     * @param value 值
+     * @param message 错误消息
+     */
+    public static void validateNotNull(ValidationResult result, Object value, String message) {
+        if (value == null) {
+            result.addError(message);
+        }
+    }
+
+    /**
+     * 验证字符串不为空白
+     * 
+     * @param result 验证结果
+     * @param value 值
+     * @param message 错误消息
+     */
+    public static void validateNotBlank(ValidationResult result, String value, String message) {
+        if (isBlank(value)) {
+            result.addError(message);
+        }
+    }
+
+    /**
+     * 如果有错误则抛出异常
+     * 
+     * @param result 验证结果
+     * @throws IllegalArgumentException 如果有验证错误
+     */
+    public static void throwIfHasErrors(ValidationResult result) {
+        if (!result.isValid()) {
+            throw new IllegalArgumentException(String.join(", ", result.getErrors()));
+        }
+    }
+
     // ========== 工具方法 ==========
 
     /**

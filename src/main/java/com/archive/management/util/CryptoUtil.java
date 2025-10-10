@@ -248,6 +248,28 @@ public class CryptoUtil {
     // ========== AES加密方法 ==========
 
     /**
+     * AES加密（使用AES-GCM模式）
+     * 
+     * @param plaintext 明文
+     * @param key 密钥
+     * @return 加密结果（Base64编码），加密失败返回null
+     */
+    public static String encryptAES(String plaintext, String key) {
+        return aesGcmEncrypt(plaintext, key);
+    }
+
+    /**
+     * AES解密（使用AES-GCM模式）
+     * 
+     * @param ciphertext 密文（Base64编码）
+     * @param key 密钥
+     * @return 明文，解密失败返回null
+     */
+    public static String decryptAES(String ciphertext, String key) {
+        return aesGcmDecrypt(ciphertext, key);
+    }
+
+    /**
      * 生成AES密钥
      * 
      * @return AES密钥（Base64编码），生成失败返回null

@@ -120,21 +120,21 @@ public class MonitoringService {
                 .register(meterRegistry);
 
         // 注册系统指标
-        Gauge.builder("archive.system.active.users")
+        Gauge.builder("archive.system.active.users", activeUsers, AtomicInteger::get)
                 .description("当前活跃用户数")
-                .register(meterRegistry, activeUsers, AtomicInteger::get);
+                .register(meterRegistry);
 
-        Gauge.builder("archive.system.total.documents")
+        Gauge.builder("archive.system.total.documents", totalDocuments, AtomicLong::get)
                 .description("系统总档案数")
-                .register(meterRegistry, totalDocuments, AtomicLong::get);
+                .register(meterRegistry);
 
-        Gauge.builder("archive.system.total.users")
+        Gauge.builder("archive.system.total.users", totalUsers, AtomicLong::get)
                 .description("系统总用户数")
-                .register(meterRegistry, totalUsers, AtomicLong::get);
+                .register(meterRegistry);
 
-        Gauge.builder("archive.system.concurrent.operations")
+        Gauge.builder("archive.system.concurrent.operations", concurrentOperations, AtomicInteger::get)
                 .description("当前并发操作数")
-                .register(meterRegistry, concurrentOperations, AtomicInteger::get);
+                .register(meterRegistry);
     }
 
     /**
@@ -324,9 +324,9 @@ public class MonitoringService {
      * 记录自定义指标
      */
     public void recordCustomMetric(String metricName, String description, double value) {
-        Gauge.builder(metricName)
+        Gauge.builder(metricName, () -> value)
                 .description(description)
-                .register(meterRegistry, () -> value);
+                .register(meterRegistry);
     }
 
     /**

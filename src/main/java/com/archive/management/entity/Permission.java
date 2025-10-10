@@ -193,6 +193,15 @@ public class Permission extends BaseEntity implements Serializable {
         this.menuIcon = menuIcon;
     }
 
+    // 别名方法，支持getIcon调用
+    public String getIcon() {
+        return menuIcon;
+    }
+
+    public void setIcon(String icon) {
+        this.menuIcon = icon;
+    }
+
     /**
      * 菜单组件路径（仅菜单类型权限有效）
      */
@@ -207,6 +216,15 @@ public class Permission extends BaseEntity implements Serializable {
 
     public void setComponentPath(String componentPath) {
         this.componentPath = componentPath;
+    }
+
+    // 别名方法，支持getComponent调用
+    public String getComponent() {
+        return componentPath;
+    }
+
+    public void setComponent(String component) {
+        this.componentPath = component;
     }
 
     /**
@@ -272,6 +290,15 @@ public class Permission extends BaseEntity implements Serializable {
 
     public void setIsSystem(Integer isSystem) {
         this.isSystem = isSystem;
+    }
+
+    // 别名方法，支持setIsSystemPermission调用
+    public void setIsSystemPermission(Integer isSystemPermission) {
+        this.isSystem = isSystemPermission;
+    }
+
+    public Integer getIsSystemPermission() {
+        return this.isSystem;
     }
 
     /**

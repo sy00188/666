@@ -245,7 +245,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private void handleRateLimitExceeded(HttpServletResponse response, RateLimitConfig config) 
             throws IOException {
         
-        response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+        // 使用429状态码表示请求过多（Too Many Requests）
+        response.setStatus(429);
         response.setContentType("application/json;charset=UTF-8");
         
         // 构建响应数据

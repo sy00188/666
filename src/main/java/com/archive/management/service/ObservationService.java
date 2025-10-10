@@ -3,7 +3,6 @@ package com.archive.management.service;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.ObservationHandler;
-import io.micrometer.observation.ObservationContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -13,17 +13,17 @@ public enum RoleType {
     /**
      * 系统角色
      */
-    SYSTEM("SYSTEM", "系统角色"),
+    SYSTEM("SYSTEM", "系统角色", 1),
     
     /**
      * 业务角色
      */
-    BUSINESS("BUSINESS", "业务角色"),
+    BUSINESS("BUSINESS", "业务角色", 2),
     
     /**
      * 自定义角色
      */
-    CUSTOM("CUSTOM", "自定义角色");
+    CUSTOM("CUSTOM", "自定义角色", 3);
     
     /**
      * 类型编码
@@ -36,14 +36,21 @@ public enum RoleType {
     private final String message;
     
     /**
+     * 数据库存储值
+     */
+    private final Integer value;
+    
+    /**
      * 构造方法
      * 
      * @param code 类型编码
      * @param message 类型描述
+     * @param value 数据库存储值
      */
-    RoleType(String code, String message) {
+    RoleType(String code, String message, Integer value) {
         this.code = code;
         this.message = message;
+        this.value = value;
     }
     
     /**
@@ -65,6 +72,15 @@ public enum RoleType {
     }
     
     /**
+     * 获取数据库存储值
+     * 
+     * @return 数据库存储值
+     */
+    public Integer getValue() {
+        return value;
+    }
+    
+    /**
      * 根据类型编码获取枚举
      * 
      * @param code 类型编码
@@ -83,6 +99,24 @@ public enum RoleType {
     }
     
     /**
+     * 根据数据库值获取枚举
+     * 
+     * @param value 数据库值
+     * @return 对应的枚举值，如果不存在则返回null
+     */
+    public static RoleType fromValue(Integer value) {
+        if (value == null) {
+            return null;
+        }
+        for (RoleType type : RoleType.values()) {
+            if (type.getValue().equals(value)) {
+                return type;
+            }
+        }
+        return null;
+    }
+    
+    /**
      * 检查类型编码是否有效
      * 
      * @param code 类型编码
@@ -90,6 +124,16 @@ public enum RoleType {
      */
     public static boolean isValid(String code) {
         return fromCode(code) != null;
+    }
+    
+    /**
+     * 检查数据库值是否有效
+     * 
+     * @param value 数据库值
+     * @return 是否有效
+     */
+    public static boolean isValidValue(Integer value) {
+        return fromValue(value) != null;
     }
 }
 

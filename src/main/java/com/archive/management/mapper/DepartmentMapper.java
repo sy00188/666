@@ -332,4 +332,24 @@ public interface DepartmentMapper extends BaseMapper<Department> {
             "FROM sys_department WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
             "AND deleted = 0 GROUP BY DATE(create_time) ORDER BY createDate ASC")
     List<Map<String, Object>> getDepartmentCreationTrendStatistics(@Param("days") int days);
+
+    /**
+     * 统计部门总数
+     */
+    @Select("SELECT COUNT(*) FROM sys_department WHERE deleted = 0")
+    Long countTotal();
+
+    /**
+     * 查询部门统计信息
+     */
+    @Select("SELECT d.id as departmentId, d.dept_name as departmentName, " +
+            "COUNT(DISTINCT u.id) as userCount, " +
+            "COUNT(DISTINCT a.id) as archiveCount " +
+            "FROM sys_department d " +
+            "LEFT JOIN sys_user u ON d.id = u.department_id AND u.deleted = 0 " +
+            "LEFT JOIN archive a ON d.id = a.department_id AND a.deleted = 0 " +
+            "WHERE d.deleted = 0 " +
+            "GROUP BY d.id, d.dept_name " +
+            "ORDER BY userCount DESC, archiveCount DESC")
+    List<Map<String, Object>> selectDepartmentStatistics();
 }
