@@ -56,30 +56,34 @@ public interface RoleService {
     /**
      * 删除角色（软删除）
      * @param roleId 角色ID
+     * @param deletedBy 删除人ID
      * @return 是否删除成功
      */
-    boolean deleteRole(Long roleId);
+    boolean deleteRole(Long roleId, Long deletedBy);
 
     /**
      * 批量删除角色（软删除）
      * @param roleIds 角色ID列表
+     * @param deletedBy 删除人ID
      * @return 是否删除成功
      */
-    boolean batchDeleteRoles(List<Long> roleIds);
+    boolean batchDeleteRoles(List<Long> roleIds, Long deletedBy);
 
     /**
      * 启用角色
      * @param roleId 角色ID
+     * @param updatedBy 更新人ID
      * @return 是否启用成功
      */
-    boolean enableRole(Long roleId);
+    boolean enableRole(Long roleId, Long updatedBy);
 
     /**
      * 禁用角色
      * @param roleId 角色ID
+     * @param updatedBy 更新人ID
      * @return 是否禁用成功
      */
-    boolean disableRole(Long roleId);
+    boolean disableRole(Long roleId, Long updatedBy);
 
     /**
      * 批量更新角色状态
@@ -110,10 +114,11 @@ public interface RoleService {
      * @param roleName 角色名称（可选）
      * @param status 状态（可选）
      * @param roleType 角色类型（可选）
+     * @param userId 用户ID（用于权限过滤）
      * @return 分页结果
      */
     IPage<Role> findRolesWithPagination(Page<Role> page, String roleCode, String roleName, 
-                                       Integer status, String roleType);
+                                       Integer status, String roleType, Long userId);
 
     /**
      * 根据状态查找角色列表
@@ -244,9 +249,10 @@ public interface RoleService {
     /**
      * 根据关键词搜索角色
      * @param keyword 关键词
+     * @param userId 用户ID（用于权限过滤）
      * @return 角色列表
      */
-    List<Role> searchRoles(String keyword);
+    List<Role> searchRoles(String keyword, Long userId);
 
     /**
      * 分页查询角色
@@ -275,17 +281,19 @@ public interface RoleService {
      * 为角色分配权限
      * @param roleId 角色ID
      * @param permissionIds 权限ID列表
+     * @param updatedBy 更新人ID
      * @return 是否分配成功
      */
-    boolean assignPermissions(Long roleId, List<Long> permissionIds);
+    boolean assignPermissions(Long roleId, List<Long> permissionIds, Long updatedBy);
 
     /**
      * 移除角色权限
      * @param roleId 角色ID
      * @param permissionIds 权限ID列表
+     * @param updatedBy 更新人ID
      * @return 是否移除成功
      */
-    boolean removePermissions(Long roleId, List<Long> permissionIds);
+    boolean removePermissions(Long roleId, List<Long> permissionIds, Long updatedBy);
 
     /**
      * 检查角色是否有指定权限
@@ -424,16 +432,18 @@ public interface RoleService {
     /**
      * 导出角色数据
      * @param ids 角色ID列表（可选，为空则导出所有）
+     * @param userId 用户ID（用于权限过滤）
      * @return 角色列表
      */
-    List<Role> exportRoles(List<Long> ids);
+    List<Role> exportRoles(List<Long> ids, Long userId);
 
     /**
      * 批量导入角色
      * @param roles 角色列表
+     * @param userId 用户ID（导入人）
      * @return 导入的角色列表
      */
-    List<Role> importRoles(List<Role> roles);
+    List<Role> importRoles(List<Role> roles, Long userId);
 
     /**
      * 验证角色层级关系

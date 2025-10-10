@@ -687,7 +687,8 @@ public class HttpClientUtil {
             // 发送HEAD请求
             ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.HEAD, entity, Void.class);
             
-            return response.getStatusCode();
+            // Spring 6.0+ 返回HttpStatusCode，需要转换为HttpStatus
+            return HttpStatus.valueOf(response.getStatusCode().value());
             
         } catch (Exception e) {
             return HttpStatus.INTERNAL_SERVER_ERROR;

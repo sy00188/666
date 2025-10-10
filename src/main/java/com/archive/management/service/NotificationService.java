@@ -201,4 +201,185 @@ public interface NotificationService {
      * @return 是否发送成功
      */
     boolean sendApprovalNotification(Long userId, Long approvalId, String approvalType, String approvalStatus);
+
+    // ==================== 用户注册与登录相关通知 ====================
+
+    /**
+     * 发送欢迎邮件
+     * 
+     * @param userId 用户ID
+     * @return 是否发送成功
+     */
+    boolean sendWelcomeEmail(Long userId);
+
+    /**
+     * 发送异常登录告警
+     * 
+     * @param userId 用户ID
+     * @param loginIp 登录IP
+     * @return 是否发送成功
+     */
+    boolean sendAbnormalLoginAlert(Long userId, String loginIp);
+
+    // ==================== 用户数据变更相关通知 ====================
+
+    /**
+     * 发送敏感数据变更告警
+     * 
+     * @param userId 用户ID
+     * @param updaterId 更新者ID
+     * @return 是否发送成功
+     */
+    boolean sendSensitiveDataChangeAlert(Long userId, Long updaterId);
+
+    /**
+     * 发送用户数据更新通知
+     * 
+     * @param userId 用户ID
+     * @param updaterId 更新者ID
+     * @return 是否发送成功
+     */
+    boolean sendUserDataUpdatedNotification(Long userId, Long updaterId);
+
+    // ==================== 用户状态与权限变更通知 ====================
+
+    /**
+     * 发送用户状态变更通知
+     * 
+     * @param userId 用户ID
+     * @param operatorId 操作者ID
+     * @param oldStatus 旧状态
+     * @param newStatus 新状态
+     * @return 是否发送成功
+     */
+    boolean sendUserStatusChangedNotification(Long userId, Long operatorId, String oldStatus, String newStatus);
+
+    /**
+     * 发送权限升级告警
+     * 
+     * @param userId 用户ID
+     * @param operatorId 操作者ID
+     * @return 是否发送成功
+     */
+    boolean sendPermissionUpgradeAlert(Long userId, Long operatorId);
+
+    /**
+     * 发送用户角色变更通知
+     * 
+     * @param userId 用户ID
+     * @param operatorId 操作者ID
+     * @return 是否发送成功
+     */
+    boolean sendUserRoleChangedNotification(Long userId, Long operatorId);
+
+    // ==================== 密码与安全相关通知 ====================
+
+    /**
+     * 发送密码变更通知
+     * 
+     * @param userId 用户ID
+     * @param changeType 变更类型
+     * @return 是否发送成功
+     */
+    boolean sendPasswordChangedNotification(Long userId, String changeType);
+
+    /**
+     * 发送弱密码告警
+     * 
+     * @param userId 用户ID
+     * @return 是否发送成功
+     */
+    boolean sendWeakPasswordAlert(Long userId);
+
+    /**
+     * 发送用户删除通知
+     * 
+     * @param userId 用户ID
+     * @param deleterId 删除者ID
+     * @param deleteReason 删除原因
+     * @return 是否发送成功
+     */
+    boolean sendUserDeletedNotification(Long userId, Long deleterId, String deleteReason);
+
+    // ==================== 错误处理通知 ====================
+
+    /**
+     * 发送消息处理错误告警
+     * 
+     * @param messageType 消息类型
+     * @param errorMessage 错误信息
+     * @return 是否发送成功
+     */
+    boolean sendMessageProcessingErrorAlert(String messageType, String errorMessage);
+
+    // ==================== 档案相关通知 ====================
+    
+    /**
+     * 发送档案创建通知
+     * 
+     * @param archiveId 档案ID
+     * @param creatorId 创建人ID
+     * @return 是否发送成功
+     */
+    boolean sendArchiveCreatedNotification(Long archiveId, Long creatorId);
+    
+    /**
+     * 发送档案更新通知
+     * 
+     * @param archiveId 档案ID
+     * @param updaterId 更新人ID
+     * @param needsReapproval 是否需要重新审批
+     * @return 是否发送成功
+     */
+    boolean sendArchiveUpdatedNotification(Long archiveId, Long updaterId, boolean needsReapproval);
+    
+    /**
+     * 发送档案删除通知
+     * 
+     * @param archiveId 档案ID
+     * @param deleterId 删除人ID
+     * @param reason 删除原因
+     * @return 是否发送成功
+     */
+    boolean sendArchiveDeletedNotification(Long archiveId, Long deleterId, String reason);
+    
+    /**
+     * 发送档案归档通知
+     * 
+     * @param archiveId 档案ID
+     * @param operatorId 操作人ID
+     * @return 是否发送成功
+     */
+    boolean sendArchiveArchivedNotification(Long archiveId, Long operatorId);
+    
+    /**
+     * 发送档案发布通知
+     * 
+     * @param archiveId 档案ID
+     * @param publisherId 发布人ID
+     * @param publishLevel 发布级别
+     * @return 是否发送成功
+     */
+    boolean sendArchivePublishedNotification(Long archiveId, Long publisherId, String publishLevel);
+    
+    /**
+     * 发送档案状态变更通知
+     * 
+     * @param archiveId 档案ID
+     * @param operatorId 操作人ID
+     * @param oldStatus 旧状态
+     * @param newStatus 新状态
+     * @return 是否发送成功
+     */
+    boolean sendArchiveStatusChangedNotification(Long archiveId, Long operatorId, String oldStatus, String newStatus);
+    
+    /**
+     * 发送档案权限变更通知
+     * 
+     * @param archiveId 档案ID
+     * @param operatorId 操作人ID
+     * @param changeType 变更类型
+     * @return 是否发送成功
+     */
+    boolean sendArchivePermissionChangedNotification(Long archiveId, Long operatorId, String changeType);
 }

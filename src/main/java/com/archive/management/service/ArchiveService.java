@@ -639,4 +639,122 @@ public interface ArchiveService {
      * @return 重建结果
      */
     Map<String, Object> rebuildArchiveIndex(List<Long> archiveIds);
+
+    // ==================== 档案消息监听器专用方法 ====================
+    
+    /**
+     * 初始化档案索引
+     * @param archiveId 档案ID
+     */
+    void initializeArchiveIndex(Long archiveId);
+    
+    /**
+     * 设置档案默认权限
+     * @param archiveId 档案ID
+     */
+    void setupDefaultPermissions(Long archiveId);
+    
+    /**
+     * 触发档案工作流
+     * @param archiveId 档案ID
+     */
+    void triggerArchiveWorkflow(Long archiveId);
+    
+    /**
+     * 更新档案索引
+     * @param archiveId 档案ID
+     */
+    void updateArchiveIndex(Long archiveId);
+    
+    /**
+     * 检查是否需要重新审批
+     * @param archiveId 档案ID
+     * @param oldData 旧数据
+     * @param newData 新数据
+     * @return 是否需要重新审批
+     */
+    boolean needsReapproval(Long archiveId, com.fasterxml.jackson.databind.JsonNode oldData, com.fasterxml.jackson.databind.JsonNode newData);
+    
+    /**
+     * 清理档案索引
+     * @param archiveId 档案ID
+     */
+    void cleanupArchiveIndex(Long archiveId);
+    
+    /**
+     * 清理档案文件
+     * @param archiveId 档案ID
+     */
+    void cleanupArchiveFiles(Long archiveId);
+    
+    /**
+     * 更新档案状态
+     * @param archiveId 档案ID
+     * @param status 状态
+     */
+    void updateArchiveStatus(Long archiveId, String status);
+    
+    /**
+     * 移动档案到归档存储
+     * @param archiveId 档案ID
+     * @param storagePath 存储路径
+     */
+    void moveToArchiveStorage(Long archiveId, String storagePath);
+    
+    /**
+     * 设置发布权限
+     * @param archiveId 档案ID
+     * @param publishLevel 发布级别
+     */
+    void setupPublishPermissions(Long archiveId, String publishLevel);
+    
+    /**
+     * 更新档案统计信息
+     * @param archiveId 档案ID
+     */
+    void updateArchiveStatistics(Long archiveId);
+    
+    /**
+     * 触发状态变更工作流
+     * @param archiveId 档案ID
+     * @param oldStatus 旧状态
+     * @param newStatus 新状态
+     */
+    void triggerStatusChangeWorkflow(Long archiveId, String oldStatus, String newStatus);
+    
+    /**
+     * 更新状态变更相关权限
+     * @param archiveId 档案ID
+     * @param newStatus 新状态
+     */
+    void updatePermissionsForStatusChange(Long archiveId, String newStatus);
+    
+    /**
+     * 更新状态统计信息
+     * @param archiveId 档案ID
+     * @param oldStatus 旧状态
+     * @param newStatus 新状态
+     */
+    void updateStatusStatistics(Long archiveId, String oldStatus, String newStatus);
+    
+    /**
+     * 更新权限缓存
+     * @param archiveId 档案ID
+     */
+    void updatePermissionCache(Long archiveId);
+    
+    /**
+     * 记录权限变更历史
+     * @param archiveId 档案ID
+     * @param operatorId 操作人ID
+     * @param changeType 变更类型
+     * @param changes 变更内容
+     */
+    void recordPermissionChangeHistory(Long archiveId, Long operatorId, String changeType, com.fasterxml.jackson.databind.JsonNode changes);
+    
+    /**
+     * 更新删除统计信息
+     * @param archiveId 档案ID
+     */
+    void updateDeleteStatistics(Long archiveId);
 }

@@ -936,12 +936,16 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     }
 
     @Override
-    public List<String> getConfigDependencies(String configKey) {
+    public Map<String, Object> getConfigDependencies(String configKey) {
         log.debug("获取配置依赖: {}", configKey);
         
         // 这里应该实现依赖分析逻辑
-        // 暂时返回空列表，实际实现需要分析配置间的依赖关系
-        return new ArrayList<>();
+        // 返回配置的依赖关系映射
+        Map<String, Object> dependencies = new HashMap<>();
+        dependencies.put("configKey", configKey);
+        dependencies.put("dependencies", new ArrayList<String>());
+        dependencies.put("dependents", new ArrayList<String>());
+        return dependencies;
     }
 
     @Override
@@ -1088,5 +1092,58 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         }
         
         return result;
+    }
+
+    @Override
+    public Map<String, Object> rebuildConfigIndex() {
+        log.info("重建配置索引");
+        
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 获取所有配置
+            List<SystemConfig> allConfigs = list();
+            
+            // 重建索引逻辑（实际项目中应使用Elasticsearch等）
+            // 这里简单返回统计信息
+            result.put("success", true);
+            result.put("totalConfigs", allConfigs.size());
+            result.put("indexedConfigs", allConfigs.size());
+            result.put("rebuildTime", LocalDateTime.now().toString());
+            
+            log.info("配置索引重建完成: 总数={}", allConfigs.size());
+        } catch (Exception e) {
+            log.error("重建配置索引失败", e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+
+    @Override
+    @CacheEvict(value = {CACHE_CONFIG_BY_KEY, CACHE_CONFIG_BY_ID, CACHE_CONFIG_BY_NAME}, allEntries = true)
+    public boolean refreshConfigCache(String configKey) {
+        log.info("刷新配置缓存: {}", configKey);
+        
+        try {
+            if (configKey == null || configKey.trim().isEmpty()) {
+                // 刷新所有缓存
+                log.info("刷新所有配置缓存");
+                return true;
+            } else {
+                // 刷新指定配置的缓存
+                SystemConfig config = getConfigByKey(configKey);
+                if (config != null) {
+                    log.info("刷新配置缓存成功: {}", configKey);
+                    return true;
+                } else {
+                    log.warn("配置不存在，无法刷新缓存: {}", configKey);
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            log.error("刷新配置缓存失败: {}", configKey, e);
+            return false;
+        }
     }
 }

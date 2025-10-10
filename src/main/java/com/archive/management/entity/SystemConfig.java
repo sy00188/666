@@ -705,4 +705,57 @@ public class SystemConfig implements Serializable {
         
         return this.environment.equalsIgnoreCase(env);
     }
+
+    // ==================== 兼容性getter方法 ====================
+    
+    /**
+     * 获取敏感标识（兼容性方法）
+     */
+    public Integer getSensitive() {
+        return this.isSensitive;
+    }
+    
+    /**
+     * 获取只读标识（兼容性方法）
+     */
+    public Integer getReadonly() {
+        return this.isReadonly;
+    }
+    
+    /**
+     * 获取系统内置标识（兼容性方法）
+     */
+    public Integer getBuiltIn() {
+        return this.isSystem;
+    }
+    
+    /**
+     * 设置更新时间（兼容性方法）
+     */
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updateTime = updatedAt;
+    }
+    
+    /**
+     * 获取更新时间（兼容性方法）
+     */
+    public LocalDateTime getUpdatedAt() {
+        return this.updateTime;
+    }
+    
+    /**
+     * 设置删除人（兼容性方法）
+     */
+    public void setDeletedBy(Long deletedBy) {
+        // 逻辑删除场景，记录在updateBy中
+        this.updateBy = deletedBy;
+    }
+    
+    /**
+     * 设置删除时间（兼容性方法）
+     */
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        // 逻辑删除场景，记录在updateTime中
+        this.updateTime = deletedAt;
+    }
 }

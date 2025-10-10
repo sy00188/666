@@ -611,14 +611,14 @@ public class SystemServiceImpl implements SystemService {
         if (StringUtils.hasText(request.getCode())) {
             params.put("code", request.getCode());
         }
-        if (StringUtils.hasText(request.getType())) {
-            params.put("type", request.getType());
+        if (request.getTypes() != null && !request.getTypes().isEmpty()) {
+            params.put("types", request.getTypes()); // 使用复数形式
         }
         if (request.getParentId() != null) {
             params.put("parentId", request.getParentId());
         }
-        if (request.getStatus() != null) {
-            params.put("status", request.getStatus());
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            params.put("statuses", request.getStatuses()); // 使用复数形式
         }
 
         // 查询总数
@@ -788,8 +788,8 @@ public class SystemServiceImpl implements SystemService {
         if (StringUtils.hasText(request.getConfigKey())) {
             params.put("configKey", request.getConfigKey());
         }
-        if (StringUtils.hasText(request.getConfigGroup())) {
-            params.put("configGroup", request.getConfigGroup());
+        if (request.getConfigGroups() != null && !request.getConfigGroups().isEmpty()) {
+            params.put("configGroups", request.getConfigGroups()); // 使用复数形式
         }
         if (request.getIsSystem() != null) {
             params.put("isSystem", request.getIsSystem());
@@ -797,7 +797,7 @@ public class SystemServiceImpl implements SystemService {
 
         long total = systemConfigMapper.countByParams(params);
         if (total == 0) {
-            return new PageResult<>(0, Collections.emptyList());
+            return PageResult.<ConfigResponse>of(0, Collections.emptyList()); // 显式指定泛型类型
         }
 
         List<SystemConfig> configs = systemConfigMapper.selectByParams(params, 
@@ -807,7 +807,7 @@ public class SystemServiceImpl implements SystemService {
                 .map(this::convertToConfigResponse)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(total, responses);
+        return PageResult.<ConfigResponse>of(total, responses); // 使用静态方法并显式指定泛型
     }
 
     public List<ConfigResponse> getConfigsByGroup(String group) {
@@ -865,12 +865,29 @@ public class SystemServiceImpl implements SystemService {
             throw new ValidationException("天数必须在1-365之间");
         }
 
-        return userMapper.selectActivityStatistics(days);
+        List<Map<String, Object>> resultList = userMapper.selectActivityStatistics(days);
+        return resultList.stream()
+            .map(map -> new UserActivityStatistics(
+                (String) map.get("date"),
+                ((Number) map.getOrDefault("activeCount", 0L)).longValue(),
+                ((Number) map.getOrDefault("loginCount", 0L)).longValue(),
+                ((Number) map.getOrDefault("newUserCount", 0L)).longValue()
+            ))
+            .collect(Collectors.toList());
     }
 
     @Override
     public List<DepartmentStatistics> getDepartmentStatistics() {
-        return departmentMapper.selectDepartmentStatistics();
+        List<Map<String, Object>> resultList = departmentMapper.selectDepartmentStatistics();
+        return resultList.stream()
+            .map(map -> new DepartmentStatistics(
+                ((Number) map.get("departmentId")).longValue(),
+                (String) map.get("departmentName"),
+                ((Number) map.getOrDefault("userCount", 0L)).longValue(),
+                ((Number) map.getOrDefault("archiveCount", 0L)).longValue(),
+                ((Number) map.getOrDefault("borrowCount", 0L)).longValue()
+            ))
+            .collect(Collectors.toList());
     }
 
     // ==================== 私有辅助方法 ====================
@@ -911,12 +928,12 @@ public class SystemServiceImpl implements SystemService {
             .filter(perm -> Objects.equals(perm.getParentId(), parentId))
             .map(perm -> {
                 PermissionTreeNode node = new PermissionTreeNode();
-                node.setId(perm.getId());
-                node.setName(perm.getName());
-                node.setCode(perm.getCode());
-                node.setType(perm.getType());
-                node.setPath(perm.getPath());
-                node.setMethod(perm.getMethod());
+                node.setId(perm.getId() != null ? perm.getId().toString() : null);
+                node.setName(perm.getPermissionName());
+                node.setCode(perm.getPermissionCode());
+                node.setType(perm.getPermissionType() != null ? perm.getPermissionType().toString() : null);
+                node.setPath(perm.getPermissionPath());
+                // node.setMethod(perm.getHttpMethod()); // PermissionTreeNode没有method字段
                 node.setChildren(buildPermissionTree(permissions, perm.getId()));
                 return node;
             })
@@ -930,8 +947,8 @@ public class SystemServiceImpl implements SystemService {
         response.setCode(department.getCode());
         response.setParentId(department.getParentId());
         response.setDescription(department.getDescription());
-        response.setSort(department.getSort());
-        response.setStatus(department.getStatus());
+        response.setSortOrder(department.getSort());
+        response.setStatus(department.getStatus() != null ? String.valueOf(department.getStatus()) : null);
         response.setCreateTime(department.getCreateTime());
         response.setUpdateTime(department.getUpdateTime());
         return response;
@@ -943,8 +960,8 @@ public class SystemServiceImpl implements SystemService {
         response.setName(role.getName());
         response.setCode(role.getCode());
         response.setDescription(role.getDescription());
-        response.setSort(role.getSort());
-        response.setStatus(role.getStatus());
+        response.setSortOrder(role.getSort());
+        response.setStatus(role.getStatus() != null ? String.valueOf(role.getStatus()) : null);
         response.setCreateTime(role.getCreateTime());
         response.setUpdateTime(role.getUpdateTime());
         return response;
@@ -955,13 +972,13 @@ public class SystemServiceImpl implements SystemService {
         response.setId(permission.getId());
         response.setName(permission.getPermissionName());
         response.setCode(permission.getPermissionCode());
-        response.setType(permission.getPermissionType());
+        response.setType(permission.getPermissionType() != null ? String.valueOf(permission.getPermissionType()) : null);
         response.setParentId(permission.getParentId());
         response.setPath(permission.getPermissionPath());
         response.setMethod(permission.getHttpMethod());
         response.setDescription(permission.getDescription());
-        response.setSort(permission.getSort());
-        response.setStatus(permission.getStatus());
+        response.setSortOrder(permission.getSort());
+        response.setStatus(permission.getStatus() != null ? String.valueOf(permission.getStatus()) : null);
         response.setCreateTime(permission.getCreateTime());
         response.setUpdateTime(permission.getUpdateTime());
         return response;
@@ -975,7 +992,7 @@ public class SystemServiceImpl implements SystemService {
         response.setConfigGroup(config.getConfigGroup());
         response.setDescription(config.getConfigDesc());
         response.setIsSystem(config.getIsSystem() != null && config.getIsSystem() == 1);
-        response.setStatus(config.getIsEnabled());
+        response.setStatus(config.getIsEnabled() != null ? String.valueOf(config.getIsEnabled()) : null);
         response.setCreateTime(config.getCreateTime());
         response.setUpdateTime(config.getUpdateTime());
         return response;
@@ -983,7 +1000,7 @@ public class SystemServiceImpl implements SystemService {
 
     private UserResponse convertToUserResponse(User user) {
         UserResponse response = new UserResponse();
-        response.setId(user.getId());
+        response.setId(user.getUserId());
         response.setUsername(user.getUsername());
         response.setNickname(user.getNickname());
         response.setEmail(user.getEmail());

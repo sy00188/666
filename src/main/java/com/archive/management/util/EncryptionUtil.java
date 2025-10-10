@@ -47,5 +47,44 @@ public class EncryptionUtil {
     public static String generateAESKey() throws Exception {
         return CryptoUtil.generateAESKey();
     }
+
+    // ==================== 简化方法（使用默认密钥） ====================
+    
+    /**
+     * 默认加密密钥（实际项目中应从配置文件读取）
+     */
+    private static final String DEFAULT_KEY = "ArchiveManagementSystem2024Key!";
+    
+    /**
+     * 加密（使用默认密钥）
+     * @param plainText 明文
+     * @return 密文
+     */
+    public static String encrypt(String plainText) {
+        if (plainText == null || plainText.isEmpty()) {
+            return plainText;
+        }
+        try {
+            return encryptAES(plainText, DEFAULT_KEY);
+        } catch (Exception e) {
+            throw new RuntimeException("加密失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 解密（使用默认密钥）
+     * @param encryptedText 密文
+     * @return 明文
+     */
+    public static String decrypt(String encryptedText) {
+        if (encryptedText == null || encryptedText.isEmpty()) {
+            return encryptedText;
+        }
+        try {
+            return decryptAES(encryptedText, DEFAULT_KEY);
+        } catch (Exception e) {
+            throw new RuntimeException("解密失败: " + e.getMessage(), e);
+        }
+    }
 }
 

@@ -352,4 +352,26 @@ public class SystemMessageProducer {
             throw new RuntimeException("消息发送失败", e);
         }
     }
+
+    // ==================== 通用系统消息发送方法 ====================
+
+    /**
+     * 发送通用系统消息（支持任意Map类型）
+     * @param messageType 消息类型
+     * @param data 消息数据
+     */
+    public void sendSystemMessage(String messageType, Map<String, ?> data) {
+        try {
+            Map<String, Object> messageData = new HashMap<>();
+            messageData.put("eventType", messageType);
+            messageData.put("data", data);
+            messageData.put("timestamp", LocalDateTime.now());
+            messageData.put("messageId", UUID.randomUUID().toString());
+
+            sendMessage(systemExchange, systemNotificationRoutingKey, messageData, messageType);
+            log.info("发送通用系统消息成功，消息类型: {}", messageType);
+        } catch (Exception e) {
+            log.error("发送通用系统消息失败，消息类型: {}", messageType, e);
+        }
+    }
 }

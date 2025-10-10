@@ -429,4 +429,162 @@ public class CacheServiceImpl implements CacheService {
         // 粗略估算：每个键值对约100字节
         return fallbackCache.size() * 100L;
     }
+
+    // ==================== 新增接口方法实现 ====================
+
+    @Override
+    public void clearUserTemporaryData(Long userId) {
+        log.info("清理用户临时数据: userId={}", userId);
+        if (userId == null) {
+            log.warn("用户ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("user:temp:" + userId);
+    }
+
+    @Override
+    public void clearUserCache(Long userId) {
+        log.info("清理用户缓存: userId={}", userId);
+        if (userId == null) {
+            log.warn("用户ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("user:" + userId);
+    }
+
+    @Override
+    public void clearAllUserCache(Long userId) {
+        log.info("清理所有用户相关缓存: userId={}", userId);
+        if (userId == null) {
+            log.warn("用户ID为空，跳过清理");
+            return;
+        }
+        // 清理用户基本信息缓存
+        clearUserCache(userId);
+        // 清理用户权限缓存
+        clearUserPermissionCache(userId);
+        // 清理用户临时数据
+        clearUserTemporaryData(userId);
+        // 清理用户会话相关
+        clearByPrefix("session:user:" + userId);
+    }
+
+    @Override
+    public void clearUserPermissionCache(Long userId) {
+        log.info("清理用户权限缓存: userId={}", userId);
+        if (userId == null) {
+            log.warn("用户ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("permission:user:" + userId);
+        clearByPrefix("role:user:" + userId);
+    }
+
+    @Override
+    public void clearRoleCache(Long roleId) {
+        log.info("清理角色缓存: roleId={}", roleId);
+        if (roleId == null) {
+            log.warn("角色ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("role:" + roleId);
+        delete("role:tree");
+        delete("role:all");
+    }
+
+    @Override
+    public void clearPermissionCache(Long permissionId) {
+        log.info("清理权限缓存: permissionId={}", permissionId);
+        if (permissionId == null) {
+            log.warn("权限ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("permission:" + permissionId);
+        delete("permission:tree");
+        delete("permission:all");
+    }
+
+    @Override
+    public void clearDepartmentCache(Long departmentId) {
+        log.info("清理部门缓存: departmentId={}", departmentId);
+        if (departmentId == null) {
+            log.warn("部门ID为空，跳过清理");
+            return;
+        }
+        clearByPrefix("department:" + departmentId);
+        delete("department:tree");
+        delete("department:all");
+    }
+
+    @Override
+    public void clearSystemConfigCache(String configKey) {
+        log.info("清理系统配置缓存: configKey={}", configKey);
+        if (configKey == null || configKey.trim().isEmpty()) {
+            log.warn("配置键为空，跳过清理");
+            return;
+        }
+        delete("config:" + configKey);
+        delete("config:all");
+    }
+
+    @Override
+    public void clearAllCache() {
+        log.warn("执行清空所有缓存操作");
+        clear();
+    }
+
+    @Override
+    public Map<String, Object> getCacheStatistics() {
+        log.debug("获取缓存统计信息");
+        return getStats();
+    }
+
+    @Override
+    public void warmUpCache() {
+        log.info("执行缓存预热操作");
+        // 预热常用的系统配置
+        Map<String, Object> commonData = new HashMap<>();
+        // 这里可以添加需要预热的数据
+        // 例如：系统配置、常用字典数据等
+        commonData.put("system:initialized", true);
+        warmUp(commonData);
+    }
+
+    @Override
+    public boolean cacheExists(String key) {
+        return exists(key);
+    }
+
+    @Override
+    public void setCache(String key, Object value, long expireSeconds) {
+        if (expireSeconds > 0) {
+            set(key, value, Duration.ofSeconds(expireSeconds));
+        } else {
+            set(key, value);
+        }
+    }
+
+    @Override
+    public Object getCache(String key) {
+        return get(key);
+    }
+
+    @Override
+    public void deleteCache(String key) {
+        delete(key);
+    }
+
+    @Override
+    public void batchDeleteCache(List<String> keys) {
+        if (keys != null && !keys.isEmpty()) {
+            delete(keys);
+        }
+    }
+
+    @Override
+    public void refreshCacheExpire(String key, long expireSeconds) {
+        if (expireSeconds > 0) {
+            expire(key, Duration.ofSeconds(expireSeconds));
+        }
+    }
 }

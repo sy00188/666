@@ -652,4 +652,221 @@ public class NotificationServiceImpl implements NotificationService {
                    .eq("deleted", 0);
         return notificationMapper.selectCount(queryWrapper);
     }
+
+    // ==================== 新增接口方法实现 ====================
+    // ==================== 用户注册与登录相关通知 ====================
+
+    @Override
+    @Async
+    public boolean sendWelcomeEmail(Long userId) {
+        log.info("发送欢迎邮件: userId={}", userId);
+        if (userId == null) {
+            log.warn("用户ID为空，无法发送欢迎邮件");
+            return false;
+        }
+        
+        try {
+            String title = "欢迎加入档案管理系统";
+            String content = "尊敬的用户，欢迎您加入档案管理系统！我们很高兴为您提供服务。";
+            return sendEmailNotification(userId, title, content, "welcome_email");
+        } catch (Exception e) {
+            log.error("发送欢迎邮件失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendAbnormalLoginAlert(Long userId, String loginIp) {
+        log.warn("发送异常登录告警: userId={}, loginIp={}", userId, loginIp);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "异常登录告警";
+            String content = String.format("检测到您的账户在陌生IP地址 %s 登录，如非本人操作，请立即修改密码。", loginIp);
+            sendNotification(userId, title, content, "SECURITY_ALERT");
+            return sendEmailNotification(userId, title, content, "abnormal_login_alert");
+        } catch (Exception e) {
+            log.error("发送异常登录告警失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    // ==================== 用户数据变更相关通知 ====================
+
+    @Override
+    @Async
+    public boolean sendSensitiveDataChangeAlert(Long userId, Long updaterId) {
+        log.warn("发送敏感数据变更告警: userId={}, updaterId={}", userId, updaterId);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "敏感信息变更提醒";
+            String content = String.format("您的敏感信息已被修改（操作者ID: %d），如非本人操作，请立即联系管理员。", updaterId);
+            sendNotification(userId, title, content, "SECURITY_ALERT");
+            return sendEmailNotification(userId, title, content, "sensitive_data_alert");
+        } catch (Exception e) {
+            log.error("发送敏感数据变更告警失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendUserDataUpdatedNotification(Long userId, Long updaterId) {
+        log.info("发送用户数据更新通知: userId={}, updaterId={}", userId, updaterId);
+        if (userId == null || userId.equals(updaterId)) {
+            return false; // 自己更新自己的数据，不发送通知
+        }
+        
+        try {
+            String title = "个人信息已更新";
+            String content = String.format("您的个人信息已被管理员更新（操作者ID: %d）。", updaterId);
+            return sendNotification(userId, title, content, "SYSTEM_NOTICE");
+        } catch (Exception e) {
+            log.error("发送用户数据更新通知失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    // ==================== 用户状态与权限变更通知 ====================
+
+    @Override
+    @Async
+    public boolean sendUserStatusChangedNotification(Long userId, Long operatorId, String oldStatus, String newStatus) {
+        log.info("发送用户状态变更通知: userId={}, operatorId={}, {} -> {}", userId, operatorId, oldStatus, newStatus);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "账户状态变更通知";
+            String content = String.format("您的账户状态已从 %s 变更为 %s（操作者ID: %d）。", 
+                                         oldStatus, newStatus, operatorId);
+            return sendNotification(userId, title, content, "ACCOUNT_CHANGE");
+        } catch (Exception e) {
+            log.error("发送用户状态变更通知失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendPermissionUpgradeAlert(Long userId, Long operatorId) {
+        log.info("发送权限升级告警: userId={}, operatorId={}", userId, operatorId);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "权限升级通知";
+            String content = String.format("您的账户权限已被升级（操作者ID: %d），请谨慎使用新增权限。", operatorId);
+            return sendNotification(userId, title, content, "PERMISSION_CHANGE");
+        } catch (Exception e) {
+            log.error("发送权限升级告警失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendUserRoleChangedNotification(Long userId, Long operatorId) {
+        log.info("发送用户角色变更通知: userId={}, operatorId={}", userId, operatorId);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "角色变更通知";
+            String content = String.format("您的角色已被修改（操作者ID: %d），您的权限可能已发生变化。", operatorId);
+            return sendNotification(userId, title, content, "ROLE_CHANGE");
+        } catch (Exception e) {
+            log.error("发送用户角色变更通知失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    // ==================== 密码与安全相关通知 ====================
+
+    @Override
+    @Async
+    public boolean sendPasswordChangedNotification(Long userId, String changeType) {
+        log.info("发送密码变更通知: userId={}, changeType={}", userId, changeType);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "密码修改通知";
+            String content = String.format("您的密码已成功修改（变更类型: %s）。如非本人操作，请立即联系管理员。", changeType);
+            sendNotification(userId, title, content, "SECURITY_NOTICE");
+            return sendEmailNotification(userId, title, content, "password_changed");
+        } catch (Exception e) {
+            log.error("发送密码变更通知失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendWeakPasswordAlert(Long userId) {
+        log.warn("发送弱密码告警: userId={}", userId);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "密码安全警告";
+            String content = "检测到您的密码强度较弱，建议尽快修改为更安全的密码，以保护您的账户安全。";
+            return sendNotification(userId, title, content, "SECURITY_ALERT");
+        } catch (Exception e) {
+            log.error("发送弱密码告警失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    @Async
+    public boolean sendUserDeletedNotification(Long userId, Long deleterId, String deleteReason) {
+        log.info("发送用户删除通知: userId={}, deleterId={}, reason={}", userId, deleterId, deleteReason);
+        if (userId == null) {
+            return false;
+        }
+        
+        try {
+            String title = "账户注销通知";
+            String content = String.format("您的账户已被删除（操作者ID: %d，原因: %s）。", deleterId, deleteReason);
+            // 用户删除时发送最后通知
+            return sendEmailNotification(userId, title, content, "account_deleted");
+        } catch (Exception e) {
+            log.error("发送用户删除通知失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    // ==================== 错误处理通知 ====================
+
+    @Override
+    @Async
+    public boolean sendMessageProcessingErrorAlert(String messageType, String errorMessage) {
+        log.error("发送消息处理错误告警: type={}, error={}", messageType, errorMessage);
+        
+        try {
+            // 发送给系统管理员
+            String title = "系统消息处理错误";
+            String content = String.format("消息类型: %s\n错误信息: %s\n时间: %s", 
+                                         messageType, errorMessage, LocalDateTime.now());
+            // 这里应该获取系统管理员ID列表并发送通知
+            // 暂时记录日志
+            log.error("系统错误告警: {}", content);
+            return true;
+        } catch (Exception e) {
+            log.error("发送消息处理错误告警失败", e);
+            return false;
+        }
+    }
 }

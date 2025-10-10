@@ -661,4 +661,55 @@ public interface PermissionMapper extends BaseMapper<Permission> {
      */
     @Select("SELECT COUNT(*) FROM sys_permission WHERE deleted = 0")
     Long countTotal();
+
+    /**
+     * 根据权限类型统计权限数量（字符串类型）
+     * 
+     * @param permissionType 权限类型字符串
+     * @return 权限数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_permission WHERE permission_type = #{permissionType} AND deleted = 0")
+    long countByPermissionType(@Param("permissionType") String permissionType);
+
+    /**
+     * 检查用户是否有指定路径的权限
+     * 
+     * @param userId 用户ID
+     * @param permissionPath 权限路径
+     * @return 匹配的权限数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND p.permission_path = #{permissionPath} " +
+            "AND p.deleted = 0 AND p.status = 1")
+    int checkUserPermissionByPath(@Param("userId") Long userId, @Param("permissionPath") String permissionPath);
+
+    /**
+     * 查找用户的按钮权限列表
+     * 
+     * @param userId 用户ID
+     * @return 用户的按钮权限列表
+     */
+    @Select("SELECT DISTINCT p.* FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND p.permission_type = 2 " +
+            "AND p.deleted = 0 AND p.status = 1 " +
+            "ORDER BY p.sort_order ASC, p.create_time DESC")
+    List<Permission> findUserButtonPermissions(@Param("userId") Long userId);
+
+    /**
+     * 查找用户的API权限列表
+     * 
+     * @param userId 用户ID
+     * @return 用户的API权限列表
+     */
+    @Select("SELECT DISTINCT p.* FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND p.permission_type = 3 " +
+            "AND p.deleted = 0 AND p.status = 1 " +
+            "ORDER BY p.sort_order ASC, p.create_time DESC")
+    List<Permission> findUserApiPermissions(@Param("userId") Long userId);
 }

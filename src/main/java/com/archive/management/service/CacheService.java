@@ -1,114 +1,132 @@
 package com.archive.management.service;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.Map;
-
 /**
  * 缓存服务接口
- * 提供多级缓存的统一访问接口
+ * 负责处理系统缓存相关的业务逻辑
  * 
  * @author Archive Management System
  * @version 1.0
- * @since 2024-01-20
+ * @since 2024-01-01
  */
 public interface CacheService {
 
     /**
-     * 获取缓存值
+     * 清理用户临时数据
+     * 
+     * @param userId 用户ID
      */
-    <T> T get(String cacheName, String key, Class<T> type);
+    void clearUserTemporaryData(Long userId);
 
     /**
-     * 设置缓存值
+     * 清理用户缓存
+     * 
+     * @param userId 用户ID
      */
-    void put(String cacheName, String key, Object value);
+    void clearUserCache(Long userId);
 
     /**
-     * 设置缓存值（带TTL）
+     * 清理所有用户缓存
+     * 
+     * @param userId 用户ID
      */
-    void put(String cacheName, String key, Object value, long ttl, TimeUnit timeUnit);
+    void clearAllUserCache(Long userId);
 
     /**
-     * 删除缓存
+     * 清理用户权限缓存
+     * 
+     * @param userId 用户ID
      */
-    void evict(String cacheName, String key);
+    void clearUserPermissionCache(Long userId);
 
     /**
-     * 清空缓存
+     * 清理角色缓存
+     * 
+     * @param roleId 角色ID
      */
-    void clear(String cacheName);
+    void clearRoleCache(Long roleId);
 
     /**
-     * 获取或计算缓存值
+     * 清理权限缓存
+     * 
+     * @param permissionId 权限ID
      */
-    <T> T getOrCompute(String cacheName, String key, Function<String, T> computeFunction, Class<T> type);
+    void clearPermissionCache(Long permissionId);
 
     /**
-     * 获取或计算缓存值（带TTL）
+     * 清理部门缓存
+     * 
+     * @param departmentId 部门ID
      */
-    <T> T getOrCompute(String cacheName, String key, Function<String, T> computeFunction, 
-                      Class<T> type, long ttl, TimeUnit timeUnit);
+    void clearDepartmentCache(Long departmentId);
 
     /**
-     * 用户缓存操作
+     * 清理系统配置缓存
+     * 
+     * @param configKey 配置键
      */
-    <T> T getUser(String key, Class<T> type);
-    void putUser(String key, Object value);
-    void evictUser(String key);
-    void clearUserCache();
+    void clearSystemConfigCache(String configKey);
 
     /**
-     * 权限缓存操作
+     * 清理所有缓存
      */
-    <T> T getPermission(String key, Class<T> type);
-    void putPermission(String key, Object value);
-    void evictPermission(String key);
-    void clearPermissionCache();
+    void clearAllCache();
 
     /**
-     * 档案缓存操作
+     * 获取缓存统计信息
+     * 
+     * @return 缓存统计信息
      */
-    <T> T getArchive(String key, Class<T> type);
-    void putArchive(String key, Object value);
-    void evictArchive(String key);
-    void clearArchiveCache();
-
-    /**
-     * 统计缓存操作
-     */
-    <T> T getStatistics(String key, Class<T> type);
-    void putStatistics(String key, Object value);
-    void evictStatistics(String key);
-    void clearStatisticsCache();
+    java.util.Map<String, Object> getCacheStatistics();
 
     /**
      * 预热缓存
      */
-    void warmUpCache(String cacheName, String key, Object value);
-
-    /**
-     * 批量预热缓存
-     */
-    void warmUpCache(String cacheName, Map<String, Object> data);
-
-    /**
-     * 获取缓存统计信息
-     */
-    String getCacheStats();
+    void warmUpCache();
 
     /**
      * 检查缓存是否存在
+     * 
+     * @param key 缓存键
+     * @return 是否存在
      */
-    boolean exists(String cacheName, String key);
+    boolean cacheExists(String key);
 
     /**
-     * 获取缓存大小
+     * 设置缓存
+     * 
+     * @param key 缓存键
+     * @param value 缓存值
+     * @param expireSeconds 过期时间（秒）
      */
-    long getCacheSize(String cacheName);
+    void setCache(String key, Object value, long expireSeconds);
 
     /**
-     * 清空所有缓存
+     * 获取缓存
+     * 
+     * @param key 缓存键
+     * @return 缓存值
      */
-    void clearAllCaches();
+    Object getCache(String key);
+
+    /**
+     * 删除缓存
+     * 
+     * @param key 缓存键
+     */
+    void deleteCache(String key);
+
+    /**
+     * 批量删除缓存
+     * 
+     * @param keys 缓存键列表
+     */
+    void batchDeleteCache(java.util.List<String> keys);
+
+    /**
+     * 刷新缓存过期时间
+     * 
+     * @param key 缓存键
+     * @param expireSeconds 过期时间（秒）
+     */
+    void refreshCacheExpire(String key, long expireSeconds);
 }

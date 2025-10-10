@@ -75,4 +75,12 @@ public interface RolePermissionMapper extends BaseMapper<RolePermission> {
      */
     boolean existsByRoleIdAndPermissionId(@Param("roleId") Long roleId, 
                                          @Param("permissionId") Long permissionId);
+
+    /**
+     * 统计使用指定权限的角色数量
+     * 
+     * @param permissionId 权限ID
+     * @return 角色数量
+     */
+    int countByPermissionId(@Param("permissionId") Long permissionId);
 }

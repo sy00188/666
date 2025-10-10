@@ -460,4 +460,23 @@ public interface PermissionService {
      * @return 是否刷新成功
      */
     boolean refreshPermissionCache(Long permissionId);
+
+    /**
+     * 检查用户是否有指定路径的权限
+     * @param userId 用户ID
+     * @param permissionPath 权限路径
+     * @return 是否有权限
+     */
+    boolean checkUserPermissionByPath(Long userId, String permissionPath);
+
+    /**
+     * 刷新权限缓存（无参数版本）
+     */
+    void refreshPermissionCache();
+
+    /**
+     * 构建完整权限树（无参数版本）
+     * @return 权限列表
+     */
+    List<Permission> buildPermissionTree();
 }

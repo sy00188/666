@@ -100,6 +100,40 @@ public interface AuditLogService {
                             String ipAddress, String userAgent, String details);
 
     /**
+     * 记录用户操作（简化版）
+     * @param userId 用户ID
+     * @param action 操作类型
+     * @param resourceId 资源ID
+     * @param description 描述
+     * @param details 详细信息
+     * @return 审计日志
+     */
+    AuditLog recordUserOperation(Long userId, String action, Long resourceId, String description, String details);
+
+    /**
+     * 记录档案操作（简化版）
+     * @param archiveId 档案ID
+     * @param action 操作类型
+     * @param userId 用户ID
+     * @param description 描述
+     * @param details 详细信息
+     * @return 审计日志
+     */
+    AuditLog recordArchiveOperation(Long archiveId, String action, Long userId, String description, String details);
+
+    /**
+     * 记录操作日志（通用版）
+     * @param module 模块
+     * @param action 操作
+     * @param resourceType 资源类型
+     * @param resourceId 资源ID
+     * @param description 描述
+     * @param result 结果
+     * @return 审计日志
+     */
+    AuditLog recordOperationLog(String module, String action, String resourceType, String resourceId, String description, String result);
+
+    /**
      * 记录文件操作日志
      * @param userId 用户ID
      * @param action 操作类型（upload/download/delete/view）

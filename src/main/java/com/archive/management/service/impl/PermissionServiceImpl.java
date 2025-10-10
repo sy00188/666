@@ -1131,7 +1131,7 @@ public class PermissionServiceImpl implements PermissionService {
                 permission.setUpdatedBy(null);
                 permission.setUpdateTime(null);
                 permission.setDeleted(SecurityConstants.DeleteFlag.NOT_DELETED);
-                permission.setVersion(1L);
+                permission.setVersion(1); // version字段类型是Integer
                 
                 // 创建权限
                 createPermission(permission);
@@ -1287,7 +1287,7 @@ public class PermissionServiceImpl implements PermissionService {
             updateWrapper.eq(Permission::getId, permissionId)
                         .set(Permission::getSortOrder, sortOrder)
                         .set(Permission::getUpdatedBy, updatedBy)
-                        .set(Permission::getUpdatedTime, LocalDateTime.now());
+                        .set(Permission::getUpdateTime, LocalDateTime.now()); // 使用getUpdateTime而不是getUpdatedTime
             
             int result = permissionMapper.update(null, updateWrapper);
             if (result > 0) {

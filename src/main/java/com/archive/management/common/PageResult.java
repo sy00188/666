@@ -152,6 +152,20 @@ public class PageResult<T> {
     public static <T> PageResult<T> of(int pageNum, int pageSize, long total, List<T> list) {
         return new PageResult<>(pageNum, pageSize, total, list);
     }
+    
+    /**
+     * 创建分页结果（简化版，从total和list推断）
+     * 默认pageNum=1, pageSize=list.size()
+     * 
+     * @param total 总记录数
+     * @param list 数据列表
+     * @param <T> 数据类型
+     * @return PageResult<T>
+     */
+    public static <T> PageResult<T> of(long total, List<T> list) {
+        int size = (list != null && !list.isEmpty()) ? list.size() : 10;
+        return new PageResult<>(1, size, total, list);
+    }
 
     /**
      * 从Spring Data的Page对象创建PageResult

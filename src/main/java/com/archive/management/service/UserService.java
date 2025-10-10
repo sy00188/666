@@ -415,4 +415,223 @@ public interface UserService {
      * @return 报告数据
      */
     Map<String, Object> generateUserReport(LocalDateTime startDate, LocalDateTime endDate);
+
+    // ==================== 用户初始化与配置相关方法 ====================
+
+    /**
+     * 初始化用户设置
+     * @param userId 用户ID
+     */
+    void initializeUserSettings(Long userId);
+
+    /**
+     * 分配默认角色
+     * @param userId 用户ID
+     */
+    void assignDefaultRoles(Long userId);
+
+    /**
+     * 创建用户工作空间
+     * @param userId 用户ID
+     */
+    void createUserWorkspace(Long userId);
+
+    // ==================== 登录与会话管理相关方法 ====================
+
+    /**
+     * 更新最后登录时间（重载版本）
+     * @param userId 用户ID
+     * @param loginTime 登录时间
+     */
+    void updateLastLoginTime(Long userId, LocalDateTime loginTime);
+
+    /**
+     * 记录登录历史
+     * @param userId 用户ID
+     * @param loginIp 登录IP
+     * @param userAgent 用户代理
+     * @param loginTime 登录时间
+     */
+    void recordLoginHistory(Long userId, String loginIp, String userAgent, LocalDateTime loginTime);
+
+    /**
+     * 检测异常登录
+     * @param userId 用户ID
+     * @param loginIp 登录IP
+     * @return 是否异常登录
+     */
+    boolean isAbnormalLogin(Long userId, String loginIp);
+
+    /**
+     * 更新在线状态
+     * @param userId 用户ID
+     * @param online 是否在线
+     */
+    void updateOnlineStatus(Long userId, boolean online);
+
+    /**
+     * 清理过期会话
+     * @param userId 用户ID
+     */
+    void cleanupExpiredSessions(Long userId);
+
+    /**
+     * 更新登录统计
+     * @param userId 用户ID
+     */
+    void updateLoginStatistics(Long userId);
+
+    /**
+     * 记录登出历史
+     * @param userId 用户ID
+     * @param logoutReason 登出原因
+     * @param logoutTime 登出时间
+     */
+    void recordLogoutHistory(Long userId, String logoutReason, LocalDateTime logoutTime);
+
+    /**
+     * 清理用户会话
+     * @param userId 用户ID
+     */
+    void cleanupUserSessions(Long userId);
+
+    /**
+     * 更新在线时长统计
+     * @param userId 用户ID
+     * @param logoutTime 登出时间
+     */
+    void updateOnlineTimeStatistics(Long userId, LocalDateTime logoutTime);
+
+    /**
+     * 清理所有用户会话
+     * @param userId 用户ID
+     */
+    void cleanupAllUserSessions(Long userId);
+
+    // ==================== 用户数据管理相关方法 ====================
+
+    /**
+     * 检测敏感数据变更
+     * @param oldData 旧数据
+     * @param newData 新数据
+     * @return 是否有敏感数据变更
+     */
+    boolean hasSensitiveDataChanged(com.fasterxml.jackson.databind.JsonNode oldData, com.fasterxml.jackson.databind.JsonNode newData);
+
+    /**
+     * 更新用户索引
+     * @param userId 用户ID
+     */
+    void updateUserIndex(Long userId);
+
+    /**
+     * 同步用户数据到外部系统
+     * @param userId 用户ID
+     */
+    void syncUserDataToExternalSystems(Long userId);
+
+    /**
+     * 归档用户数据
+     * @param userId 用户ID
+     */
+    void archiveUserData(Long userId);
+
+    /**
+     * 清理用户权限
+     * @param userId 用户ID
+     */
+    void cleanupUserPermissions(Long userId);
+
+    // ==================== 用户状态与权限相关方法 ====================
+
+    /**
+     * 禁用用户会话
+     * @param userId 用户ID
+     */
+    void disableUserSessions(Long userId);
+
+    /**
+     * 锁定用户账户
+     * @param userId 用户ID
+     */
+    void lockUserAccount(Long userId);
+
+    /**
+     * 激活用户账户
+     * @param userId 用户ID
+     */
+    void activateUserAccount(Long userId);
+
+    /**
+     * 更新状态统计
+     * @param oldStatus 旧状态
+     * @param newStatus 新状态
+     */
+    void updateStatusStatistics(String oldStatus, String newStatus);
+
+    /**
+     * 更新用户权限
+     * @param userId 用户ID
+     */
+    void updateUserPermissions(Long userId);
+
+    /**
+     * 检测权限升级
+     * @param oldRoles 旧角色
+     * @param newRoles 新角色
+     * @return 是否有权限升级
+     */
+    boolean hasPermissionUpgrade(com.fasterxml.jackson.databind.JsonNode oldRoles, com.fasterxml.jackson.databind.JsonNode newRoles);
+
+    /**
+     * 记录角色变更历史
+     * @param userId 用户ID
+     * @param operatorId 操作者ID
+     * @param oldRoles 旧角色
+     * @param newRoles 新角色
+     */
+    void recordRoleChangeHistory(Long userId, Long operatorId, com.fasterxml.jackson.databind.JsonNode oldRoles, com.fasterxml.jackson.databind.JsonNode newRoles);
+
+    // ==================== 密码与安全相关方法 ====================
+
+    /**
+     * 强制登出其他会话
+     * @param userId 用户ID
+     */
+    void forceLogoutOtherSessions(Long userId);
+
+    /**
+     * 记录密码变更历史
+     * @param userId 用户ID
+     * @param changeType 变更类型
+     * @param changeIp 变更IP
+     */
+    void recordPasswordChangeHistory(Long userId, String changeType, String changeIp);
+
+    /**
+     * 检测弱密码
+     * @param userId 用户ID
+     * @return 是否为弱密码
+     */
+    boolean isWeakPassword(Long userId);
+
+    /**
+     * 更新密码策略统计
+     * @param userId 用户ID
+     */
+    void updatePasswordPolicyStatistics(Long userId);
+
+    // ==================== 统计与报告相关方法 ====================
+
+    /**
+     * 更新注册统计
+     * @param source 注册来源
+     */
+    void updateRegistrationStatistics(String source);
+
+    /**
+     * 更新删除统计
+     * @param reason 删除原因
+     */
+    void updateDeleteStatistics(String reason);
 }

@@ -1326,4 +1326,50 @@ public class AuditLogServiceImpl extends ServiceImpl<AuditLogMapper, AuditLog> i
         return lowerAction.contains("delete") || lowerAction.contains("download") || 
                lowerAction.contains("删除") || lowerAction.contains("下载");
     }
+
+    // ==================== 新增简化版日志记录方法 ====================
+
+    @Override
+    public AuditLog recordUserOperation(Long userId, String action, Long resourceId, String description, String details) {
+        log.info("记录用户操作: userId={}, action={}, resourceId={}, description={}", 
+                userId, action, resourceId, description);
+        
+        return logUserAction(userId, action, "USER", resourceId, 
+                           description != null ? description : action, 
+                           null, null, "成功", 
+                           details != null ? details : "");
+    }
+
+    @Override
+    public AuditLog recordArchiveOperation(Long archiveId, String action, Long userId, String description, String details) {
+        log.info("记录档案操作: archiveId={}, action={}, userId={}, description={}", 
+                archiveId, action, userId, description);
+        
+        return logArchiveAction(userId, action, archiveId, 
+                              description != null ? description : "档案操作", 
+                              null, null, 
+                              details != null ? details : "");
+    }
+
+    @Override
+    public AuditLog recordOperationLog(String module, String action, String resourceType, 
+                                      String resourceId, String description, String result) {
+        log.info("记录操作日志: module={}, action={}, resourceType={}, resourceId={}", 
+                module, action, resourceType, resourceId);
+        
+        Long resId = null;
+        try {
+            if (resourceId != null && !resourceId.isEmpty()) {
+                resId = Long.parseLong(resourceId);
+            }
+        } catch (NumberFormatException e) {
+            log.warn("无法解析资源ID: {}", resourceId);
+        }
+        
+        return logSystemAction(action, resourceType != null ? resourceType : module, 
+                             resId, 
+                             description != null ? description : (module + "-" + action), 
+                             result != null ? result : "成功", 
+                             "模块: " + module);
+    }
 }

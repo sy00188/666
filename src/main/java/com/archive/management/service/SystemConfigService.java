@@ -348,7 +348,7 @@ public interface SystemConfigService {
      * @param configKey 配置键
      * @return 配置值映射
      */
-    Map<String, String> getMapValue(String configKey);
+    Map<String, Object> getMapValue(String configKey);
 
     /**
      * 设置配置值（字符串类型）
