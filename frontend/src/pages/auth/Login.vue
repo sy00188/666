@@ -107,6 +107,14 @@
             QQ登录
           </el-button>
         </div>
+
+        <!-- 注册提示 -->
+        <div class="register-section">
+          <span class="register-hint">还没有账号？</span>
+          <el-link type="primary" @click="goToRegister" class="register-link">
+            立即注册
+          </el-link>
+        </div>
       </el-form>
 
       <!-- 底部版权信息 -->
@@ -136,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElForm } from "element-plus";
 import { Document, Right, ChatDotRound, User, Lock } from "@element-plus/icons-vue";
@@ -211,9 +219,11 @@ const handleLogin = async () => {
 
     if (success) {
       ElMessage.success("登录成功");
+      // 等待一个tick确保状态更新完成
+      await nextTick();
       // 跳转到首页或之前访问的页面
       const redirect = router.currentRoute.value.query.redirect as string;
-      router.push(redirect || "/dashboard");
+      await router.push(redirect || "/dashboard");
     }
   } catch (error: any) {
     console.error("登录失败:", error);
@@ -238,13 +248,28 @@ const handleWechatLogin = () => {
 // 微信登录成功回调
 const handleWeChatLoginSuccess = async (data: any) => {
   try {
-    // 保存token和用户信息到store
-    if (data.token) {
+    // 防御性检查：确保data和token存在
+    if (data?.token) {
+      // 使用authStore的方法来设置认证状态
       authStore.token = data.token;
       
-      // 如果有用户信息，也保存
+      // 设置用户信息，如果没有提供则创建默认用户信息
       if (data.user) {
         authStore.user = data.user;
+      } else {
+        // 创建默认用户信息以确保isAuthenticated为true
+        authStore.user = {
+          id: data.userId || 'wechat_user',
+          username: data.username || data.nickname || '微信用户',
+          name: data.name || data.nickname || '微信用户',
+          email: data.email || '',
+          role: data.role || 'user',
+          avatar: data.avatar || data.headimgurl || '',
+          permissions: data.permissions || [],
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
       }
       
       ElMessage.success("微信登录成功");
@@ -254,7 +279,9 @@ const handleWeChatLoginSuccess = async (data: any) => {
       
       // 跳转到首页
       const redirect = router.currentRoute.value.query.redirect as string;
-      router.push(redirect || "/dashboard");
+      await router.push(redirect || "/dashboard");
+    } else {
+      ElMessage.error("微信登录响应数据异常");
     }
   } catch (error: any) {
     console.error("微信登录处理失败:", error);
@@ -270,13 +297,28 @@ const handleQQLogin = () => {
 // QQ登录成功回调
 const handleQQLoginSuccess = async (data: any) => {
   try {
-    // 保存token和用户信息到store
-    if (data.token) {
+    // 防御性检查：确保data和token存在
+    if (data?.token) {
+      // 使用authStore的方法来设置认证状态
       authStore.token = data.token;
       
-      // 如果有用户信息，也保存
+      // 设置用户信息，如果没有提供则创建默认用户信息
       if (data.user) {
         authStore.user = data.user;
+      } else {
+        // 创建默认用户信息以确保isAuthenticated为true
+        authStore.user = {
+          id: data.userId || 'qq_user',
+          username: data.username || data.nickname || 'QQ用户',
+          name: data.name || data.nickname || 'QQ用户',
+          email: data.email || '',
+          role: data.role || 'user',
+          avatar: data.avatar || data.figureurl_qq_1 || '',
+          permissions: data.permissions || [],
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
       }
       
       ElMessage.success("QQ登录成功");
@@ -286,7 +328,9 @@ const handleQQLoginSuccess = async (data: any) => {
       
       // 跳转到首页
       const redirect = router.currentRoute.value.query.redirect as string;
-      router.push(redirect || "/dashboard");
+      await router.push(redirect || "/dashboard");
+    } else {
+      ElMessage.error("QQ登录响应数据异常");
     }
   } catch (error: any) {
     console.error("QQ登录处理失败:", error);
@@ -596,6 +640,28 @@ onMounted(() => {
         background: #0ea5e9;
         transform: scale(1.1);
       }
+    }
+  }
+}
+
+.register-section {
+  text-align: center;
+  margin: 24px 0 16px 0;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+  
+  .register-hint {
+    font-size: 14px;
+    color: #666;
+    margin-right: 8px;
+  }
+  
+  .register-link {
+    font-size: 14px;
+    font-weight: 500;
+    
+    &:hover {
+      text-decoration: underline;
     }
   }
 }

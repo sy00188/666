@@ -20,8 +20,8 @@ service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore();
 
-    // 添加token到请求头
-    if (authStore.token) {
+    // 添加token到请求头 - 防御性检查
+    if (authStore?.token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${authStore.token}`;
     }

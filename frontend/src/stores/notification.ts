@@ -5,6 +5,8 @@ import { ref, computed } from 'vue';
 import type { Notification, NotificationFilter, NotificationType } from '@/types/notification';
 import { notificationApi } from '@/api/modules/notification';
 import { ElNotification } from 'element-plus';
+import { createWebSocket, type WebSocketManager, type WebSocketMessage } from '@/utils/websocket';
+import { useAuthStore } from './auth';
 
 export const useNotificationStore = defineStore(
   'notification',
@@ -14,6 +16,7 @@ export const useNotificationStore = defineStore(
     const unreadCount = ref(0);
     const loading = ref(false);
     const pollingInterval = ref<number | null>(null);
+    const websocketManager = ref<WebSocketManager | null>(null);
     const filter = ref<NotificationFilter>({
       readStatus: 'all',
     });
@@ -281,12 +284,102 @@ export const useNotificationStore = defineStore(
     };
 
     /**
+     * 初始化WebSocket连接
+     */
+    const connectWebSocket = () => {
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+
+      if (!userId) {
+        console.warn('用户未登录，无法建立WebSocket连接');
+        return;
+      }
+
+      // 如果已经连接，则不重复连接
+      if (websocketManager.value?.isConnected()) {
+        console.log('WebSocket已连接');
+        return;
+      }
+
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const wsUrl = `${baseURL}/ws`;
+
+        websocketManager.value = createWebSocket({
+          url: wsUrl,
+          userId: String(userId),
+          onMessage: handleWebSocketMessage,
+          onConnected: () => {
+            console.log('WebSocket连接成功');
+            // 停止轮询，改用实时推送
+            stopPolling();
+          },
+          onDisconnected: () => {
+            console.log('WebSocket连接断开');
+            // 重新开始轮询作为后备方案
+            startPolling();
+          },
+          onError: (error) => {
+            console.error('WebSocket错误:', error);
+          },
+        });
+
+        websocketManager.value.connect();
+      } catch (error) {
+        console.error('创建WebSocket连接失败:', error);
+        // 使用轮询作为后备方案
+        startPolling();
+      }
+    };
+
+    /**
+     * 断开WebSocket连接
+     */
+    const disconnectWebSocket = () => {
+      if (websocketManager.value) {
+        websocketManager.value.disconnect();
+        websocketManager.value = null;
+      }
+    };
+
+    /**
+     * 处理WebSocket消息
+     */
+    const handleWebSocketMessage = (message: WebSocketMessage) => {
+      switch (message.type) {
+        case 'NEW_NOTIFICATION':
+          if (message.notification) {
+            addNotification(message.notification);
+          }
+          break;
+        case 'BROADCAST_NOTIFICATION':
+          if (message.notification) {
+            addNotification(message.notification);
+          }
+          break;
+        case 'UNREAD_COUNT_UPDATE':
+          if (message.unreadCount !== undefined) {
+            unreadCount.value = message.unreadCount;
+          }
+          break;
+        case 'UNREAD_COUNT_UPDATE_REQUEST':
+          // 服务器请求更新未读数量
+          fetchUnreadCount();
+          break;
+        default:
+          console.log('未处理的WebSocket消息类型:', message.type);
+      }
+    };
+
+    /**
      * 初始化
      */
     const init = async () => {
       await fetchNotifications();
       await fetchUnreadCount();
-      startPolling();
+      
+      // 尝试建立WebSocket连接
+      connectWebSocket();
 
       // 请求桌面通知权限
       if ('Notification' in window && Notification.permission === 'default') {
@@ -299,6 +392,7 @@ export const useNotificationStore = defineStore(
      */
     const cleanup = () => {
       stopPolling();
+      disconnectWebSocket();
     };
 
     return {
@@ -307,6 +401,7 @@ export const useNotificationStore = defineStore(
       unreadCount,
       loading,
       filter,
+      websocketManager,
 
       // 计算属性
       unreadNotifications,
@@ -326,6 +421,8 @@ export const useNotificationStore = defineStore(
       resetFilter,
       startPolling,
       stopPolling,
+      connectWebSocket,
+      disconnectWebSocket,
       init,
       cleanup,
     };

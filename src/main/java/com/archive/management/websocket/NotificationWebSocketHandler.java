@@ -227,4 +227,52 @@ public class NotificationWebSocketHandler {
     public boolean isUserOnline(String userId) {
         return userSessions.containsValue(userId);
     }
+
+    /**
+     * 添加用户会话
+     * 
+     * @param userId 用户ID
+     * @param sessionId 会话ID
+     */
+    public void addUserSession(Long userId, String sessionId) {
+        if (userId != null && sessionId != null) {
+            userSessions.put(sessionId, String.valueOf(userId));
+            log.info("添加用户会话: userId={}, sessionId={}", userId, sessionId);
+        }
+    }
+
+    /**
+     * 移除用户会话
+     * 
+     * @param userId 用户ID
+     * @param sessionId 会话ID
+     */
+    public void removeUserSession(Long userId, String sessionId) {
+        if (sessionId != null) {
+            String removedUserId = userSessions.remove(sessionId);
+            log.info("移除用户会话: userId={}, sessionId={}, removedUserId={}", userId, sessionId, removedUserId);
+        }
+    }
+
+    /**
+     * 更新用户未读通知数量
+     * 
+     * @param userId 用户ID
+     */
+    public void updateUnreadCount(Long userId) {
+        try {
+            // 这个方法会被NotificationService调用，需要查询实际的未读数量
+            // 为了避免循环依赖，这里使用messagingTemplate直接发送更新
+            Map<String, Object> message = Map.of(
+                "type", "UNREAD_COUNT_UPDATE_REQUEST",
+                "timestamp", LocalDateTime.now()
+            );
+            
+            messagingTemplate.convertAndSendToUser(String.valueOf(userId), "/queue/notification-count", message);
+            log.debug("触发用户未读数量更新: userId={}", userId);
+            
+        } catch (Exception e) {
+            log.error("更新未读通知数量时发生错误: userId={}", userId, e);
+        }
+    }
 }

@@ -45,20 +45,32 @@ export const useAuthStore = defineStore(
         loading.value = true;
         const response = await authApi.login(loginForm);
 
-        if (response.success) {
-          token.value = response.data.token;
-          user.value = response.data.user;
+        if (response?.success && response.data) {
+          // 防御性检查：确保token存在
+          if (response.data.token) {
+            token.value = response.data.token;
+            setAuthHeader(response.data.token);
+          } else {
+            ElMessage.error("登录响应缺少token信息");
+            return false;
+          }
 
-          // 设置请求头
-          setAuthHeader(response.data.token);
+          // 防御性检查：确保用户信息存在
+          if (response.data.user) {
+            user.value = response.data.user;
+          } else {
+            ElMessage.error("登录响应缺少用户信息");
+            return false;
+          }
 
           ElMessage.success("登录成功");
           return true;
         } else {
-          ElMessage.error(response.message || "登录失败");
+          ElMessage.error(response?.message || "登录失败");
           return false;
         }
       } catch (error: unknown) {
+        console.error("登录错误:", error);
         ElMessage.error((error as Error).message || "登录失败");
         return false;
       } finally {
@@ -175,7 +187,7 @@ export const useAuthStore = defineStore(
     const refreshToken = async (): Promise<boolean> => {
       try {
         const response = await authApi.refreshToken();
-        if (response.success) {
+        if (response?.success && response.data?.token) {
           token.value = response.data.token;
           setAuthHeader(response.data.token);
           return true;

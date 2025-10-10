@@ -252,7 +252,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     @Cacheable(value = "categories", key = "'tree'")
-    public List<Category> getCategoryTree() {
+    public List<Map<String, Object>> getCategoryTree() {
         log.debug("获取分类树结构");
         
         try {
@@ -264,7 +264,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             List<Category> allCategories = list(queryWrapper);
             
             // 构建树结构
-            return buildCategoryTree(allCategories, 0L);
+            return buildCategoryTree(allCategories);
             
         } catch (Exception e) {
             log.error("获取分类树结构失败", e);

@@ -298,7 +298,7 @@ public class CacheWarmUpService implements ApplicationRunner {
     public void refreshAllCaches() {
         try {
             // 清空所有缓存
-            cacheService.clearAllCaches();
+            cacheService.clearAllCache();
             
             // 重新预热
             warmUpCachesAsync();
