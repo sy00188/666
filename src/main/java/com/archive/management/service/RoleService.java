@@ -55,44 +55,39 @@ public interface RoleService {
 
     /**
      * 删除角色（软删除）
-     * @param id 角色ID
-     * @param deletedBy 删除人ID
+     * @param roleId 角色ID
      * @return 是否删除成功
      */
-    boolean deleteRole(Long id, Long deletedBy);
+    boolean deleteRole(Long roleId);
 
     /**
      * 批量删除角色（软删除）
-     * @param ids 角色ID列表
-     * @param deletedBy 删除人ID
-     * @return 删除成功的数量
+     * @param roleIds 角色ID列表
+     * @return 是否删除成功
      */
-    int batchDeleteRoles(List<Long> ids, Long deletedBy);
+    boolean batchDeleteRoles(List<Long> roleIds);
 
     /**
      * 启用角色
-     * @param id 角色ID
-     * @param updatedBy 更新人ID
+     * @param roleId 角色ID
      * @return 是否启用成功
      */
-    boolean enableRole(Long id, Long updatedBy);
+    boolean enableRole(Long roleId);
 
     /**
      * 禁用角色
-     * @param id 角色ID
-     * @param updatedBy 更新人ID
+     * @param roleId 角色ID
      * @return 是否禁用成功
      */
-    boolean disableRole(Long id, Long updatedBy);
+    boolean disableRole(Long roleId);
 
     /**
      * 批量更新角色状态
-     * @param ids 角色ID列表
+     * @param roleIds 角色ID列表
      * @param status 新状态
-     * @param updatedBy 更新人ID
-     * @return 更新成功的数量
+     * @return 是否更新成功
      */
-    int batchUpdateRoleStatus(List<Long> ids, Integer status, Long updatedBy);
+    boolean batchUpdateStatus(List<Long> roleIds, Integer status);
 
     /**
      * 检查角色编码是否存在
@@ -141,16 +136,66 @@ public interface RoleService {
     List<Role> findEnabledRoles();
 
     /**
+     * 获取所有角色
+     * @return 角色列表
+     */
+    List<Role> getAllRoles();
+
+    /**
+     * 获取启用的角色
+     * @return 角色列表
+     */
+    List<Role> getEnabledRoles();
+
+    /**
+     * 获取禁用的角色
+     * @return 角色列表
+     */
+    List<Role> getDisabledRoles();
+
+    /**
+     * 获取系统角色
+     * @return 角色列表
+     */
+    List<Role> getSystemRoles();
+
+    /**
      * 获取系统内置角色
      * @return 角色列表
      */
     List<Role> findBuiltinRoles();
 
     /**
+     * 获取业务角色
+     * @return 角色列表
+     */
+    List<Role> getBusinessRoles();
+
+    /**
      * 获取自定义角色
      * @return 角色列表
      */
     List<Role> findCustomRoles();
+
+    /**
+     * 获取自定义角色
+     * @return 角色列表
+     */
+    List<Role> getCustomRoles();
+
+    /**
+     * 根据角色类型获取角色
+     * @param roleType 角色类型
+     * @return 角色列表
+     */
+    List<Role> getRolesByType(Integer roleType);
+
+    /**
+     * 根据角色级别获取角色
+     * @param roleLevel 角色级别
+     * @return 角色列表
+     */
+    List<Role> getRolesByLevel(Integer roleLevel);
 
     /**
      * 统计角色总数
@@ -185,11 +230,39 @@ public interface RoleService {
     List<Map<String, Object>> getRoleTypeStatistics();
 
     /**
+     * 获取角色层级统计
+     * @return 层级统计结果
+     */
+    Map<String, Object> getRoleHierarchyStatistics();
+
+    /**
+     * 获取角色权限统计
+     * @return 权限统计结果
+     */
+    Map<String, Object> getRolePermissionStatistics();
+
+    /**
      * 根据关键词搜索角色
      * @param keyword 关键词
      * @return 角色列表
      */
     List<Role> searchRoles(String keyword);
+
+    /**
+     * 分页查询角色
+     * @param page 分页参数
+     * @param queryRole 查询条件
+     * @return 分页结果
+     */
+    IPage<Role> getRolesWithPagination(Page<Role> page, Role queryRole);
+
+    /**
+     * 分页搜索角色
+     * @param page 分页参数
+     * @param keyword 关键词
+     * @return 分页结果
+     */
+    IPage<Role> searchRolesWithPagination(Page<Role> page, String keyword);
 
     /**
      * 获取角色的权限列表
@@ -202,58 +275,151 @@ public interface RoleService {
      * 为角色分配权限
      * @param roleId 角色ID
      * @param permissionIds 权限ID列表
-     * @param assignedBy 分配人ID
-     * @return 分配成功的数量
+     * @return 是否分配成功
      */
-    int assignPermissionsToRole(Long roleId, List<Long> permissionIds, Long assignedBy);
+    boolean assignPermissions(Long roleId, List<Long> permissionIds);
 
     /**
      * 移除角色权限
      * @param roleId 角色ID
      * @param permissionIds 权限ID列表
-     * @param removedBy 移除人ID
-     * @return 移除成功的数量
+     * @return 是否移除成功
      */
-    int removePermissionsFromRole(Long roleId, List<Long> permissionIds, Long removedBy);
+    boolean removePermissions(Long roleId, List<Long> permissionIds);
 
     /**
      * 检查角色是否有指定权限
      * @param roleId 角色ID
-     * @param permission 权限标识
+     * @param permissionCode 权限编码
      * @return 是否有权限
      */
-    boolean hasPermission(Long roleId, String permission);
+    boolean checkRolePermissionByCode(Long roleId, String permissionCode);
 
     /**
      * 获取拥有指定权限的角色列表
-     * @param permission 权限标识
+     * @param permissionCode 权限编码
      * @return 角色列表
      */
-    List<Role> findRolesByPermission(String permission);
+    List<Role> getRolesByPermissionCode(String permissionCode);
+
+    /**
+     * 获取角色权限ID列表
+     * @param roleId 角色ID
+     * @return 权限ID列表
+     */
+    List<Long> getRolePermissionIds(Long roleId);
+
+    /**
+     * 获取角色权限编码列表
+     * @param roleId 角色ID
+     * @return 权限编码列表
+     */
+    List<String> getRolePermissionCodes(Long roleId);
+
+    /**
+     * 检查角色是否拥有权限（通过权限ID）
+     * @param roleId 角色ID
+     * @param permissionId 权限ID
+     * @return 是否拥有权限
+     */
+    boolean checkRolePermission(Long roleId, Long permissionId);
+
+    /**
+     * 根据权限ID查找拥有该权限的角色
+     * @param permissionId 权限ID
+     * @return 角色列表
+     */
+    List<Role> getRolesByPermission(Long permissionId);
 
     /**
      * 获取角色的用户数量
      * @param roleId 角色ID
      * @return 用户数量
      */
-    long countUsersByRole(Long roleId);
+    Long getRoleUserCount(Long roleId);
 
     /**
-     * 获取角色的用户列表
+     * 获取角色的用户ID列表
      * @param roleId 角色ID
      * @return 用户ID列表
      */
-    List<Long> getUserIdsByRole(Long roleId);
+    List<Long> getRoleUserIds(Long roleId);
+
+    /**
+     * 获取角色下的用户列表
+     * @param roleId 角色ID
+     * @return 用户列表
+     */
+    List<com.archive.management.entity.User> getRoleUsers(Long roleId);
+
+    /**
+     * 获取用户的角色列表
+     * @param userId 用户ID
+     * @return 角色列表
+     */
+    List<Role> getUserRoles(Long userId);
+
+    /**
+     * 获取用户的角色ID列表
+     * @param userId 用户ID
+     * @return 角色ID列表
+     */
+    List<Long> getUserRoleIds(Long userId);
+
+    /**
+     * 获取用户的角色编码列表
+     * @param userId 用户ID
+     * @return 角色编码列表
+     */
+    List<String> getUserRoleCodes(Long userId);
+
+    /**
+     * 检查用户是否拥有指定角色
+     * @param userId 用户ID
+     * @param roleId 角色ID
+     * @return 是否拥有角色
+     */
+    boolean checkUserHasRole(Long userId, Long roleId);
+
+    /**
+     * 检查用户是否拥有指定角色编码
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否拥有角色
+     */
+    boolean checkUserHasRoleByCode(Long userId, String roleCode);
+
+    /**
+     * 为用户分配角色
+     * @param userId 用户ID
+     * @param roleIds 角色ID列表
+     * @return 是否分配成功
+     */
+    boolean assignUserRoles(Long userId, List<Long> roleIds);
+
+    /**
+     * 移除用户角色
+     * @param userId 用户ID
+     * @param roleIds 角色ID列表
+     * @return 是否移除成功
+     */
+    boolean removeUserRoles(Long userId, List<Long> roleIds);
+
+    /**
+     * 清空用户所有角色
+     * @param userId 用户ID
+     * @return 是否清空成功
+     */
+    boolean clearUserRoles(Long userId);
 
     /**
      * 复制角色
      * @param sourceRoleId 源角色ID
      * @param newRoleCode 新角色编码
      * @param newRoleName 新角色名称
-     * @param createdBy 创建人ID
      * @return 新创建的角色
      */
-    Role copyRole(Long sourceRoleId, String newRoleCode, String newRoleName, Long createdBy);
+    Role copyRole(Long sourceRoleId, String newRoleCode, String newRoleName);
 
     /**
      * 导出角色数据
@@ -265,10 +431,9 @@ public interface RoleService {
     /**
      * 批量导入角色
      * @param roles 角色列表
-     * @param createdBy 创建人ID
-     * @return 导入成功的数量
+     * @return 导入的角色列表
      */
-    int importRoles(List<Role> roles, Long createdBy);
+    List<Role> importRoles(List<Role> roles);
 
     /**
      * 验证角色层级关系
@@ -285,11 +450,24 @@ public interface RoleService {
     List<Map<String, Object>> getRoleHierarchyTree();
 
     /**
+     * 获取角色树
+     * @return 角色树
+     */
+    List<Role> getRoleTree();
+
+    /**
      * 获取角色的子角色列表
-     * @param parentRoleId 父角色ID
+     * @param roleId 父角色ID
      * @return 子角色列表
      */
-    List<Role> getChildRoles(Long parentRoleId);
+    List<Role> getChildRoles(Long roleId);
+
+    /**
+     * 获取角色的父角色列表
+     * @param roleId 角色ID
+     * @return 父角色列表
+     */
+    List<Role> getParentRoles(Long roleId);
 
     /**
      * 获取角色的父角色
@@ -299,21 +477,33 @@ public interface RoleService {
     Role getParentRole(Long roleId);
 
     /**
+     * 获取角色的所有子孙角色
+     * @param roleId 角色ID
+     * @return 子孙角色列表
+     */
+    List<Role> getDescendantRoles(Long roleId);
+
+    /**
+     * 获取角色的所有祖先角色
+     * @param roleId 角色ID
+     * @return 祖先角色列表
+     */
+    List<Role> getAncestorRoles(Long roleId);
+
+    /**
      * 设置角色的父角色
      * @param roleId 角色ID
      * @param parentRoleId 父角色ID
-     * @param updatedBy 更新人ID
      * @return 是否设置成功
      */
-    boolean setParentRole(Long roleId, Long parentRoleId, Long updatedBy);
+    boolean setParentRole(Long roleId, Long parentRoleId);
 
     /**
      * 移除角色的父角色关系
      * @param roleId 角色ID
-     * @param updatedBy 更新人ID
      * @return 是否移除成功
      */
-    boolean removeParentRole(Long roleId, Long updatedBy);
+    boolean removeParentRole(Long roleId);
 
     /**
      * 获取角色权限树
@@ -323,34 +513,28 @@ public interface RoleService {
     List<Map<String, Object>> getRolePermissionTree(Long roleId);
 
     /**
-     * 同步角色权限（从模板角色）
-     * @param targetRoleId 目标角色ID
-     * @param templateRoleId 模板角色ID
-     * @param updatedBy 更新人ID
-     * @return 同步成功的权限数量
+     * 同步角色权限
+     * @param roleId 角色ID
+     * @param permissionIds 权限ID列表
      */
-    int syncRolePermissions(Long targetRoleId, Long templateRoleId, Long updatedBy);
+    void syncPermissions(Long roleId, List<Long> permissionIds);
 
     /**
      * 清理无效的角色关联
-     * @return 清理的数量
      */
-    int cleanupInvalidRoleAssociations();
+    void cleanInvalidAssociations();
 
     /**
      * 生成角色报告
-     * @param startDate 开始日期
-     * @param endDate 结束日期
      * @return 报告数据
      */
-    Map<String, Object> generateRoleReport(LocalDateTime startDate, LocalDateTime endDate);
+    Map<String, Object> generateRoleReport();
 
     /**
      * 获取角色使用统计
-     * @param days 统计天数
      * @return 使用统计结果
      */
-    List<Map<String, Object>> getRoleUsageStatistics(int days);
+    Map<String, Object> getRoleUsageStatistics();
 
     /**
      * 检查角色是否可以删除
@@ -366,13 +550,6 @@ public interface RoleService {
      */
     Map<String, Object> getRoleDependencies(Long roleId);
 
-    /**
-     * 批量更新角色排序
-     * @param roleOrders 角色排序映射（角色ID -> 排序值）
-     * @param updatedBy 更新人ID
-     * @return 更新成功的数量
-     */
-    int batchUpdateRoleSort(Map<Long, Integer> roleOrders, Long updatedBy);
 
     /**
      * 获取推荐的角色权限配置

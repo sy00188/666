@@ -1,0 +1,4 @@
+Matching Java Virtual Machines (2):
+    24.0.1 (arm64) "Eclipse Adoptium" - "OpenJDK 24.0.1" /Users/songyidemac/Library/Java/JavaVirtualMachines/temurin-24/Contents/Home
+    17.0.2 (arm64) "Oracle Corporation" - "OpenJDK 17.0.2" /Users/songyidemac/Library/Java/JavaVirtualMachines/jdk-17.0.2.jdk/Contents/Home
+/Users/songyidemac/Library/Java/JavaVirtualMachines/temurin-24/Contents/Home

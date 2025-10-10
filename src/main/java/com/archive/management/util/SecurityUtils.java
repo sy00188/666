@@ -142,6 +142,14 @@ public class SecurityUtils {
     }
 
     /**
+     * 检查当前用户是否为超级管理员
+     * @return 是否为超级管理员
+     */
+    public static boolean isSuperAdmin() {
+        return hasRole("SUPER_ADMIN") || hasRole("ADMIN") || hasRole("超级管理员");
+    }
+
+    /**
      * 检查当前用户是否有档案访问权限（根据密级）
      * @param securityLevel 档案密级
      * @return 是否有访问权限

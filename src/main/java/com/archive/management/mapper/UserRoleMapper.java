@@ -255,4 +255,14 @@ public interface UserRoleMapper extends BaseMapper<UserRole> {
                        @Param("expiredAt") LocalDateTime expiredAt,
                        @Param("updatedBy") Long updatedBy,
                        @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 删除无效的用户角色关联
+     * 
+     * @return 删除数量
+     */
+    @Delete("DELETE FROM user_roles WHERE " +
+            "(user_id NOT IN (SELECT id FROM users WHERE deleted = 0)) OR " +
+            "(role_id NOT IN (SELECT id FROM roles WHERE deleted = 0))")
+    int deleteInvalidAssociations();
 }

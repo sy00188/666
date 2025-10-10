@@ -356,4 +356,9 @@ public class SmsMessage {
     public String getVersion() {
         return version;
     }
+
+    // 手动添加setter方法
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
+    }
 }

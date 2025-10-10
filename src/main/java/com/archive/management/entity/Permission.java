@@ -632,4 +632,5 @@ public class Permission extends BaseEntity implements Serializable {
             this.parentId = parent.getId();
         }
     }
+
 }

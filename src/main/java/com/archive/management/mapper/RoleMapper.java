@@ -499,4 +499,268 @@ public interface RoleMapper extends BaseMapper<Role> {
             "INNER JOIN sys_role r ON rp.role_id = r.id " +
             "WHERE rp.permission_id = #{permissionId} AND r.deleted = 0")
     long countByPermissionId(@Param("permissionId") Long permissionId);
+
+    /**
+     * 获取角色的权限ID列表
+     */
+    @Select("SELECT permission_id FROM sys_role_permission WHERE role_id = #{roleId}")
+    List<Long> getRolePermissionIds(@Param("roleId") Long roleId);
+
+    /**
+     * 获取角色的权限编码列表
+     */
+    @Select("SELECT p.permission_code FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "WHERE rp.role_id = #{roleId} AND p.deleted = 0")
+    List<String> getRolePermissionCodes(@Param("roleId") Long roleId);
+
+    /**
+     * 检查角色是否有指定权限（通过权限ID）
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_role_permission " +
+            "WHERE role_id = #{roleId} AND permission_id = #{permissionId}")
+    boolean checkRolePermission(@Param("roleId") Long roleId, @Param("permissionId") Long permissionId);
+
+    /**
+     * 检查角色是否有指定权限（通过权限编码）
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "WHERE rp.role_id = #{roleId} AND p.permission_code = #{permissionCode} AND p.deleted = 0")
+    boolean checkRolePermissionByCode(@Param("roleId") Long roleId, @Param("permissionCode") String permissionCode);
+
+    /**
+     * 根据权限编码查找拥有该权限的角色列表
+     */
+    @Select("SELECT r.* FROM sys_role r " +
+            "INNER JOIN sys_role_permission rp ON r.id = rp.role_id " +
+            "INNER JOIN sys_permission p ON rp.permission_id = p.id " +
+            "WHERE p.permission_code = #{permissionCode} AND r.deleted = 0 AND p.deleted = 0")
+    List<Role> findByPermissionCode(@Param("permissionCode") String permissionCode);
+
+    /**
+     * 获取角色的用户列表
+     */
+    @Select("SELECT u.* FROM sys_user u " +
+            "INNER JOIN sys_user_role ur ON u.id = ur.user_id " +
+            "WHERE ur.role_id = #{roleId} AND u.deleted = 0")
+    List<com.archive.management.entity.User> findUsersByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 统计角色的用户数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_user_role ur " +
+            "INNER JOIN sys_user u ON ur.user_id = u.id " +
+            "WHERE ur.role_id = #{roleId} AND u.deleted = 0")
+    long countUsersByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 获取角色的用户ID列表
+     */
+    @Select("SELECT user_id FROM sys_user_role WHERE role_id = #{roleId}")
+    List<Long> findUserIdsByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 根据用户ID查找角色列表
+     */
+    @Select("SELECT r.* FROM sys_role r " +
+            "INNER JOIN sys_user_role ur ON r.id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND r.deleted = 0")
+    List<Role> findRolesByUserId(@Param("userId") Long userId);
+
+    /**
+     * 删除指定权限ID列表的角色权限关联
+     */
+    @Delete("<script>" +
+            "DELETE FROM sys_role_permission WHERE role_id = #{roleId} AND permission_id IN " +
+            "<foreach collection='permissionIds' item='permissionId' open='(' separator=',' close=')'>" +
+            "#{permissionId}" +
+            "</foreach>" +
+            "</script>")
+    boolean deleteRolePermissionsByIds(@Param("roleId") Long roleId, @Param("permissionIds") List<Long> permissionIds);
+
+    // ==================== 用户角色关联相关方法 ====================
+
+    /**
+     * 根据用户ID查找角色ID列表
+     */
+    @Select("SELECT role_id FROM sys_user_role WHERE user_id = #{userId}")
+    List<Long> findRoleIdsByUserId(@Param("userId") Long userId);
+
+    /**
+     * 根据用户ID查找角色编码列表
+     */
+    @Select("SELECT r.role_code FROM sys_role r " +
+            "INNER JOIN sys_user_role ur ON r.id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND r.deleted = 0")
+    List<String> findRoleCodesByUserId(@Param("userId") Long userId);
+
+    /**
+     * 检查用户是否拥有指定角色
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_user_role WHERE user_id = #{userId} AND role_id = #{roleId}")
+    boolean checkUserHasRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
+
+    /**
+     * 检查用户是否拥有指定角色编码
+     */
+    @Select("SELECT COUNT(*) > 0 FROM sys_user_role ur " +
+            "INNER JOIN sys_role r ON ur.role_id = r.id " +
+            "WHERE ur.user_id = #{userId} AND r.role_code = #{roleCode} AND r.deleted = 0")
+    boolean checkUserHasRoleByCode(@Param("userId") Long userId, @Param("roleCode") String roleCode);
+
+    /**
+     * 删除用户的所有角色关联
+     */
+    @Delete("DELETE FROM sys_user_role WHERE user_id = #{userId}")
+    boolean deleteUserRoles(@Param("userId") Long userId);
+
+    /**
+     * 批量插入用户角色关联
+     */
+    @Insert("<script>" +
+            "INSERT INTO sys_user_role (user_id, role_id, create_by, create_time) VALUES " +
+            "<foreach collection='roleIds' item='roleId' separator=','>" +
+            "(#{userId}, #{roleId}, #{createdBy}, #{createTime})" +
+            "</foreach>" +
+            "</script>")
+    boolean batchInsertUserRoles(@Param("userId") Long userId, 
+                                @Param("roleIds") List<Long> roleIds,
+                                @Param("createdBy") Long createdBy,
+                                @Param("createTime") LocalDateTime createTime);
+
+    /**
+     * 删除用户指定角色关联
+     */
+    @Delete("<script>" +
+            "DELETE FROM sys_user_role WHERE user_id = #{userId} AND role_id IN " +
+            "<foreach collection='roleIds' item='roleId' open='(' separator=',' close=')'>" +
+            "#{roleId}" +
+            "</foreach>" +
+            "</script>")
+    boolean deleteUserRolesByIds(@Param("userId") Long userId, @Param("roleIds") List<Long> roleIds);
+
+    // ==================== 角色层级相关方法 ====================
+
+    /**
+     * 查找子角色列表
+     */
+    @Select("SELECT * FROM sys_role WHERE parent_id = #{roleId} AND deleted = 0 ORDER BY sort_order ASC")
+    List<Role> findChildRoles(@Param("roleId") Long roleId);
+
+    /**
+     * 查找父角色列表（递归查询所有祖先）
+     */
+    @Select("WITH RECURSIVE parent_roles AS (" +
+            "  SELECT * FROM sys_role WHERE id = (SELECT parent_id FROM sys_role WHERE id = #{roleId}) AND deleted = 0" +
+            "  UNION ALL" +
+            "  SELECT r.* FROM sys_role r INNER JOIN parent_roles pr ON r.id = pr.parent_id WHERE r.deleted = 0" +
+            ")" +
+            "SELECT * FROM parent_roles")
+    List<Role> findParentRoles(@Param("roleId") Long roleId);
+
+    // ==================== 统计相关方法 ====================
+
+    /**
+     * 获取角色用户统计
+     */
+    @Select("SELECT r.id, r.role_name, COUNT(ur.user_id) as user_count " +
+            "FROM sys_role r " +
+            "LEFT JOIN sys_user_role ur ON r.id = ur.role_id " +
+            "WHERE r.deleted = 0 " +
+            "GROUP BY r.id, r.role_name")
+    List<Map<String, Object>> getRoleUserStatistics();
+
+    /**
+     * 查找最近创建的角色
+     */
+    @Select("SELECT * FROM sys_role WHERE deleted = 0 ORDER BY create_time DESC LIMIT #{limit}")
+    List<Role> findRecentCreatedRoles(@Param("limit") int limit);
+
+    /**
+     * 获取使用频率最高的角色
+     */
+    @Select("SELECT r.*, COUNT(ur.user_id) as user_count " +
+            "FROM sys_role r " +
+            "INNER JOIN sys_user_role ur ON r.id = ur.role_id " +
+            "WHERE r.deleted = 0 " +
+            "GROUP BY r.id " +
+            "ORDER BY user_count DESC " +
+            "LIMIT #{limit}")
+    List<Map<String, Object>> getTopUsedRoles(@Param("limit") int limit);
+
+    /**
+     * 统计根角色数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_role WHERE (parent_id IS NULL OR parent_id = 0) AND deleted = 0")
+    Long countRootRoles();
+
+    /**
+     * 统计叶子角色数量
+     */
+    @Select("SELECT COUNT(*) FROM sys_role r1 " +
+            "WHERE r1.deleted = 0 AND NOT EXISTS (" +
+            "  SELECT 1 FROM sys_role r2 WHERE r2.parent_id = r1.id AND r2.deleted = 0" +
+            ")")
+    Long countLeafRoles();
+
+    /**
+     * 获取最大层级深度
+     */
+    @Select("WITH RECURSIVE role_depth AS (" +
+            "  SELECT id, parent_id, 1 as depth FROM sys_role WHERE (parent_id IS NULL OR parent_id = 0) AND deleted = 0" +
+            "  UNION ALL" +
+            "  SELECT r.id, r.parent_id, rd.depth + 1 FROM sys_role r " +
+            "  INNER JOIN role_depth rd ON r.parent_id = rd.id WHERE r.deleted = 0" +
+            ")" +
+            "SELECT MAX(depth) FROM role_depth")
+    Integer getMaxHierarchyDepth();
+
+    /**
+     * 获取平均子角色数量
+     */
+    @Select("SELECT AVG(child_count) FROM (" +
+            "  SELECT COUNT(*) as child_count FROM sys_role " +
+            "  WHERE deleted = 0 AND parent_id IS NOT NULL " +
+            "  GROUP BY parent_id" +
+            ") as counts")
+    Double getAverageChildRoleCount();
+
+    /**
+     * 获取层级分布
+     */
+    @Select("WITH RECURSIVE role_depth AS (" +
+            "  SELECT id, parent_id, 1 as depth FROM sys_role WHERE (parent_id IS NULL OR parent_id = 0) AND deleted = 0" +
+            "  UNION ALL" +
+            "  SELECT r.id, r.parent_id, rd.depth + 1 FROM sys_role r " +
+            "  INNER JOIN role_depth rd ON r.parent_id = rd.id WHERE r.deleted = 0" +
+            ")" +
+            "SELECT depth as level, COUNT(*) as count FROM role_depth GROUP BY depth ORDER BY depth")
+    List<Map<String, Object>> getHierarchyLevelDistribution();
+
+    /**
+     * 统计已分配权限数量
+     */
+    @Select("SELECT COUNT(DISTINCT permission_id) FROM sys_role_permission")
+    Long countAssignedPermissions();
+
+    /**
+     * 获取角色权限分布
+     */
+    @Select("SELECT permission_count, COUNT(*) as role_count FROM (" +
+            "  SELECT role_id, COUNT(*) as permission_count FROM sys_role_permission GROUP BY role_id" +
+            ") as counts GROUP BY permission_count ORDER BY permission_count")
+    List<Map<String, Object>> getRolePermissionDistribution();
+
+    /**
+     * 获取权限使用频率
+     */
+    @Select("SELECT p.id, p.permission_name, p.permission_code, COUNT(rp.role_id) as usage_count " +
+            "FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "WHERE p.deleted = 0 " +
+            "GROUP BY p.id, p.permission_name, p.permission_code " +
+            "ORDER BY usage_count DESC")
+    List<Map<String, Object>> getPermissionUsageFrequency();
+
 }

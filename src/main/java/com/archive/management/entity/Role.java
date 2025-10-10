@@ -155,7 +155,19 @@ public class Role implements Serializable {
     @TableField("version")
     private Integer version;
 
+    /**
+     * 父角色ID（用于角色层级）
+     */
+    @TableField("parent_id")
+    private Long parentId;
+
     // ==================== 非数据库字段 ====================
+
+    /**
+     * 子角色列表（非数据库字段，用于构建角色树）
+     */
+    @TableField(exist = false)
+    private List<Role> children;
 
     /**
      * 角色权限列表（非数据库字段）
@@ -494,5 +506,156 @@ public class Role implements Serializable {
 
     public String getUpdateByName() {
         return updateByName;
+    }
+
+    // ==================== 额外的 Setter 方法（用于兼容性） ====================
+
+    /**
+     * 设置角色名称
+     */
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    /**
+     * 设置角色编码
+     */
+    public void setRoleCode(String roleCode) {
+        this.roleCode = roleCode;
+    }
+
+    /**
+     * 设置父角色ID
+     */
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    /**
+     * 获取父角色ID
+     */
+    public Long getParentId() {
+        return parentId;
+    }
+
+    /**
+     * 设置子角色列表
+     */
+    public void setChildren(List<Role> children) {
+        this.children = children;
+    }
+
+    /**
+     * 获取子角色列表
+     */
+    public List<Role> getChildren() {
+        return children;
+    }
+
+    /**
+     * 设置是否系统角色
+     */
+    public void setIsSystem(Integer isSystem) {
+        this.isSystem = isSystem;
+    }
+
+    /**
+     * 设置数据权限范围
+     */
+    public void setDataScope(Integer dataScope) {
+        this.dataScope = dataScope;
+    }
+
+    /**
+     * 设置排序号
+     */
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
+    /**
+     * 设置逻辑删除标志
+     */
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
+
+    /**
+     * 设置版本号
+     */
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    /**
+     * 设置角色类型
+     */
+    public void setRoleType(Integer roleType) {
+        this.roleType = roleType;
+    }
+
+    /**
+     * 设置角色级别
+     */
+    public void setRoleLevel(Integer roleLevel) {
+        this.roleLevel = roleLevel;
+    }
+
+    // ==================== 别名方法（用于兼容不同命名） ====================
+
+    /**
+     * 获取创建时间别名
+     */
+    public LocalDateTime getCreatedAt() {
+        return createTime;
+    }
+
+    /**
+     * 设置创建时间别名
+     */
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createTime = createdAt;
+    }
+
+    /**
+     * 获取更新时间别名
+     */
+    public LocalDateTime getUpdatedAt() {
+        return updateTime;
+    }
+
+    /**
+     * 设置更新时间别名
+     */
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updateTime = updatedAt;
+    }
+
+    /**
+     * 获取创建人ID别名
+     */
+    public Long getCreatedBy() {
+        return createBy;
+    }
+
+    /**
+     * 设置创建人ID别名
+     */
+    public void setCreatedBy(Long createdBy) {
+        this.createBy = createdBy;
+    }
+
+    /**
+     * 获取更新人ID别名
+     */
+    public Long getUpdatedBy() {
+        return updateBy;
+    }
+
+    /**
+     * 设置更新人ID别名
+     */
+    public void setUpdatedBy(Long updatedBy) {
+        this.updateBy = updatedBy;
     }
 }

@@ -588,4 +588,16 @@ public interface PermissionMapper extends BaseMapper<Permission> {
             "AND p.deleted = 0 AND p.status = 1 " +
             "ORDER BY p.sort_order ASC, p.create_time DESC")
     List<Permission> findUserMenuPermissions(@Param("userId") Long userId);
+
+    /**
+     * 根据角色ID查询权限列表
+     * 
+     * @param roleId 角色ID
+     * @return 权限列表
+     */
+    @Select("SELECT p.* FROM sys_permission p " +
+            "INNER JOIN sys_role_permission rp ON p.id = rp.permission_id " +
+            "WHERE rp.role_id = #{roleId} AND p.deleted = 0 " +
+            "ORDER BY p.sort_order ASC, p.create_time DESC")
+    List<Permission> selectPermissionsByRoleId(@Param("roleId") Long roleId);
 }

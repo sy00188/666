@@ -3,9 +3,13 @@ package com.archive.management.service.impl;
 import com.archive.management.entity.Role;
 import com.archive.management.entity.Permission;
 import com.archive.management.entity.User;
+import com.archive.management.entity.RolePermission;
 import com.archive.management.mapper.RoleMapper;
 import com.archive.management.mapper.PermissionMapper;
 import com.archive.management.mapper.UserMapper;
+import com.archive.management.mapper.RolePermissionMapper;
+import com.archive.management.mapper.UserRoleMapper;
+import com.archive.management.mapper.RoleHierarchyMapper;
 import com.archive.management.service.RoleService;
 import com.archive.management.service.CacheService;
 import com.archive.management.exception.BusinessException;
@@ -13,6 +17,8 @@ import com.archive.management.exception.ResourceNotFoundException;
 import com.archive.management.exception.DuplicateResourceException;
 import com.archive.management.util.SecurityUtils;
 import com.archive.management.common.util.ValidationUtils;
+import com.archive.management.enums.RoleStatus;
+import com.archive.management.enums.RoleType;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -20,7 +26,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -41,10 +49,12 @@ import java.util.stream.Collectors;
  * @author Archive Management System
  * @since 2024-01-01
  */
-@Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements RoleService {
+
+    // 手动声明SLF4J logger以覆盖父类的MyBatis Log
+    private static final Logger log = LoggerFactory.getLogger(RoleServiceImpl.class);
 
     @Autowired
     private RoleMapper roleMapper;
@@ -57,6 +67,15 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Autowired
     private CacheService cacheService;
+
+    @Autowired
+    private RolePermissionMapper rolePermissionMapper;
+
+    @Autowired
+    private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private RoleHierarchyMapper roleHierarchyMapper;
 
     @Override
     public RoleMapper getBaseMapper() {
@@ -282,16 +301,11 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         roleMapper.deleteRolePermissions(roleId);
         
         // 批量插入新的权限关联
-        boolean result = roleMapper.batchInsertRolePermissions(roleId, permissionIds, 
-                SecurityUtils.getCurrentUserId(), LocalDateTime.now());
+        roleMapper.batchInsertRolePermissions(roleId, permissionIds);
         
-        if (result) {
-            log.info("角色权限分配成功: roleId={}, 权限数量={}", roleId, permissionIds.size());
-        } else {
-            throw new BusinessException("角色权限分配失败");
-        }
+        log.info("角色权限分配成功: roleId={}, 权限数量={}", roleId, permissionIds.size());
         
-        return result;
+        return true;
     }
 
     /**
@@ -524,7 +538,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             return;
         }
         
-        // 按排序号和创建时间排序
+        // 按排序号和ID排序（避免使用可能不存在的createTime）
         permissions.sort((p1, p2) -> {
             int sortCompare = Integer.compare(
                     p1.getSortOrder() != null ? p1.getSortOrder() : 0,
@@ -533,12 +547,13 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             if (sortCompare != 0) {
                 return sortCompare;
             }
-            return p1.getCreateTime().compareTo(p2.getCreateTime());
+            // 使用ID排序代替createTime
+            return p1.getId().compareTo(p2.getId());
         });
         
         // 递归排序子节点
         for (Permission permission : permissions) {
-            if (CollectionUtils.isNotEmpty(permission.getChildren())) {
+            if (!CollectionUtils.isEmpty(permission.getChildren())) {
                 sortPermissionTree(permission.getChildren());
             }
         }
@@ -810,6 +825,44 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
+     * 获取角色层级树（Map格式）
+     */
+    @Override
+    @Cacheable(value = "roleHierarchyTreeCache", key = "'all'")
+    public List<Map<String, Object>> getRoleHierarchyTree() {
+        log.info("获取角色层级树");
+        
+        List<Role> roleTree = getRoleTree();
+        return convertRolesToMapTree(roleTree);
+    }
+
+    /**
+     * 将角色树转换为Map格式
+     */
+    private List<Map<String, Object>> convertRolesToMapTree(List<Role> roles) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Role role : roles) {
+            Map<String, Object> roleMap = new HashMap<>();
+            roleMap.put("id", role.getId());
+            roleMap.put("roleName", role.getRoleName());
+            roleMap.put("roleCode", role.getRoleCode());
+            roleMap.put("roleType", role.getRoleType());
+            roleMap.put("roleLevel", role.getRoleLevel());
+            roleMap.put("status", role.getStatus());
+            roleMap.put("sortOrder", role.getSortOrder());
+            roleMap.put("parentId", role.getParentId());
+            
+            // 递归处理子角色
+            if (!CollectionUtils.isEmpty(role.getChildren())) {
+                roleMap.put("children", convertRolesToMapTree(role.getChildren()));
+            }
+            
+            result.add(roleMap);
+        }
+        return result;
+    }
+
+    /**
      * 获取角色树
      */
     @Override
@@ -837,7 +890,27 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
-     * 获取指定角色的父角色
+     * 获取角色的父角色
+     */
+    @Override
+    @Cacheable(value = "parentRoleCache", key = "#roleId")
+    public Role getParentRole(Long roleId) {
+        log.info("获取父角色: roleId={}", roleId);
+        
+        if (roleId == null) {
+            throw new IllegalArgumentException("角色ID不能为空");
+        }
+        
+        Role role = getRoleById(roleId);
+        if (role.getParentId() == null) {
+            return null;
+        }
+        
+        return getRoleById(role.getParentId());
+    }
+
+    /**
+     * 获取指定角色的父角色列表（所有祖先）
      */
     @Override
     @Cacheable(value = "parentRolesCache", key = "#roleId")
@@ -1056,17 +1129,17 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         
         Map<String, Object> activeStat = new HashMap<>();
         activeStat.put("status", "ACTIVE");
-        activeStat.put("count", roleMapper.countByStatus(RoleStatus.ACTIVE));
+        activeStat.put("count", roleMapper.countByStatus(RoleStatus.ACTIVE.getCode()));
         statistics.add(activeStat);
         
         Map<String, Object> inactiveStat = new HashMap<>();
         inactiveStat.put("status", "INACTIVE");
-        inactiveStat.put("count", roleMapper.countByStatus(RoleStatus.INACTIVE));
+        inactiveStat.put("count", roleMapper.countByStatus(RoleStatus.INACTIVE.getCode()));
         statistics.add(inactiveStat);
         
         Map<String, Object> lockedStat = new HashMap<>();
         lockedStat.put("status", "LOCKED");
-        lockedStat.put("count", roleMapper.countByStatus(RoleStatus.LOCKED));
+        lockedStat.put("count", roleMapper.countByStatus(RoleStatus.LOCKED.getCode()));
         statistics.add(lockedStat);
         
         return statistics;
@@ -1084,17 +1157,17 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         
         Map<String, Object> systemStat = new HashMap<>();
         systemStat.put("type", "SYSTEM");
-        systemStat.put("count", roleMapper.countByType(RoleType.SYSTEM));
+        systemStat.put("count", roleMapper.countByRoleType(1)); // SYSTEM类型
         statistics.add(systemStat);
         
         Map<String, Object> businessStat = new HashMap<>();
         businessStat.put("type", "BUSINESS");
-        businessStat.put("count", roleMapper.countByType(RoleType.BUSINESS));
+        businessStat.put("count", roleMapper.countByRoleType(2)); // BUSINESS类型
         statistics.add(businessStat);
         
         Map<String, Object> customStat = new HashMap<>();
         customStat.put("type", "CUSTOM");
-        customStat.put("count", roleMapper.countByType(RoleType.CUSTOM));
+        customStat.put("count", roleMapper.countByRoleType(3)); // CUSTOM类型
         statistics.add(customStat);
         
         return statistics;
@@ -1112,7 +1185,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         
         // 基础统计
         statistics.put("totalRoles", countRoles());
-        statistics.put("activeRoles", roleMapper.countByStatus(RoleStatus.ACTIVE));
+        statistics.put("activeRoles", roleMapper.countByStatus(RoleStatus.ACTIVE.getCode()));
         statistics.put("totalUsers", userMapper.selectCount(null));
         
         // 角色分配统计
@@ -1796,6 +1869,54 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             log.error("批量更新角色状态异常：roleIds={}, status={}", roleIds, status, e);
             throw new BusinessException("批量更新角色状态失败", e);
         }
+    }
+
+    /**
+     * 获取角色依赖信息
+     */
+    @Override
+    public Map<String, Object> getRoleDependencies(Long roleId) {
+        log.info("获取角色依赖信息: roleId={}", roleId);
+        
+        if (roleId == null) {
+            throw new IllegalArgumentException("角色ID不能为空");
+        }
+        
+        // 检查角色是否存在
+        Role role = getRoleById(roleId);
+        
+        Map<String, Object> dependencies = new HashMap<>();
+        
+        // 用户依赖
+        Long userCount = getRoleUserCount(roleId);
+        dependencies.put("userCount", userCount);
+        dependencies.put("hasUsers", userCount > 0);
+        
+        // 权限依赖
+        List<Long> permissionIds = getRolePermissionIds(roleId);
+        dependencies.put("permissionCount", permissionIds != null ? permissionIds.size() : 0);
+        dependencies.put("hasPermissions", permissionIds != null && !permissionIds.isEmpty());
+        
+        // 子角色依赖
+        List<Role> childRoles = getChildRoles(roleId);
+        dependencies.put("childRoleCount", childRoles != null ? childRoles.size() : 0);
+        dependencies.put("hasChildRoles", childRoles != null && !childRoles.isEmpty());
+        
+        // 父角色依赖
+        dependencies.put("parentRoleId", role.getParentId());
+        dependencies.put("hasParentRole", role.getParentId() != null);
+        
+        // 判断是否可以删除（没有用户关联且不是系统角色）
+        boolean canDelete = userCount == 0 && 
+                           role.getIsSystem() != null && role.getIsSystem() == 0 &&
+                           (childRoles == null || childRoles.isEmpty());
+        dependencies.put("canDelete", canDelete);
+        
+        // 系统角色标志
+        dependencies.put("isSystemRole", role.getIsSystem() != null && role.getIsSystem() == 1);
+        
+        log.info("角色依赖信息获取成功: roleId={}, dependencies={}", roleId, dependencies);
+        return dependencies;
     }
 
     @Override
