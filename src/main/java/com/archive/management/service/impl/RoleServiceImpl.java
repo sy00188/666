@@ -199,7 +199,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         @CacheEvict(value = "roleCache", key = "#roleId"),
         @CacheEvict(value = "roleCache", allEntries = true)
     })
-    public boolean deleteRole(Long roleId) {
+    public boolean deleteRole(Long roleId, Long deletedBy) {
         log.info("删除角色: {}", roleId);
         
         if (roleId == null) {
@@ -236,7 +236,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
      */
     @Override
     @CacheEvict(value = "roleCache", allEntries = true)
-    public boolean batchDeleteRoles(List<Long> roleIds) {
+    public boolean batchDeleteRoles(List<Long> roleIds, Long deletedBy) {
         log.info("批量删除角色: {}", roleIds);
         
         if (CollectionUtils.isEmpty(roleIds)) {
@@ -278,7 +278,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         @CacheEvict(value = "rolePermissionCache", key = "#roleId"),
         @CacheEvict(value = "roleCache", allEntries = true)
     })
-    public boolean assignPermissions(Long roleId, List<Long> permissionIds) {
+    public boolean assignPermissions(Long roleId, List<Long> permissionIds, Long updatedBy) {
         log.info("为角色分配权限: roleId={}, permissionIds={}", roleId, permissionIds);
         
         if (roleId == null) {
@@ -318,7 +318,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         @CacheEvict(value = "rolePermissionCache", key = "#roleId"),
         @CacheEvict(value = "roleCache", allEntries = true)
     })
-    public boolean removePermissions(Long roleId, List<Long> permissionIds) {
+    public boolean removePermissions(Long roleId, List<Long> permissionIds, Long updatedBy) {
         log.info("移除角色权限: roleId={}, permissionIds={}", roleId, permissionIds);
         
         if (roleId == null) {
@@ -1384,7 +1384,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         // 复制权限关联
         List<Long> sourcePermissionIds = getRolePermissionIds(sourceRoleId);
         if (!sourcePermissionIds.isEmpty()) {
-            assignPermissions(newRole.getId(), sourcePermissionIds);
+            assignPermissions(newRole.getId(), sourcePermissionIds, SecurityUtils.getCurrentUserId());
         }
         
         // 复制层级关系（如果源角色有父角色）
@@ -1403,7 +1403,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Override
     @Transactional
     @CacheEvict(value = {"roleCache", "roleListCache", "roleCountCache"}, allEntries = true)
-    public List<Role> importRoles(List<Role> roles) {
+    public List<Role> importRoles(List<Role> roles, Long userId) {
         log.info("导入角色: count={}", roles.size());
         
         List<Role> importedRoles = new ArrayList<>();
@@ -1448,9 +1448,17 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
-     * 导出角色
+     * 导出角色（接口要求的2参数版本）
      */
     @Override
+    public List<Role> exportRoles(List<Long> roleIds, Long userId) {
+        // TODO: 使用userId进行权限过滤
+        return exportRoles(roleIds);
+    }
+    
+    /**
+     * 导出角色（内部使用的1参数版本）
+     */
     public List<Role> exportRoles(List<Long> roleIds) {
         log.info("导出角色: roleIds={}", roleIds);
         
@@ -1688,7 +1696,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
      */
     @Override
     public IPage<Role> findRolesWithPagination(Page<Role> page, String roleCode, String roleName, 
-                                               Integer status, String roleType) {
+                                               Integer status, String roleType, Long userId) {
         if (page == null) {
             throw new IllegalArgumentException("分页参数不能为空");
         }
@@ -1859,9 +1867,17 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     /**
-     * 搜索角色
+     * 搜索角色（2参数版本 - 接口要求）
      */
     @Override
+    public List<Role> searchRoles(String keyword, Long userId) {
+        // TODO: 使用userId进行权限过滤
+        return searchRoles(keyword);
+    }
+    
+    /**
+     * 搜索角色（1参数版本 - 内部使用）
+     */
     public List<Role> searchRoles(String keyword) {
         if (!StringUtils.hasText(keyword)) {
             return getAllRoles();
@@ -1894,7 +1910,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         @CacheEvict(value = "roleCache", key = "#roleId"),
         @CacheEvict(value = "roleCache", allEntries = true)
     })
-    public boolean enableRole(Long roleId) {
+    public boolean enableRole(Long roleId, Long updatedBy) {
         log.info("启用角色: {}", roleId);
         
         if (roleId == null) {
@@ -1935,7 +1951,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         @CacheEvict(value = "roleCache", key = "#roleId"),
         @CacheEvict(value = "roleCache", allEntries = true)
     })
-    public boolean disableRole(Long roleId) {
+    public boolean disableRole(Long roleId, Long updatedBy) {
         log.info("禁用角色: {}", roleId);
         
         if (roleId == null) {

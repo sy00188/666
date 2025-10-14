@@ -23,6 +23,7 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.archive.management.util.SecurityUtils;
 
 /**
  * 角色管理控制器
@@ -216,7 +217,8 @@ public class RoleController {
             @Parameter(description = "角色ID列表") @RequestBody @NotEmpty List<Long> ids,
             @Parameter(description = "删除人ID") @RequestParam @NotNull @Positive Long deletedBy) {
         try {
-            int deletedCount = roleService.batchDeleteRoles(ids, deletedBy);
+            boolean result = roleService.batchDeleteRoles(ids, deletedBy);
+            int deletedCount = result ? ids.size() : 0;
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "批量删除角色成功",
@@ -311,8 +313,7 @@ public class RoleController {
             @Parameter(description = "结束日期") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
             Page<Role> page = new Page<>(current, size);
-            IPage<Role> result = roleService.findRolesWithPagination(page, code, name, status, 
-                type, createdBy, startDate, endDate);
+            IPage<Role> result = roleService.findRolesWithPagination(page, code, name, status, type, SecurityUtils.getCurrentUserId());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "查询角色成功",
@@ -388,7 +389,7 @@ public class RoleController {
     @PreAuthorize("hasAuthority('role:statistics')")
     public ResponseEntity<Map<String, Object>> getStatusStatistics() {
         try {
-            List<Map<String, Object>> statistics = roleService.getStatusStatistics();
+            List<Map<String, Object>> statistics = roleService.getRoleStatusStatistics();
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "获取状态统计成功",
@@ -411,7 +412,7 @@ public class RoleController {
     @PreAuthorize("hasAuthority('role:statistics')")
     public ResponseEntity<Map<String, Object>> getTypeStatistics() {
         try {
-            List<Map<String, Object>> statistics = roleService.getTypeStatistics();
+            List<Map<String, Object>> statistics = roleService.getRoleTypeStatistics();
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "获取类型统计成功",
@@ -435,7 +436,7 @@ public class RoleController {
     public ResponseEntity<Map<String, Object>> checkCode(
             @Parameter(description = "角色编码") @RequestParam @NotBlank String code) {
         try {
-            boolean exists = roleService.existsByCode(code);
+            boolean exists = roleService.existsByRoleCode(code);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "检查角色编码成功",
@@ -459,7 +460,7 @@ public class RoleController {
     public ResponseEntity<Map<String, Object>> checkName(
             @Parameter(description = "角色名称") @RequestParam @NotBlank String name) {
         try {
-            boolean exists = roleService.existsByName(name);
+            boolean exists = roleService.existsByRoleName(name);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "检查角色名称成功",
@@ -487,7 +488,7 @@ public class RoleController {
             @Parameter(description = "页大小") @RequestParam(defaultValue = "10") int size) {
         try {
             Page<Role> page = new Page<>(current, size);
-            IPage<Role> result = roleService.searchRoles(keyword, searchFields, null, page);
+            IPage<Role> result = roleService.searchRolesWithPagination(page, keyword);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "搜索角色成功",
@@ -575,7 +576,10 @@ public class RoleController {
     public ResponseEntity<Map<String, Object>> getRolePermissions(
             @Parameter(description = "角色ID") @PathVariable @NotNull @Positive Long id) {
         try {
-            List<Map<String, Object>> permissions = roleService.getRolePermissions(id);
+            List<String> permissionCodes = roleService.getRolePermissions(id);
+            List<Map<String, Object>> permissions = permissionCodes.stream()
+                .map(code -> Map.of("code", (Object)code))
+                .collect(java.util.stream.Collectors.toList());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "获取角色权限成功",
@@ -601,7 +605,8 @@ public class RoleController {
             @Parameter(description = "导出格式") @RequestParam(defaultValue = "excel") String format,
             @Parameter(description = "包含字段") @RequestParam(required = false) List<String> includeFields) {
         try {
-            Map<String, Object> result = roleService.exportRoles(roleIds, format, includeFields);
+            List<Role> roles = roleService.exportRoles(roleIds, SecurityUtils.getCurrentUserId());
+            Map<String, Object> result = Map.of("roles", roles);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "导出角色成功",
@@ -627,7 +632,8 @@ public class RoleController {
             @Parameter(description = "导入模式") @RequestParam(defaultValue = "merge") String importMode,
             @Parameter(description = "导入人ID") @RequestParam @NotNull @Positive Long importedBy) {
         try {
-            Map<String, Object> result = roleService.importRoles(roles, importMode, importedBy);
+            List<Role> importedRoles = roleService.importRoles(roles, importedBy);
+            Map<String, Object> result = Map.of("importedRoles", importedRoles, "count", importedRoles.size());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "导入角色成功",

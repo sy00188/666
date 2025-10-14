@@ -6,6 +6,9 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.archive.management.entity.User;
 import com.archive.management.entity.Permission;
@@ -93,12 +96,14 @@ public class CacheWarmUpService implements ApplicationRunner {
      */
     private void warmUpUserCache() {
         try {
-            // 缓存活跃用户
-            List<User> activeUsers = userRepository.findByStatus(1);
+            // 缓存活跃用户（分页查询前100个）
+            Pageable pageable = PageRequest.of(0, 100);
+            Page<User> activeUsersPage = userRepository.findByStatus(1, pageable);
+            List<User> activeUsers = activeUsersPage.getContent();
             Map<String, Object> userCacheData = new HashMap<>();
             
             for (User user : activeUsers) {
-                String key = "user:" + user.getId();
+                String key = "user:" + user.getUserId();
                 userCacheData.put(key, user);
                 
                 String usernameKey = "user:username:" + user.getUsername();
@@ -124,7 +129,7 @@ public class CacheWarmUpService implements ApplicationRunner {
                 String key = "permission:" + permission.getId();
                 permissionCacheData.put(key, permission);
                 
-                String codeKey = "permission:code:" + permission.getCode();
+                String codeKey = "permission:code:" + permission.getPermissionCode();
                 permissionCacheData.put(codeKey, permission);
             }
             
@@ -147,7 +152,7 @@ public class CacheWarmUpService implements ApplicationRunner {
                 String key = "role:" + role.getId();
                 roleCacheData.put(key, role);
                 
-                String codeKey = "role:code:" + role.getCode();
+                String codeKey = "role:code:" + role.getRoleCode();
                 roleCacheData.put(codeKey, role);
             }
             
@@ -170,7 +175,7 @@ public class CacheWarmUpService implements ApplicationRunner {
                 String key = "department:" + department.getId();
                 departmentCacheData.put(key, department);
                 
-                String codeKey = "department:code:" + department.getCode();
+                String codeKey = "department:code:" + department.getDepartmentCode();
                 departmentCacheData.put(codeKey, department);
             }
             
@@ -215,12 +220,14 @@ public class CacheWarmUpService implements ApplicationRunner {
     @Scheduled(fixedRate = 300000) // 5分钟
     public void warmUpHotDataCache() {
         try {
-            // 预热最近创建的档案
-            List<Archive> recentArchives = archiveRepository.findTop10ByOrderByCreateTimeDesc();
+            // 预热最近创建的档案（分页查询前10个）
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Archive> recentArchivesPage = archiveRepository.findAll(pageable);
+            List<Archive> recentArchives = recentArchivesPage.getContent();
             Map<String, Object> archiveCacheData = new HashMap<>();
             
             for (Archive archive : recentArchives) {
-                String key = "archive:" + archive.getId();
+                String key = "archive:" + archive.getArchiveId();
                 archiveCacheData.put(key, archive);
             }
             

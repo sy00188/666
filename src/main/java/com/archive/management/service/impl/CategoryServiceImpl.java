@@ -62,7 +62,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             validateCategoryData(category);
             
             // 设置默认值
-            category.setDeleted(false);
+            category.setDeleted(0);  // 0-未删除
             category.setCreateTime(LocalDateTime.now());
             category.setUpdateTime(LocalDateTime.now());
             
@@ -79,12 +79,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             // 设置层级和路径
             if (category.getParentId() != null && category.getParentId() > 0) {
                 Category parent = getCategoryById(category.getParentId());
-                category.setLevel(parent.getLevel() + 1);
-                category.setCategoryPath(parent.getCategoryPath() + "/" + category.getCategoryCode());
+                category.setCategoryLevel(parent.getCategoryLevel() + 1);
+                category.setPath(parent.getCategoryPath() + "/" + category.getCategoryCode());
             } else {
                 category.setParentId(0L);
-                category.setLevel(1);
-                category.setCategoryPath("/" + category.getCategoryCode());
+                category.setCategoryLevel(1);
+                category.setPath("/" + category.getCategoryCode());
             }
             
             // 保存分类
@@ -93,7 +93,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                 throw new RuntimeException("分类保存失败");
             }
             
-            log.info("分类创建成功，ID: {}, 编码: {}", category.getId(), category.getCategoryCode());
+            log.info("分类创建成功，ID: {}, 编码: {}", category.getCategoryId(), category.getCategoryCode());
             return category;
             
         } catch (Exception e) {
@@ -117,7 +117,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         }
         
         Category category = getById(id);
-        if (category == null || category.getDeleted()) {
+        if (category == null || (category.getDeleted() != null && category.getDeleted() == 1)) {
             throw new RuntimeException("分类不存在或已删除，ID: " + id);
         }
         
@@ -140,7 +140,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         
         QueryWrapper<Category> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("category_code", categoryCode)
-                   .eq("deleted", false);
+                   .eq("deleted", 0);
         
         Category category = getOne(queryWrapper);
         if (category == null) {
@@ -159,11 +159,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "categories", allEntries = true)
     public Category updateCategory(Category category) {
-        log.info("开始更新分类，ID: {}", category.getId());
+        log.info("开始更新分类，ID: {}", category.getCategoryId());
         
         try {
             // 验证分类存在
-            Category existingCategory = getCategoryById(category.getId());
+            Category existingCategory = getCategoryById(category.getCategoryId());
             
             // 验证分类数据
             validateCategoryData(category);
@@ -188,11 +188,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                 throw new RuntimeException("分类更新失败");
             }
             
-            log.info("分类更新成功，ID: {}", category.getId());
+            log.info("分类更新成功，ID: {}", category.getCategoryId());
             return category;
             
         } catch (Exception e) {
-            log.error("更新分类失败，ID: {}", category.getId(), e);
+            log.error("更新分类失败，ID: {}", category.getCategoryId(), e);
             throw new RuntimeException("更新分类失败: " + e.getMessage(), e);
         }
     }
@@ -258,13 +258,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         try {
             // 获取所有分类
             QueryWrapper<Category> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("deleted", false)
-                       .orderByAsc("parent_id", "sort_order", "id");
+            queryWrapper.eq("deleted", 0)
+                       .orderByAsc("parent_id", "sort_order", "category_id");
             
             List<Category> allCategories = list(queryWrapper);
             
             // 构建树结构
-            return buildCategoryTree(allCategories);
+            return buildCategoryTreeMap(allCategories);
             
         } catch (Exception e) {
             log.error("获取分类树结构失败", e);
@@ -285,7 +285,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         
         QueryWrapper<Category> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("category_code", categoryCode)
-                   .eq("deleted", false);
+                   .eq("deleted", 0);
         
         return count(queryWrapper) > 0;
     }
@@ -347,7 +347,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         // 验证父分类是否存在
         if (category.getParentId() != null && category.getParentId() > 0) {
             Category parent = getById(category.getParentId());
-            if (parent == null || parent.getDeleted()) {
+            if (parent == null || (parent.getDeleted() != null && parent.getDeleted() == 1)) {
                 errors.add("指定的父分类不存在");
             }
         }
@@ -364,12 +364,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     private void updateCategoryHierarchy(Category category) {
         if (category.getParentId() != null && category.getParentId() > 0) {
             Category parent = getCategoryById(category.getParentId());
-            category.setLevel(parent.getLevel() + 1);
-            category.setCategoryPath(parent.getCategoryPath() + "/" + category.getCategoryCode());
+            category.setCategoryLevel(parent.getCategoryLevel() + 1);
+            category.setPath(parent.getCategoryPath() + "/" + category.getCategoryCode());
         } else {
             category.setParentId(0L);
-            category.setLevel(1);
-            category.setCategoryPath("/" + category.getCategoryCode());
+            category.setCategoryLevel(1);
+            category.setPath("/" + category.getCategoryCode());
         }
     }
 
@@ -381,7 +381,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     private boolean hasChildCategories(Long parentId) {
         QueryWrapper<Category> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("parent_id", parentId)
-                   .eq("deleted", false);
+                   .eq("deleted", 0);
         
         return count(queryWrapper) > 0;
     }
@@ -398,17 +398,43 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     }
 
     /**
-     * 构建分类树结构
+     * 构建分类树结构（Map格式）
+     * @param categories 所有分类
+     * @return 分类树
+     */
+    private List<Map<String, Object>> buildCategoryTreeMap(List<Category> categories) {
+        return buildCategoryTreeMap(categories, 0L);
+    }
+
+    /**
+     * 构建分类树结构（Map格式，递归方法）
      * @param categories 所有分类
      * @param parentId 父分类ID
      * @return 分类树
      */
-    private List<Category> buildCategoryTree(List<Category> categories, Long parentId) {
+    private List<Map<String, Object>> buildCategoryTreeMap(List<Category> categories, Long parentId) {
         return categories.stream()
                 .filter(category -> Objects.equals(category.getParentId(), parentId))
-                .peek(category -> {
-                    List<Category> children = buildCategoryTree(categories, category.getId());
-                    category.setChildren(children);
+                .map(category -> {
+                    Map<String, Object> node = new HashMap<>();
+                    node.put("id", category.getCategoryId());
+                    node.put("categoryId", category.getCategoryId());
+                    node.put("categoryName", category.getCategoryName());
+                    node.put("categoryCode", category.getCategoryCode());
+                    node.put("parentId", category.getParentId());
+                    node.put("categoryLevel", category.getCategoryLevel());
+                    node.put("defaultSecurityLevel", category.getDefaultSecurityLevel());
+                    node.put("retentionPeriod", category.getRetentionPeriod());
+                    node.put("businessType", category.getBusinessType());
+                    node.put("sortOrder", category.getSortOrder());
+                    node.put("status", category.getStatus());
+                    node.put("remark", category.getRemark());
+                    
+                    // 递归构建子节点
+                    List<Map<String, Object>> children = buildCategoryTreeMap(categories, category.getCategoryId());
+                    node.put("children", children);
+                    
+                    return node;
                 })
                 .collect(Collectors.toList());
     }
