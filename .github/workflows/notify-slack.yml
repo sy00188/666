@@ -1,0 +1,240 @@
+name: Slack 通知（可选）
+
+# 此工作流在主CI工作流完成后触发
+# 仅在测试失败时发送Slack通知
+# 需要配置 SLACK_WEBHOOK_URL secret
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+
+jobs:
+  notify-failure:
+    name: 发送失败通知到 Slack
+    runs-on: ubuntu-latest
+    # 仅在CI失败时运行
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 发送 Slack 通知
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          # 使用 Incoming Webhook 方式
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "❌ CI/CD 测试失败",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ CI/CD 测试失败",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*仓库:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*分支:*\n${{ github.event.workflow_run.head_branch }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*提交者:*\n${{ github.event.workflow_run.head_commit.author.name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*事件:*\n${{ github.event.workflow_run.event }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*提交信息:*\n${{ github.event.workflow_run.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*失败原因:*\n请查看工作流日志以获取详细信息"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "查看工作流",
+                        "emoji": true
+                      },
+                      "url": "${{ github.event.workflow_run.html_url }}",
+                      "style": "danger"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "查看提交",
+                        "emoji": true
+                      },
+                      "url": "${{ github.event.workflow_run.head_commit.url }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "🕐 失败时间: <!date^${{ github.event.workflow_run.updated_at }}^{date_num} {time_secs}|${{ github.event.workflow_run.updated_at }}>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  notify-success:
+    name: 发送成功通知到 Slack（可选）
+    runs-on: ubuntu-latest
+    # 仅在CI成功且是main分支时运行（可选）
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 发送 Slack 通知
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "✅ CI/CD 测试通过",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ CI/CD 测试通过",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*仓库:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*分支:*\n${{ github.event.workflow_run.head_branch }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*提交者:*\n${{ github.event.workflow_run.head_commit.author.name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*事件:*\n${{ github.event.workflow_run.event }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*提交信息:*\n${{ github.event.workflow_run.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "查看工作流",
+                        "emoji": true
+                      },
+                      "url": "${{ github.event.workflow_run.html_url }}",
+                      "style": "primary"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "查看覆盖率",
+                        "emoji": true
+                      },
+                      "url": "https://codecov.io/gh/${{ github.repository }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "🕐 完成时间: <!date^${{ github.event.workflow_run.updated_at }}^{date_num} {time_secs}|${{ github.event.workflow_run.updated_at }}>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+# ==================== 配置说明 ====================
+# 
+# 1. 获取 Slack Webhook URL:
+#    - 访问 https://api.slack.com/apps
+#    - 创建新应用或选择现有应用
+#    - 启用 "Incoming Webhooks"
+#    - 添加新的 Webhook 到工作区
+#    - 复制 Webhook URL
+# 
+# 2. 配置 GitHub Secret:
+#    - 进入仓库 Settings > Secrets and variables > Actions
+#    - 点击 "New repository secret"
+#    - Name: SLACK_WEBHOOK_URL
+#    - Value: 粘贴你的 Webhook URL
+#    - 点击 "Add secret"
+# 
+# 3. 自定义通知:
+#    - 修改 payload 中的内容以自定义通知格式
+#    - 可以添加更多字段或按钮
+#    - 参考 Slack Block Kit 文档: https://api.slack.com/block-kit
+# 
+# 4. 启用/禁用通知:
+#    - 失败通知: 默认启用
+#    - 成功通知: 默认仅在main分支启用，可以修改条件
+#    - 如果不需要某个通知，可以删除对应的 job
+# 
+# ==================== 注意事项 ====================
+# 
+# - 此工作流是可选的，不影响CI/CD的核心功能
+# - 如果没有配置 SLACK_WEBHOOK_URL，工作流会失败但不影响主CI
+# - 建议先配置好Secret再启用此工作流
+# - 可以根据团队需求调整通知的触发条件和内容
+

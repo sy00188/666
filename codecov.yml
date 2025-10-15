@@ -1,0 +1,116 @@
+# Codecov 配置文件
+# 文档: https://docs.codecov.com/docs/codecov-yaml
+
+# 覆盖率目标配置
+coverage:
+  precision: 2  # 精度：保留两位小数
+  round: down   # 向下取整
+  range: "70...100"  # 覆盖率范围：70%-100%为绿色
+
+  status:
+    # 项目整体覆盖率检查
+    project:
+      default:
+        target: 70%  # 整体目标：70%
+        threshold: 5%  # 允许下降5%
+        if_ci_failed: error  # CI失败时的行为
+      
+      # 后端覆盖率检查
+      backend:
+        target: 80%  # 后端目标：80%
+        threshold: 3%  # 允许下降3%
+        flags:
+          - backend
+        paths:
+          - "src/main/java/"
+      
+      # 前端覆盖率检查
+      frontend:
+        target: 50%  # 前端初期目标：50%（第4-5周提升至70%）
+        threshold: 5%  # 允许下降5%
+        flags:
+          - frontend
+        paths:
+          - "frontend/src/"
+    
+    # Patch（新增代码）覆盖率检查
+    patch:
+      default:
+        target: 70%  # 新增代码目标：70%
+        threshold: 10%  # 允许下降10%
+    
+    # 变更覆盖率检查
+    changes:
+      default:
+        target: 70%
+        threshold: 5%
+
+# PR 评论配置
+comment:
+  layout: "reach,diff,flags,tree,reach"
+  behavior: default  # 默认行为：总是评论
+  require_changes: false  # 即使没有变化也评论
+  require_base: false  # 不需要base分支
+  require_head: true  # 需要head分支
+  branches:
+    - "main"
+    - "develop"
+
+# 忽略文件配置
+ignore:
+  - "**/*Test.java"
+  - "**/*Tests.java"
+  - "**/test/**"
+  - "**/__tests__/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/*.config.ts"
+  - "**/*.config.js"
+  - "**/node_modules/**"
+  - "**/target/**"
+  - "**/build/**"
+  - "**/dist/**"
+  - "**/*.d.ts"
+  - "**/main.ts"
+  - "**/router/index.ts"
+  - "**/vite.config.ts"
+  - "**/vitest.config.ts"
+  - "**/playwright.config.ts"
+
+# Flags 配置（用于区分不同的测试套件）
+flags:
+  backend:
+    paths:
+      - src/main/java/
+    carryforward: true  # 如果当前构建没有此flag，使用上次的结果
+  
+  frontend:
+    paths:
+      - frontend/src/
+    carryforward: true
+
+# GitHub Checks 配置
+github_checks:
+  annotations: true  # 在PR中显示注释
+
+# Codecov AI 配置（可选）
+codecov:
+  require_ci_to_pass: true  # 要求CI通过才能合并
+  notify:
+    after_n_builds: 2  # 等待2个构建完成后再通知（后端+前端）
+    wait_for_ci: true  # 等待CI完成
+
+# 解析器配置
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+# 通知配置（可选）
+# 如果需要Slack/Email通知，可以在Codecov网站上配置
+
