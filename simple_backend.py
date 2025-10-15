@@ -175,6 +175,14 @@ class ArchiveAPIHandler(BaseHTTPRequestHandler):
                 "total": 5,
                 "timestamp": datetime.now().isoformat()
             }
+        elif path == '/api/auth/captcha':
+            response = {
+                "code": 200,
+                "data": {
+                    "captchaId": "mock-captcha-id",
+                    "captchaImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                }
+            }
         # 用户信息
         elif path == '/api/auth/user':
             auth_header = self.headers.get('Authorization', '')

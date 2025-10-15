@@ -90,6 +90,13 @@ pids
 coverage
 *.lcov
 
+# Vitest
+.vitest/
+
+# Test results
+test-results/
+playwright-report/
+
 # nyc test coverage
 .nyc_output
 
