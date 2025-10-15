@@ -1,6 +1,6 @@
 package com.archive.management.sync;
 
-import com.archive.annotation.RequirePermission;
+import com.archive.management.annotation.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;

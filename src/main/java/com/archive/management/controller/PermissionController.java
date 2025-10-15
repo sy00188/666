@@ -606,27 +606,40 @@ public class PermissionController {
     }
 
     /**
-     * 同步权限
+     * 手动触发权限同步
      */
     @PostMapping("/sync")
-    @Operation(summary = "同步权限", description = "同步权限数据")
+    @Operation(summary = "同步权限", description = "手动触发权限同步，支持从注解或配置文件同步")
     @PreAuthorize("hasAuthority('permission:sync')")
     public ResponseEntity<Map<String, Object>> syncPermissions(
-            @Parameter(description = "同步源") @RequestParam @NotBlank String source,
-            @Parameter(description = "同步配置") @RequestBody Map<String, Object> syncConfig,
+            @Parameter(description = "同步源：annotation, config, all") @RequestParam(defaultValue = "all") String source,
             @Parameter(description = "同步人ID") @RequestParam @NotNull @Positive Long syncBy) {
+        
+        log.info("手动触发权限同步，来源：{}，同步人：{}", source, syncBy);
+        
         try {
-            Map<String, Object> result = permissionService.syncPermissions(source, syncConfig, syncBy);
+            // 执行同步
+            long startTime = System.currentTimeMillis();
+            int syncCount = permissionService.syncPermissions(source, syncBy);
+            long duration = System.currentTimeMillis() - startTime;
+            
+            Map<String, Object> result = Map.of(
+                "syncCount", syncCount,
+                "source", source,
+                "duration", duration + "ms",
+                "timestamp", LocalDateTime.now()
+            );
+            
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "同步权限成功",
+                "message", "权限同步成功",
                 "data", result
             ));
         } catch (Exception e) {
-            log.error("同步权限失败", e);
+            log.error("权限同步失败", e);
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
-                "message", "同步权限失败: " + e.getMessage()
+                "message", "权限同步失败：" + e.getMessage()
             ));
         }
     }

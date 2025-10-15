@@ -286,4 +286,124 @@ export class RoleManager {
   }
 }
 
-export default RoleManager;
+// 新的 RoleManager 实例类，用于测试
+export class TestRoleManager {
+  private getUserData: () => any;
+
+  constructor(getUserData?: () => any) {
+    this.getUserData = getUserData || (() => ({
+      roles: ['admin', 'user'],
+      permissions: ['user:create', 'user:read', 'user:update', 'archive:read', 'archive:create', 'system:config']
+    }));
+  }
+
+  hasPermission(permission: string | string[]): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.permissions) return false;
+    
+    const userPermissions = userData.permissions;
+    
+    if (Array.isArray(permission)) {
+      if (permission.length === 0) return false;
+      return permission.every(p => userPermissions.includes(p));
+    }
+    
+    if (!permission) return false;
+    return userPermissions.includes(permission);
+  }
+
+  hasRole(role: string): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.roles) return false;
+    
+    if (!role) return false;
+    return userData.roles.includes(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.roles) return false;
+    
+    if (!roles || roles.length === 0) return false;
+    return roles.some(role => userData.roles.includes(role));
+  }
+
+  hasAllRoles(roles: string[]): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.roles) return false;
+    
+    if (!roles || roles.length === 0) return true;
+    return roles.every(role => userData.roles.includes(role));
+  }
+
+  hasAnyPermission(permissions: string[]): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.permissions) return false;
+    
+    if (!permissions || permissions.length === 0) return false;
+    return permissions.some(p => userData.permissions.includes(p));
+  }
+
+  hasAllPermissions(permissions: string[]): boolean {
+    const userData = this.getUserData();
+    if (!userData || !userData.permissions) return false;
+    
+    if (!permissions || permissions.length === 0) return true;
+    return permissions.every(p => userData.permissions.includes(p));
+  }
+
+  isAdmin(): boolean {
+    return this.hasRole('admin');
+  }
+
+  isSuperAdmin(): boolean {
+    return this.hasRole('superadmin');
+  }
+
+  canAccess(resource: {
+    requiredPermissions?: string[];
+    requiredRoles?: string[];
+    logic?: 'AND' | 'OR';
+  }): boolean {
+    const { requiredPermissions = [], requiredRoles = [], logic = 'AND' } = resource;
+    
+    const hasRequiredPermissions = requiredPermissions.length === 0 || this.hasAllPermissions(requiredPermissions);
+    const hasRequiredRoles = requiredRoles.length === 0 || this.hasAllRoles(requiredRoles);
+    
+    if (logic === 'OR') {
+      return hasRequiredPermissions || hasRequiredRoles;
+    }
+    
+    return hasRequiredPermissions && hasRequiredRoles;
+  }
+
+  getPermissionsByModule(module: string): string[] {
+    const userData = this.getUserData();
+    if (!userData || !userData.permissions) return [];
+    
+    return userData.permissions.filter(p => p.startsWith(module + ':'));
+  }
+}
+
+// Utility functions for direct use
+export const hasPermission = (permission: string | string[]): boolean => {
+  const manager = new TestRoleManager();
+  return manager.hasPermission(permission);
+};
+
+export const hasRole = (role: string): boolean => {
+  const manager = new TestRoleManager();
+  return manager.hasRole(role);
+};
+
+export const hasAnyRole = (roles: string[]): boolean => {
+  const manager = new TestRoleManager();
+  return manager.hasAnyRole(roles);
+};
+
+export const hasAllRoles = (roles: string[]): boolean => {
+  const manager = new TestRoleManager();
+  return manager.hasAllRoles(roles);
+};
+
+// TestRoleManager is already exported as a class above

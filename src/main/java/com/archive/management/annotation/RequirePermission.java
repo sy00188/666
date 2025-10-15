@@ -23,6 +23,13 @@ public @interface RequirePermission {
     String value();
     
     /**
+     * 权限名称
+     * 
+     * @return 权限名称
+     */
+    String name() default "";
+    
+    /**
      * 权限描述
      * 
      * @return 权限描述

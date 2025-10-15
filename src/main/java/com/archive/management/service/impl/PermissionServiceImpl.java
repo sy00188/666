@@ -2,9 +2,14 @@ package com.archive.management.service.impl;
 
 import com.archive.management.constant.*;
 import com.archive.management.entity.Permission;
+import com.archive.management.event.PermissionChangedEvent;
 import com.archive.management.mapper.PermissionMapper;
 import com.archive.management.mapper.RolePermissionMapper;
 import com.archive.management.service.PermissionService;
+import com.archive.management.sync.AnnotationPermissionScanner;
+import com.archive.management.sync.ConfigPermissionReader;
+import com.archive.management.sync.PermissionDiffCalculator;
+import com.archive.management.sync.PermissionDefinition;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -14,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -38,6 +44,10 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
+    private final AnnotationPermissionScanner annotationPermissionScanner;
+    private final ConfigPermissionReader configPermissionReader;
+    private final PermissionDiffCalculator permissionDiffCalculator;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     // ==================== 权限CRUD操作 ====================
 
@@ -1250,10 +1260,75 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {SecurityConstants.Cache.PERMISSION_PREFIX, SecurityConstants.Cache.PERMISSION_TREE}, allEntries = true)
     public int syncPermissions(String source, Long updatedBy) {
-        // TODO: 实现权限同步逻辑
-        log.info("同步权限，来源：{}，更新人：{}", source, updatedBy);
-        return 0;
+        log.info("开始同步权限，来源：{}，更新人：{}", source, updatedBy);
+        
+        try {
+            // 1. 收集权限定义
+            List<PermissionDefinition> definitions = collectPermissionDefinitions(source);
+            
+            // 2. 获取现有权限（排除系统内置权限）
+            List<Permission> existingPermissions = permissionMapper.findNonSystemPermissions();
+            
+            // 3. 计算差异
+            PermissionDiffCalculator.DiffResult diff = 
+                permissionDiffCalculator.calculateDiff(existingPermissions, definitions);
+            
+            int syncCount = 0;
+            
+            // 4. 执行新增
+            for (PermissionDefinition def : diff.getToCreate()) {
+                Permission permission = convertToPermission(def, updatedBy);
+                permissionMapper.insert(permission);
+                syncCount++;
+                
+                // 发布权限创建事件
+                publishPermissionChangedEvent(permission.getId(), "CREATE", updatedBy, 
+                    "同步创建权限：" + def.getCode());
+            }
+            
+            // 5. 执行更新
+            for (Map.Entry<Permission, PermissionDefinition> entry : diff.getToUpdate().entrySet()) {
+                Permission permission = entry.getKey();
+                PermissionDefinition def = entry.getValue();
+                
+                updatePermissionFromDefinition(permission, def, updatedBy);
+                permissionMapper.updateById(permission);
+                syncCount++;
+                
+                // 发布权限更新事件
+                publishPermissionChangedEvent(permission.getId(), "UPDATE", updatedBy, 
+                    "同步更新权限：" + def.getCode());
+            }
+            
+            // 6. 执行逻辑删除（标记为已删除，但保留数据）
+            for (Permission permission : diff.getToDelete()) {
+                LambdaUpdateWrapper<Permission> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(Permission::getId, permission.getId())
+                       .set(Permission::getDeleted, SecurityConstants.DeleteFlag.DELETED)
+                       .set(Permission::getUpdateBy, updatedBy)
+                       .set(Permission::getUpdateTime, LocalDateTime.now());
+                permissionMapper.update(null, wrapper);
+                syncCount++;
+                
+                // 发布权限删除事件
+                publishPermissionChangedEvent(permission.getId(), "DELETE", updatedBy, 
+                    "同步删除权限：" + permission.getPermissionCode());
+            }
+            
+            // 7. 发布同步完成事件
+            publishPermissionChangedEvent(null, "SYNC", updatedBy, 
+                String.format("权限同步完成，影响%d条记录", syncCount));
+            
+            log.info("权限同步完成，共影响{}条记录", syncCount);
+            return syncCount;
+            
+        } catch (Exception e) {
+            log.error("权限同步失败", e);
+            throw new RuntimeException("权限同步失败：" + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -1369,5 +1444,106 @@ public class PermissionServiceImpl implements PermissionService {
             log.error("刷新权限缓存失败", e);
             return false;
         }
+    }
+
+    // ==================== 权限同步辅助方法 ====================
+
+    /**
+     * 收集权限定义
+     */
+    private List<PermissionDefinition> collectPermissionDefinitions(String source) {
+        List<PermissionDefinition> definitions = new ArrayList<>();
+        
+        // 从注解收集
+        if ("annotation".equalsIgnoreCase(source) || "all".equalsIgnoreCase(source)) {
+            definitions.addAll(annotationPermissionScanner.scanPermissions());
+        }
+        
+        // 从配置文件收集
+        if ("config".equalsIgnoreCase(source) || "all".equalsIgnoreCase(source)) {
+            List<PermissionDefinition> configPermissions = configPermissionReader.readPermissions();
+            
+            // 配置文件权限优先级高，覆盖注解权限
+            Map<String, PermissionDefinition> defMap = definitions.stream()
+                .collect(Collectors.toMap(PermissionDefinition::getCode, d -> d, (old, newVal) -> old));
+            
+            for (PermissionDefinition configDef : configPermissions) {
+                defMap.put(configDef.getCode(), configDef);
+            }
+            
+            definitions = new ArrayList<>(defMap.values());
+        }
+        
+        return definitions;
+    }
+
+    /**
+     * 转换定义为权限实体
+     */
+    private Permission convertToPermission(PermissionDefinition def, Long createdBy) {
+        Permission permission = new Permission();
+        permission.setPermissionCode(def.getCode());
+        permission.setPermissionName(def.getName());
+        permission.setDescription(def.getDescription());
+        permission.setType(convertType(def.getType()));
+        permission.setPath(def.getPath());
+        permission.setIcon(def.getIcon());
+        permission.setSortOrder(def.getSort() != null ? def.getSort() : 0);
+        permission.setStatus(PermissionConstants.Status.ENABLED);
+        permission.setSystemPermission(false);
+        permission.setCreateBy(createdBy);
+        permission.setCreateTime(LocalDateTime.now());
+        permission.setUpdateBy(createdBy);
+        permission.setUpdateTime(LocalDateTime.now());
+        
+        // 处理父权限关系
+        if (def.getParentCode() != null) {
+            Permission parent = permissionMapper.findByPermissionCode(def.getParentCode());
+            if (parent != null) {
+                permission.setParentId(parent.getId());
+            }
+        }
+        
+        return permission;
+    }
+
+    /**
+     * 从定义更新权限
+     */
+    private void updatePermissionFromDefinition(Permission permission, 
+                                               PermissionDefinition def, Long updatedBy) {
+        permission.setPermissionName(def.getName());
+        permission.setDescription(def.getDescription());
+        permission.setPath(def.getPath());
+        permission.setIcon(def.getIcon());
+        if (def.getSort() != null) {
+            permission.setSortOrder(def.getSort());
+        }
+        permission.setUpdateBy(updatedBy);
+        permission.setUpdateTime(LocalDateTime.now());
+    }
+
+    /**
+     * 转换权限类型
+     */
+    private Integer convertType(String type) {
+        if (type == null) return PermissionConstants.Type.MENU;
+        switch (type.toUpperCase()) {
+            case "MENU": return PermissionConstants.Type.MENU;
+            case "BUTTON": return PermissionConstants.Type.BUTTON;
+            case "API": return PermissionConstants.Type.API;
+            case "DATA": return PermissionConstants.Type.DATA;
+            default: return PermissionConstants.Type.MENU;
+        }
+    }
+
+    /**
+     * 发布权限变更事件
+     */
+    private void publishPermissionChangedEvent(Long permissionId, String action, 
+                                              Long operatorId, String description) {
+        applicationEventPublisher.publishEvent(
+            new PermissionChangedEvent(this, permissionId, action, operatorId, description)
+        );
     }
 }

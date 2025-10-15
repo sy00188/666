@@ -77,7 +77,7 @@ export class ExportUtils {
         worksheetData.push(row)
       } else if (typeof row === 'object') {
         // 如果是对象，根据 headers 提取值
-        if (config.headers) {
+        if (config.headers && Array.isArray(config.headers)) {
           const values = config.headers.map(header => {
             // 支持嵌套属性访问，如 'user.name'
             return this.getNestedValue(row, header) || ''
@@ -90,8 +90,11 @@ export class ExportUtils {
       }
     })
     
+    // 验证数据格式
+    const validWorksheetData = worksheetData.filter(row => Array.isArray(row))
+    
     // 创建工作表
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+    const worksheet = XLSX.utils.aoa_to_sheet(validWorksheetData)
     
     // 自动调整列宽
     if (config.options?.autoWidth !== false) {
@@ -401,12 +404,24 @@ export class ExportUtils {
 /**
  * 快捷导出方法
  */
-export const exportToExcel = (data: any[], headers?: string[], filename?: string) => {
+export const exportToExcel = (data: any[], headersOrFilename?: string[] | string, filename?: string) => {
+  let headers: string[] | undefined
+  let finalFilename: string | undefined
+  
+  // 如果第二个参数是字符串，则认为是filename
+  if (typeof headersOrFilename === 'string') {
+    headers = undefined
+    finalFilename = headersOrFilename
+  } else {
+    headers = headersOrFilename
+    finalFilename = filename
+  }
+  
   return ExportUtils.exportData({
     format: 'excel',
     data,
     headers,
-    filename
+    filename: finalFilename
   })
 }
 
@@ -479,4 +494,132 @@ export const exportData = async (config: ExportConfig) => {
     console.error('导出失败:', error)
     return { success: false, message: `导出失败: ${(error as Error).message}` }
   }
+}
+
+/**
+ * 导出到CSV文件
+ */
+export const exportToCSV = (data: any[], filename?: string, options?: { delimiter?: string }) => {
+  const delimiter = options?.delimiter || ','
+  
+  if (!data || data.length === 0) {
+    throw new Error('没有数据可导出')
+  }
+  
+  // 获取表头
+  const headers = Object.keys(data[0])
+  
+  // 构建CSV内容
+  let csvContent = headers.join(delimiter) + '\n'
+  
+  // 添加数据行
+  data.forEach(row => {
+    const values = headers.map(header => {
+      let value = row[header]
+      // 处理包含逗号或引号的值
+      if (typeof value === 'string' && (value.includes(delimiter) || value.includes('"'))) {
+        value = '"' + value.replace(/"/g, '""') + '"'
+      }
+      return value || ''
+    })
+    csvContent += values.join(delimiter) + '\n'
+  })
+  
+  // 创建Blob并下载
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const finalFilename = filename || generateExportFilename('export', 'csv')
+  downloadFile(blob, finalFilename)
+}
+
+/**
+ * 下载文件
+ */
+export const downloadFile = (data: Blob | string, filename: string) => {
+  const link = document.createElement('a')
+  
+  if (data instanceof Blob) {
+    const url = URL.createObjectURL(data)
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } else {
+    // 如果是字符串URL
+    link.href = data
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+/**
+ * 格式化数据用于导出
+ */
+export const formatDataForExport = (data: any[], columns?: { key: string; title: string; formatter?: (value: any) => any }[]) => {
+  if (!data || data.length === 0) return []
+  
+  if (!columns) {
+    // 如果没有指定列配置，返回原始数据
+    return data
+  }
+  
+  return data.map(row => {
+    const formattedRow: any = {}
+    columns.forEach(col => {
+      // 支持嵌套属性访问，如 'user.name'
+      let value = getNestedValue(row, col.key)
+      
+      // 如果有格式化函数，应用它
+      if (col.formatter && typeof col.formatter === 'function') {
+        value = col.formatter(value)
+      }
+      
+      formattedRow[col.title] = value
+    })
+    return formattedRow
+  })
+}
+
+/**
+ * 获取嵌套属性值
+ */
+const getNestedValue = (obj: any, path: string): any => {
+  return path.split('.').reduce((current, key) => {
+    return current && current[key] !== undefined ? current[key] : ''
+  }, obj)
+}
+
+/**
+ * 生成导出文件名
+ */
+export const generateExportFilename = (prefix: string = 'export', extension: string = 'xlsx') => {
+  const now = new Date()
+  const dateStr = now.getFullYear().toString() + 
+                  (now.getMonth() + 1).toString().padStart(2, '0') + 
+                  now.getDate().toString().padStart(2, '0')
+  const timeStr = now.getHours().toString().padStart(2, '0') + 
+                  now.getMinutes().toString().padStart(2, '0') + 
+                  now.getSeconds().toString().padStart(2, '0')
+  
+  return `${prefix}_${dateStr}_${timeStr}.${extension}`
+}
+
+/**
+ * 验证导出数据
+ */
+export const validateExportData = (data: any[]): boolean => {
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return false
+  }
+  
+  // 检查数据结构一致性
+  const firstRowKeys = Object.keys(data[0])
+  return data.every(row => {
+    const rowKeys = Object.keys(row)
+    return firstRowKeys.length === rowKeys.length && 
+           firstRowKeys.every(key => rowKeys.includes(key))
+  })
 }

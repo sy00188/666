@@ -712,4 +712,13 @@ public interface PermissionMapper extends BaseMapper<Permission> {
             "AND p.deleted = 0 AND p.status = 1 " +
             "ORDER BY p.sort_order ASC, p.create_time DESC")
     List<Permission> findUserApiPermissions(@Param("userId") Long userId);
+
+    /**
+     * 查找非系统内置权限
+     * 用于权限同步时获取可以被修改的权限列表
+     * 
+     * @return 非系统内置权限列表
+     */
+    @Select("SELECT * FROM sys_permission WHERE system_permission = 0 AND deleted = 0")
+    List<Permission> findNonSystemPermissions();
 }
