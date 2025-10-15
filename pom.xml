@@ -410,6 +410,20 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+                            <!-- 排除非业务代码 -->
+                            <excludes>
+                                <exclude>**/*Application.class</exclude>
+                                <exclude>**/config/**</exclude>
+                                <exclude>**/constant/**</exclude>
+                                <exclude>**/entity/**</exclude>
+                                <exclude>**/dto/**</exclude>
+                                <exclude>**/vo/**</exclude>
+                                <exclude>**/common/**</exclude>
+                                <exclude>**/exception/**</exclude>
+                                <exclude>**/util/DateUtil.class</exclude>
+                            </excludes>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>check</id>
@@ -418,6 +432,35 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <!-- Service层覆盖率规则 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>**/service/impl/*ServiceImpl</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Controller层覆盖率规则 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>**/controller/*Controller</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- 整体Bundle覆盖率规则 -->
                                 <rule>
                                     <element>BUNDLE</element>
                                     <limits>

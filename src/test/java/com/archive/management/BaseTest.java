@@ -17,6 +17,7 @@ import com.archive.management.entity.Archive;
 import com.archive.management.entity.Department;
 import com.archive.management.entity.Role;
 import com.archive.management.entity.Permission;
+import com.archive.management.entity.Category;
 import com.archive.management.repository.UserRepository;
 import com.archive.management.repository.ArchiveRepository;
 import com.archive.management.repository.DepartmentRepository;
@@ -26,6 +27,8 @@ import com.archive.management.repository.PermissionRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 基础测试类
@@ -260,5 +263,79 @@ public abstract class BaseTest {
     @FunctionalInterface
     public interface TestDataFactory<T> {
         T create(int index);
+    }
+
+    // ==================== Category测试支持方法 ====================
+
+    /**
+     * 创建测试分类
+     */
+    protected Category createTestCategory(String code, String name) {
+        Category category = new Category();
+        category.setCategoryCode(code);
+        category.setCategoryName(name);
+        category.setDescription("测试分类：" + name);
+        category.setStatus(1);
+        category.setLevel(1);
+        category.setParentId(0L);
+        category.setSortOrder(1);
+        category.setCreateTime(LocalDateTime.now());
+        category.setUpdateTime(LocalDateTime.now());
+        return category;
+    }
+
+    /**
+     * 创建测试分类并持久化
+     */
+    protected Category createAndSaveTestCategory(String code, String name) {
+        Category category = createTestCategory(code, name);
+        return entityManager.persistAndFlush(category);
+    }
+
+    /**
+     * 创建测试分类树结构
+     * @param depth 深度
+     * @param breadth 广度（每层节点数）
+     * @return 根节点列表
+     */
+    protected List<Category> createTestCategoryTree(int depth, int breadth) {
+        List<Category> roots = new ArrayList<>();
+        for (int i = 0; i < breadth; i++) {
+            Category root = createAndSaveTestCategory(
+                "ROOT_" + i, 
+                "根分类_" + i
+            );
+            roots.add(root);
+            createChildCategories(root, depth - 1, breadth, "ROOT_" + i);
+        }
+        return roots;
+    }
+
+    /**
+     * 递归创建子分类
+     */
+    private void createChildCategories(Category parent, int remainingDepth, 
+                                       int breadth, String prefix) {
+        if (remainingDepth <= 0) return;
+        
+        for (int i = 0; i < breadth; i++) {
+            String code = prefix + "_" + i;
+            Category child = createTestCategory(code, "分类_" + code);
+            child.setParentId(parent.getId());
+            child.setLevel(parent.getLevel() + 1);
+            entityManager.persistAndFlush(child);
+            
+            createChildCategories(child, remainingDepth - 1, breadth, code);
+        }
+    }
+
+    /**
+     * 自定义断言：验证分类相等
+     */
+    protected void assertCategoryEquals(Category expected, Category actual) {
+        assertThat(actual.getCategoryCode()).isEqualTo(expected.getCategoryCode());
+        assertThat(actual.getCategoryName()).isEqualTo(expected.getCategoryName());
+        assertThat(actual.getStatus()).isEqualTo(expected.getStatus());
+        assertThat(actual.getLevel()).isEqualTo(expected.getLevel());
     }
 }

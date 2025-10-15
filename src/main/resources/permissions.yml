@@ -1,0 +1,159 @@
+# 权限配置文件
+# 用于定义系统权限，支持菜单、按钮、API等类型
+permissions:
+  # ==================== 系统管理模块 ====================
+  - code: "SYSTEM_MANAGE"
+    name: "系统管理"
+    description: "系统管理模块权限"
+    type: "MENU"
+    path: "/system"
+    icon: "setting"
+    sort: 1
+    parentCode: null
+    
+  - code: "USER_MANAGE"
+    name: "用户管理"
+    description: "用户管理权限"
+    type: "MENU"
+    path: "/system/user"
+    icon: "user"
+    sort: 2
+    parentCode: "SYSTEM_MANAGE"
+    
+  - code: "USER_CREATE"
+    name: "创建用户"
+    description: "创建新用户权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 1
+    parentCode: "USER_MANAGE"
+    
+  - code: "USER_UPDATE"
+    name: "修改用户"
+    description: "修改用户信息权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 2
+    parentCode: "USER_MANAGE"
+    
+  - code: "USER_DELETE"
+    name: "删除用户"
+    description: "删除用户权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 3
+    parentCode: "USER_MANAGE"
+    
+  - code: "ROLE_MANAGE"
+    name: "角色管理"
+    description: "角色管理权限"
+    type: "MENU"
+    path: "/system/role"
+    icon: "team"
+    sort: 3
+    parentCode: "SYSTEM_MANAGE"
+    
+  - code: "PERMISSION_MANAGE"
+    name: "权限管理"
+    description: "权限管理权限"
+    type: "MENU"
+    path: "/system/permission"
+    icon: "lock"
+    sort: 4
+    parentCode: "SYSTEM_MANAGE"
+    
+  - code: "PERMISSION_SYNC"
+    name: "同步权限"
+    description: "同步权限数据权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 1
+    parentCode: "PERMISSION_MANAGE"
+    
+  # ==================== 档案管理模块 ====================
+  - code: "ARCHIVE_MANAGE"
+    name: "档案管理"
+    description: "档案管理模块权限"
+    type: "MENU"
+    path: "/archive"
+    icon: "file"
+    sort: 10
+    parentCode: null
+    
+  - code: "ARCHIVE_CREATE"
+    name: "创建档案"
+    description: "创建新档案权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 1
+    parentCode: "ARCHIVE_MANAGE"
+    
+  - code: "ARCHIVE_UPDATE"
+    name: "修改档案"
+    description: "修改档案信息权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 2
+    parentCode: "ARCHIVE_MANAGE"
+    
+  - code: "ARCHIVE_DELETE"
+    name: "删除档案"
+    description: "删除档案权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 3
+    parentCode: "ARCHIVE_MANAGE"
+    
+  - code: "ARCHIVE_EXPORT"
+    name: "导出档案"
+    description: "导出档案数据权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 4
+    parentCode: "ARCHIVE_MANAGE"
+    
+  # ==================== 分类管理模块 ====================
+  - code: "CATEGORY_MANAGE"
+    name: "分类管理"
+    description: "分类管理模块权限"
+    type: "MENU"
+    path: "/category"
+    icon: "appstore"
+    sort: 20
+    parentCode: null
+    
+  - code: "CATEGORY_CREATE"
+    name: "创建分类"
+    description: "创建新分类权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 1
+    parentCode: "CATEGORY_MANAGE"
+    
+  - code: "CATEGORY_UPDATE"
+    name: "修改分类"
+    description: "修改分类信息权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 2
+    parentCode: "CATEGORY_MANAGE"
+    
+  - code: "CATEGORY_DELETE"
+    name: "删除分类"
+    description: "删除分类权限"
+    type: "BUTTON"
+    path: null
+    icon: null
+    sort: 3
+    parentCode: "CATEGORY_MANAGE"
+

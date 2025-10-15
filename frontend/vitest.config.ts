@@ -33,12 +33,12 @@ export default mergeConfig(
           'vite.config.ts',
           'vitest.config.ts'
         ],
-        // 覆盖率阈值（初期设置为0，待第4-5周补充测试后逐步提升至70%）
+        // 覆盖率阈值（第一阶段目标40%，后续逐步提升至70%）
         thresholds: {
-          lines: 0,
-          functions: 0,
-          branches: 0,
-          statements: 0
+          lines: 40,
+          functions: 40,
+          branches: 40,
+          statements: 40
         }
       },
       
