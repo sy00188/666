@@ -86,8 +86,8 @@ public class ExportController {
             @RequestParam(required = false) String status) {
         
         try {
-            // TODO: 从上下文获取用户ID
-            Long userId = 1L;
+            // 从Spring Security上下文获取当前用户ID
+            Long userId = getCurrentUserId();
             
             Page<ExportTask> tasks;
             if (status != null && !status.isEmpty()) {
@@ -224,13 +224,40 @@ public class ExportController {
                 return;
             }
             
-            // TODO: 从文件存储读取文件并返回
-            // 这里需要根据实际的文件存储方式实现
+            // 从文件存储读取文件并返回
+            String filePath = task.getFilePath();
+            if (filePath == null || filePath.isEmpty()) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件路径不存在");
+                return;
+            }
             
+            // 检查文件是否存在
+            File file = new File(filePath);
+            if (!file.exists()) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件不存在");
+                return;
+            }
+            
+            // 设置响应头
             String fileName = URLEncoder.encode(task.getFileName(), StandardCharsets.UTF_8);
             response.setContentType(getContentType(task.getFormat()));
             response.setHeader(HttpHeaders.CONTENT_DISPOSITION, 
                 "attachment; filename*=UTF-8''" + fileName);
+            response.setContentLength((int) file.length());
+            
+            // 读取文件并写入响应
+            try (FileInputStream fis = new FileInputStream(file);
+                 OutputStream os = response.getOutputStream()) {
+                
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
+                }
+                os.flush();
+                
+                log.info("文件下载成功: taskId={}, fileName={}", taskId, task.getFileName());
+            }
             
             // 示例：返回文件内容
             // try (OutputStream out = response.getOutputStream()) {
@@ -359,6 +386,32 @@ public class ExportController {
                 return ".pdf";
             default:
                 return ".dat";
+        }
+    }
+    
+    /**
+     * 获取当前用户ID
+     */
+    private Long getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new IllegalStateException("用户未认证");
+            }
+            
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) principal;
+                // 假设用户名就是用户ID的字符串形式
+                return Long.parseLong(userDetails.getUsername());
+            } else if (principal instanceof String) {
+                return Long.parseLong((String) principal);
+            } else {
+                throw new IllegalStateException("无法获取用户信息");
+            }
+        } catch (Exception e) {
+            log.error("获取当前用户ID失败", e);
+            throw new IllegalStateException("获取用户信息失败: " + e.getMessage(), e);
         }
     }
 }

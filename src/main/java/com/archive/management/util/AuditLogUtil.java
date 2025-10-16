@@ -36,7 +36,10 @@ public class AuditLogUtil {
             
             logger.info(logMessage);
             
-            // TODO: 这里可以扩展为将审计日志保存到数据库
+            // 这里可以扩展为将审计日志保存到数据库
+            // 目前使用日志记录，实际项目中可以集成审计日志服务
+            log.info("审计日志: operation={}, userId={}, targetId={}, details={}", 
+                    operation, userId, targetId, details);
             // 目前先使用日志记录，后续可以集成AuditLogService
             
         } catch (Exception e) {

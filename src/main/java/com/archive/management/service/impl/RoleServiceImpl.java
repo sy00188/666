@@ -1452,8 +1452,32 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
      */
     @Override
     public List<Role> exportRoles(List<Long> roleIds, Long userId) {
-        // TODO: 使用userId进行权限过滤
-        return exportRoles(roleIds);
+        log.info("导出角色，角色数量：{}，用户ID：{}", roleIds.size(), userId);
+        
+        try {
+            // 获取用户有权限查看的角色
+            List<Role> userAccessibleRoles = getUserAccessibleRoles(userId);
+            Set<Long> accessibleRoleIds = userAccessibleRoles.stream()
+                    .map(Role::getId)
+                    .collect(Collectors.toSet());
+            
+            // 过滤请求的角色ID，只返回用户有权限的角色
+            List<Long> filteredRoleIds = roleIds.stream()
+                    .filter(accessibleRoleIds::contains)
+                    .collect(Collectors.toList());
+            
+            if (filteredRoleIds.isEmpty()) {
+                log.warn("用户 {} 没有权限查看任何请求的角色", userId);
+                return new ArrayList<>();
+            }
+            
+            log.info("用户 {} 有权限查看 {} 个角色", userId, filteredRoleIds.size());
+            return exportRoles(filteredRoleIds);
+            
+        } catch (Exception e) {
+            log.error("导出角色失败", e);
+            return new ArrayList<>();
+        }
     }
     
     /**
@@ -1871,8 +1895,34 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
      */
     @Override
     public List<Role> searchRoles(String keyword, Long userId) {
-        // TODO: 使用userId进行权限过滤
-        return searchRoles(keyword);
+        log.info("搜索角色，关键词：{}，用户ID：{}", keyword, userId);
+        
+        try {
+            // 先进行基础搜索
+            List<Role> searchResults = searchRoles(keyword);
+            
+            if (searchResults.isEmpty()) {
+                return searchResults;
+            }
+            
+            // 获取用户有权限查看的角色
+            List<Role> userAccessibleRoles = getUserAccessibleRoles(userId);
+            Set<Long> accessibleRoleIds = userAccessibleRoles.stream()
+                    .map(Role::getId)
+                    .collect(Collectors.toSet());
+            
+            // 过滤搜索结果，只返回用户有权限的角色
+            List<Role> filteredResults = searchResults.stream()
+                    .filter(role -> accessibleRoleIds.contains(role.getId()))
+                    .collect(Collectors.toList());
+            
+            log.info("用户 {} 搜索到 {} 个角色，有权限查看 {} 个", userId, searchResults.size(), filteredResults.size());
+            return filteredResults;
+            
+        } catch (Exception e) {
+            log.error("搜索角色失败", e);
+            return new ArrayList<>();
+        }
     }
     
     /**

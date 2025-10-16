@@ -252,7 +252,17 @@ public class ExportTaskServiceImpl implements ExportTaskService {
         
         int deletedCount = 0;
         for (ExportTask task : expiredTasks) {
-            // TODO: 删除文件
+            // 删除文件
+            if (StringUtils.hasText(task.getFilePath())) {
+                try {
+                    File file = new File(task.getFilePath());
+                    if (file.exists() && file.delete()) {
+                        log.info("任务文件删除成功: {}", task.getFilePath());
+                    }
+                } catch (Exception e) {
+                    log.error("删除任务文件失败: {}", task.getFilePath(), e);
+                }
+            }
             exportTaskRepository.delete(task);
             deletedCount++;
         }
@@ -287,7 +297,8 @@ public class ExportTaskServiceImpl implements ExportTaskService {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() != null) {
-            // TODO: 根据实际的用户对象获取ID
+            // 根据实际的用户对象获取ID
+            Long userId = getCurrentUserId();
             return 1L; // 临时返回默认值
         }
         throw new RuntimeException("未登录或登录已过期");

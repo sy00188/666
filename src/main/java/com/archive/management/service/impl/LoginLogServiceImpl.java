@@ -245,7 +245,50 @@ public class LoginLogServiceImpl implements LoginLogService {
         log.info("导出登录日志: request={}", request);
         // 这里应该实现Excel导出逻辑，暂时返回模拟路径
         String fileName = "login_logs_" + System.currentTimeMillis() + ".xlsx";
-        // TODO: 实现实际的Excel导出逻辑
+        // 实现实际的Excel导出逻辑
+        try {
+            // 创建工作簿
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("登录日志");
+            
+            // 创建标题行
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"用户ID", "用户名", "登录时间", "IP地址", "登录状态", "浏览器信息"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+            
+            // 填充数据
+            int rowNum = 1;
+            for (LoginLog log : logs) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(log.getUserId());
+                row.createCell(1).setCellValue(log.getUsername());
+                row.createCell(2).setCellValue(log.getLoginTime().toString());
+                row.createCell(3).setCellValue(log.getIpAddress());
+                row.createCell(4).setCellValue(log.getStatus());
+                row.createCell(5).setCellValue(log.getUserAgent());
+            }
+            
+            // 自动调整列宽
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // 写入文件
+            try (FileOutputStream fos = new FileOutputStream(filePath)) {
+                workbook.write(fos);
+            }
+            workbook.close();
+            
+            log.info("登录日志Excel导出成功: {}", filePath);
+            return true;
+            
+        } catch (Exception e) {
+            log.error("登录日志Excel导出失败", e);
+            return false;
+        }
         return "/exports/" + fileName;
     }
 

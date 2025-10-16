@@ -295,9 +295,20 @@ public class ArchiveMessageListener {
             
             // 2. 检查是否需要重新审核
             if (archiveService.needsReapproval(archiveId, oldData, newData)) {
-                // TODO: 实现重新审核触发逻辑
                 log.info("档案需要重新审核，档案ID: {}, 更新者ID: {}", archiveId, updaterId);
-                // archiveService.triggerReapproval(archiveId, updaterId);
+                
+                try {
+                    // 触发重新审核流程
+                    archiveService.triggerReapproval(archiveId, updaterId);
+                    
+                    // 发送重新审核通知
+                    notificationService.sendReapprovalNotification(archiveId, updaterId);
+                    
+                    log.info("重新审核流程已触发，档案ID: {}", archiveId);
+                    
+                } catch (Exception e) {
+                    log.error("触发重新审核失败，档案ID: {}", archiveId, e);
+                }
             }
             
             // 3. 发送更新通知

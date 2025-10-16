@@ -281,10 +281,29 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public boolean createNotificationTemplate(String templateName, String templateContent, String templateType, Long createdBy) {
         try {
-            // TODO: 实现通知模板创建逻辑
-            // 这里需要创建NotificationTemplate实体和相应的Mapper
             log.info("创建通知模板: name={}, type={}, createdBy={}", templateName, templateType, createdBy);
-            return true; // 占位符实现
+            
+            // 创建通知模板实体
+            NotificationTemplate template = new NotificationTemplate();
+            template.setTemplateName(templateName);
+            template.setTemplateContent(templateContent);
+            template.setTemplateType(templateType);
+            template.setCreatedBy(createdBy);
+            template.setEnabled(true);
+            template.setCreateTime(LocalDateTime.now());
+            template.setUpdateTime(LocalDateTime.now());
+            
+            // 调用通知模板服务创建
+            NotificationTemplate createdTemplate = notificationTemplateService.createTemplate(template);
+            
+            if (createdTemplate != null && createdTemplate.getId() != null) {
+                log.info("通知模板创建成功，ID：{}", createdTemplate.getId());
+                return true;
+            } else {
+                log.warn("通知模板创建失败");
+                return false;
+            }
+            
         } catch (Exception e) {
             log.error("创建通知模板失败: name={}, type={}", templateName, templateType, e);
             return false;
@@ -295,13 +314,30 @@ public class NotificationServiceImpl implements NotificationService {
     public Map<String, Object> getNotificationTemplate(String templateName) {
         Map<String, Object> result = new HashMap<>();
         try {
-            // TODO: 实现获取通知模板逻辑
-            result.put("templateName", templateName);
-            result.put("templateContent", "模板内容占位符");
-            result.put("templateType", "EMAIL");
             log.info("获取通知模板: name={}", templateName);
+            
+            // 通过模板名称获取模板（假设templateName就是templateCode）
+            NotificationTemplate template = notificationTemplateService.getTemplateByCode(templateName);
+            
+            if (template != null) {
+                result.put("success", true);
+                result.put("templateName", template.getTemplateName());
+                result.put("templateContent", template.getTemplateContent());
+                result.put("templateType", template.getTemplateType());
+                result.put("enabled", template.isEnabled());
+                result.put("createTime", template.getCreateTime());
+                result.put("updateTime", template.getUpdateTime());
+                log.info("通知模板获取成功: {}", templateName);
+            } else {
+                result.put("success", false);
+                result.put("message", "模板不存在");
+                log.warn("通知模板不存在: {}", templateName);
+            }
+            
         } catch (Exception e) {
             log.error("获取通知模板失败: name={}", templateName, e);
+            result.put("success", false);
+            result.put("message", "获取模板失败：" + e.getMessage());
         }
         return result;
     }
@@ -627,8 +663,30 @@ public class NotificationServiceImpl implements NotificationService {
      * 应用模板
      */
     private String applyTemplate(String content, String template) {
-        // TODO: 实现模板应用逻辑
-        return content; // 占位符实现
+        try {
+            if (!StringUtils.hasText(template)) {
+                return content;
+            }
+            
+            // 使用通知模板服务渲染模板
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("content", content);
+            variables.put("timestamp", LocalDateTime.now());
+            
+            String renderedContent = notificationTemplateService.renderTemplate(template, variables);
+            
+            if (StringUtils.hasText(renderedContent)) {
+                log.debug("模板应用成功: template={}", template);
+                return renderedContent;
+            } else {
+                log.warn("模板渲染结果为空: template={}", template);
+                return content;
+            }
+            
+        } catch (Exception e) {
+            log.error("应用模板失败: template={}", template, e);
+            return content; // 失败时返回原内容
+        }
     }
 
     /**
