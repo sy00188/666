@@ -22,8 +22,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/archive_management?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     type: com.zaxxer.hikari.HikariDataSource
     hikari:
       pool-name: HikariCP
@@ -58,9 +58,9 @@ spring:
   # Redis配置
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: 
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 5000ms
       lettuce:
@@ -73,10 +73,10 @@ spring:
 
   # 消息队列配置 (RabbitMQ)
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: /
     connection-timeout: 15000
     publisher-confirm-type: correlated
@@ -274,9 +274,9 @@ archive:
   
   # MinIO配置
   minio:
-    endpoint: http://localhost:9000
-    access-key: minioadmin
-    secret-key: minioadmin
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
     bucket-name: archive-files
     connect-timeout: 10000
     write-timeout: 60000
@@ -285,7 +285,7 @@ archive:
   # 安全配置
   security:
     jwt:
-      secret: archive-management-jwt-secret-key-2024
+      secret: ${JWT_SECRET:archive-management-jwt-secret-key-2024-dev-only}
       expiration: 86400000 # 24小时
       refresh-expiration: 604800000 # 7天
     password:
