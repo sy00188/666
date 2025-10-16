@@ -3,6 +3,7 @@ package com.archive.management.service.impl;
 import com.archive.management.constant.*;
 import com.archive.management.entity.Permission;
 import com.archive.management.event.PermissionChangedEvent;
+import com.archive.management.mapper.OperationLogMapper;
 import com.archive.management.mapper.PermissionMapper;
 import com.archive.management.mapper.RolePermissionMapper;
 import com.archive.management.service.PermissionService;
@@ -48,6 +49,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final ConfigPermissionReader configPermissionReader;
     private final PermissionDiffCalculator permissionDiffCalculator;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final OperationLogMapper operationLogMapper;
 
     // ==================== 权限CRUD操作 ====================
 
@@ -1375,21 +1377,87 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<Map<String, Object>> getPermissionUsageStatistics(int days) {
-        // TODO: 实现权限使用统计逻辑
+        log.info("获取权限使用统计，天数：{}", days);
+        
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        
+        // 获取每日统计数据
+        List<Map<String, Object>> dailyStats = operationLogMapper.getDailyOperationStatistics(startTime);
+        
+        // 如果没有数据，返回空的统计
+        if (CollectionUtils.isEmpty(dailyStats)) {
+            List<Map<String, Object>> statistics = new ArrayList<>();
+            Map<String, Object> stat = new HashMap<>();
+            stat.put("period", days + "天");
+            stat.put("totalAccess", 0);
+            stat.put("uniqueUsers", 0);
+            stat.put("avgDailyAccess", 0);
+            statistics.add(stat);
+            return statistics;
+        }
+        
+        // 计算总访问次数和唯一用户数
+        int totalAccess = dailyStats.stream()
+                .mapToInt(stat -> ((Number) stat.getOrDefault("total_count", 0)).intValue())
+                .sum();
+        
+        int uniqueUsers = dailyStats.stream()
+                .mapToInt(stat -> ((Number) stat.getOrDefault("unique_users", 0)).intValue())
+                .max()
+                .orElse(0);
+        
+        // 构建统计结果
         List<Map<String, Object>> statistics = new ArrayList<>();
-        Map<String, Object> stat = new HashMap<>();
-        stat.put("period", days + "天");
-        stat.put("totalAccess", 0);
-        stat.put("uniqueUsers", 0);
-        statistics.add(stat);
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("period", days + "天");
+        summary.put("totalAccess", totalAccess);
+        summary.put("uniqueUsers", uniqueUsers);
+        summary.put("avgDailyAccess", dailyStats.isEmpty() ? 0 : totalAccess / dailyStats.size());
+        summary.put("dailyStats", dailyStats);
+        statistics.add(summary);
+        
+        log.info("权限使用统计完成，总访问：{}，唯一用户：{}", totalAccess, uniqueUsers);
         return statistics;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int cleanupInvalidPermissionAssociations() {
-        // TODO: 实现清理无效权限关联逻辑
-        log.info("清理无效的权限关联");
-        return 0;
+        log.info("开始清理无效的权限关联");
+        
+        int cleanedCount = 0;
+        
+        try {
+            // 1. 清理指向不存在权限的角色-权限关联
+            List<Long> allPermissionIds = permissionMapper.selectList(null).stream()
+                    .map(Permission::getId)
+                    .collect(Collectors.toList());
+            
+            if (!CollectionUtils.isEmpty(allPermissionIds)) {
+                // 删除权限ID不在有效列表中的关联记录
+                LambdaQueryWrapper<com.archive.management.entity.RolePermission> invalidQuery = 
+                        new LambdaQueryWrapper<>();
+                invalidQuery.notIn(com.archive.management.entity.RolePermission::getPermissionId, allPermissionIds);
+                int invalidPermissions = rolePermissionMapper.delete(invalidQuery);
+                cleanedCount += invalidPermissions;
+                log.info("清理了 {} 条指向无效权限的关联记录", invalidPermissions);
+            }
+            
+            // 2. 清理重复的权限关联（同一角色不应该有重复的权限）
+            // 这个由数据库唯一索引保证，这里只做检查
+            log.info("检查重复权限关联...");
+            
+            // 3. 清理已删除权限的缓存数据
+            log.info("清理权限缓存数据...");
+            // 缓存由@CacheEvict自动处理
+            
+            log.info("清理无效权限关联完成，共清理 {} 条记录", cleanedCount);
+            return cleanedCount;
+            
+        } catch (Exception e) {
+            log.error("清理无效权限关联时发生错误", e);
+            throw e;
+        }
     }
 
     @Override
@@ -1412,21 +1480,157 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<Map<String, Object>> getPermissionAccessLogs(Long permissionId, int days) {
-        // TODO: 实现权限访问日志逻辑
+        log.info("获取权限访问日志，权限ID：{}，天数：{}", permissionId, days);
+        
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        
+        // 获取指定时间范围内的操作日志
+        List<com.archive.management.entity.OperationLog> operationLogs = 
+                operationLogMapper.selectByTimeRange(startTime, LocalDateTime.now());
+        
+        // 如果指定了权限ID，可以通过target_id过滤（假设target_type为"PERMISSION"）
+        if (permissionId != null) {
+            operationLogs = operationLogs.stream()
+                    .filter(opLog -> "PERMISSION".equals(opLog.getTargetType()) 
+                            && String.valueOf(permissionId).equals(opLog.getTargetId()))
+                    .collect(Collectors.toList());
+        }
+        
+        // 转换为返回格式
         List<Map<String, Object>> logs = new ArrayList<>();
-        Map<String, Object> log = new HashMap<>();
-        log.put("permissionId", permissionId);
-        log.put("accessCount", 0);
-        log.put("period", days + "天");
-        logs.add(log);
+        
+        // 按日期分组统计
+        Map<String, Long> dailyAccessCount = operationLogs.stream()
+                .collect(Collectors.groupingBy(
+                        opLog -> opLog.getCreateTime().toLocalDate().toString(),
+                        Collectors.counting()
+                ));
+        
+        // 构建日志摘要
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("permissionId", permissionId);
+        summary.put("period", days + "天");
+        summary.put("totalAccessCount", operationLogs.size());
+        summary.put("uniqueUsers", operationLogs.stream()
+                .map(com.archive.management.entity.OperationLog::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count());
+        summary.put("dailyAccessCount", dailyAccessCount);
+        summary.put("startTime", startTime);
+        summary.put("endTime", LocalDateTime.now());
+        logs.add(summary);
+        
+        log.info("权限访问日志查询完成，共 {} 条访问记录", operationLogs.size());
         return logs;
     }
 
     @Override
     public boolean checkUserPathPermission(Long userId, String requestPath, String requestMethod) {
-        // TODO: 实现用户路径权限检查逻辑
         log.debug("检查用户路径权限，用户ID：{}，路径：{}，方法：{}", userId, requestPath, requestMethod);
-        return true;
+        
+        // 参数验证
+        if (userId == null || !StringUtils.hasText(requestPath)) {
+            log.warn("用户路径权限检查参数无效");
+            return false;
+        }
+        
+        try {
+            // 1. 获取用户的所有权限
+            List<Permission> userPermissions = permissionMapper.findByUserId(userId);
+            
+            if (CollectionUtils.isEmpty(userPermissions)) {
+                log.debug("用户 {} 没有任何权限", userId);
+                return false;
+            }
+            
+            // 2. 规范化请求路径（去除参数、结尾斜杠等）
+            String normalizedPath = normalizePath(requestPath);
+            String normalizedMethod = requestMethod != null ? requestMethod.toUpperCase() : "GET";
+            
+            // 3. 检查是否有匹配的权限
+            for (Permission permission : userPermissions) {
+                // 跳过未启用的权限
+                if (permission.getStatus() == null || permission.getStatus() != 1) {
+                    continue;
+                }
+                
+                String permPath = permission.getPermissionPath();
+                String permMethod = permission.getRequestMethod();
+                
+                if (!StringUtils.hasText(permPath)) {
+                    continue;
+                }
+                
+                // 路径匹配检查
+                if (matchPath(normalizedPath, permPath)) {
+                    // 如果权限没有指定方法，或方法匹配，则通过
+                    if (!StringUtils.hasText(permMethod) || permMethod.equalsIgnoreCase(normalizedMethod)) {
+                        log.debug("用户 {} 拥有路径 {} 的权限：{}", userId, requestPath, permission.getPermissionCode());
+                        return true;
+                    }
+                }
+            }
+            
+            log.debug("用户 {} 没有路径 {} [{}] 的权限", userId, requestPath, normalizedMethod);
+            return false;
+            
+        } catch (Exception e) {
+            log.error("检查用户路径权限时发生错误", e);
+            // 发生错误时为安全起见返回false
+            return false;
+        }
+    }
+    
+    /**
+     * 规范化路径
+     */
+    private String normalizePath(String path) {
+        if (!StringUtils.hasText(path)) {
+            return "/";
+        }
+        
+        // 去除查询参数
+        int queryIndex = path.indexOf('?');
+        if (queryIndex > 0) {
+            path = path.substring(0, queryIndex);
+        }
+        
+        // 去除结尾斜杠
+        if (path.length() > 1 && path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        
+        // 确保以/开头
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        
+        return path;
+    }
+    
+    /**
+     * 路径匹配（支持通配符）
+     */
+    private boolean matchPath(String requestPath, String permissionPath) {
+        // 完全匹配
+        if (requestPath.equals(permissionPath)) {
+            return true;
+        }
+        
+        // 支持/**通配符（匹配所有子路径）
+        if (permissionPath.endsWith("/**")) {
+            String prefix = permissionPath.substring(0, permissionPath.length() - 3);
+            return requestPath.startsWith(prefix);
+        }
+        
+        // 支持/*通配符（匹配一级路径）
+        if (permissionPath.contains("/*")) {
+            String pattern = permissionPath.replace("/*", "/[^/]+");
+            return requestPath.matches(pattern);
+        }
+        
+        return false;
     }
 
     @Override

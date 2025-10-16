@@ -113,6 +113,13 @@ public interface BorrowService {
     SystemBorrowStatistics getSystemBorrowStatistics(LocalDateTime startDate, LocalDateTime endDate);
 
     /**
+     * 获取逾期借阅记录
+     * 
+     * @return 逾期借阅记录列表
+     */
+    List<BorrowResponse> getOverdueRecords();
+
+    /**
      * 系统借阅统计信息内部类
      */
     class SystemBorrowStatistics {

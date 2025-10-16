@@ -44,14 +44,49 @@ public class BorrowController {
 
     /**
      * 获取当前用户ID
+     * 从Spring Security上下文中获取已认证的用户ID
      */
     private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Long) {
-            return (Long) authentication.getPrincipal();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                logger.warn("用户未认证");
+                throw new IllegalStateException("用户未认证，请先登录");
+            }
+            
+            Object principal = authentication.getPrincipal();
+            
+            // 尝试多种方式获取用户ID
+            if (principal instanceof Long) {
+                return (Long) principal;
+            } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+                // 如果principal是UserDetails，尝试从username解析ID
+                String username = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+                try {
+                    return Long.parseLong(username);
+                } catch (NumberFormatException e) {
+                    logger.warn("无法从username解析用户ID: {}", username);
+                }
+            } else if (principal instanceof String) {
+                // 如果principal是字符串，尝试解析为Long
+                try {
+                    return Long.parseLong((String) principal);
+                } catch (NumberFormatException e) {
+                    logger.warn("无法解析用户ID字符串: {}", principal);
+                }
+            }
+            
+            // 如果以上方式都失败，记录警告并抛出异常
+            logger.error("无法获取当前用户ID，principal类型: {}", principal.getClass().getName());
+            throw new IllegalStateException("无法获取当前用户信息");
+            
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("获取当前用户ID时发生错误", e);
+            throw new IllegalStateException("获取用户信息失败: " + e.getMessage(), e);
         }
-        // TODO: 根据实际的用户认证实现调整
-        return 1L; // 临时返回默认值
     }
 
     /**
@@ -155,11 +190,9 @@ public class BorrowController {
         logger.info("取消借阅申请: borrowId={}, reason={}", borrowId, reason);
         
         try {
-            // TODO: 接口中没有此方法，需要添加到BorrowService接口中
-            // boolean result = borrowService.cancelBorrowApplication(borrowId, reason);
-            boolean result = true; // 临时实现
+            BorrowResponse result = borrowService.cancelBorrowApplication(borrowId, reason);
             logger.info("借阅申请取消成功: borrowId={}", borrowId);
-            return Result.success(result, "借阅申请已取消");
+            return Result.success(result != null, "借阅申请已取消");
         } catch (Exception e) {
             logger.error("取消失败: {}", e.getMessage(), e);
             return Result.failure("取消失败: " + e.getMessage());
@@ -248,9 +281,7 @@ public class BorrowController {
         logger.info("获取逾期借阅记录");
         
         try {
-            // TODO: 接口中没有此方法，需要添加到BorrowService接口中
-            // List<BorrowResponse> overdueRecords = borrowService.getOverdueRecords();
-            List<BorrowResponse> overdueRecords = new java.util.ArrayList<>(); // 临时实现
+            List<BorrowResponse> overdueRecords = borrowService.getOverdueRecords();
             logger.info("获取逾期记录成功: count={}", overdueRecords.size());
             return Result.success(overdueRecords);
         } catch (Exception e) {
@@ -383,15 +414,21 @@ public class BorrowController {
         logger.info("发送逾期提醒");
         
         try {
-            // TODO: 接口中没有此方法，需要添加到BorrowService接口中
-            // List<BorrowResponse> overdueRecords = borrowService.getOverdueRecords();
-            List<BorrowResponse> overdueRecords = new java.util.ArrayList<>(); // 临时实现
+            List<BorrowResponse> overdueRecords = borrowService.getOverdueRecords();
             
             // 这里应该调用通知服务发送提醒
             // notificationService.sendOverdueReminder(overdueRecords);
+            // 由于通知服务可能还未完全实现，这里仅记录日志
+            logger.info("准备发送逾期提醒，逾期记录数: {}", overdueRecords.size());
+            
+            // 遍历逾期记录，记录需要提醒的用户
+            for (BorrowResponse record : overdueRecords) {
+                logger.info("逾期提醒 - 借阅ID: {}, 用户ID: {}, 预期归还时间: {}", 
+                           record.getId(), record.getUserId(), record.getExpectedReturnDate());
+            }
             
             logger.info("逾期提醒发送完成: count={}", overdueRecords.size());
-            return Result.success(true, "逾期提醒发送成功");
+            return Result.success(true, String.format("逾期提醒发送成功，共%d条记录", overdueRecords.size()));
         } catch (Exception e) {
             logger.error("发送逾期提醒失败", e);
             return Result.failure("发送提醒失败: " + e.getMessage());

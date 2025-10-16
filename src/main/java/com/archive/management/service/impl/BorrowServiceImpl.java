@@ -329,4 +329,37 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, BorrowRecord> i
         
         return response;
     }
+
+    @Override
+    public List<BorrowResponse> getOverdueRecords() {
+        logger.info("获取所有逾期借阅记录");
+        
+        try {
+            // 查询所有已借出且已逾期的记录
+            // 状态为BORROWED(2)且预期归还时间小于当前时间的记录
+            QueryWrapper<BorrowRecord> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("status", 2)  // BORROWED状态
+                       .lt("expected_return_date", LocalDateTime.now())  // 预期归还时间已过
+                       .orderByAsc("expected_return_date");  // 按逾期时间排序
+            
+            List<BorrowRecord> overdueRecords = borrowMapper.selectList(queryWrapper);
+            
+            if (overdueRecords == null || overdueRecords.isEmpty()) {
+                logger.info("当前没有逾期记录");
+                return new ArrayList<>();
+            }
+            
+            // 转换为响应对象
+            List<BorrowResponse> responses = overdueRecords.stream()
+                    .map(this::convertToResponse)
+                    .collect(Collectors.toList());
+            
+            logger.info("找到 {} 条逾期记录", responses.size());
+            return responses;
+            
+        } catch (Exception e) {
+            logger.error("获取逾期记录失败", e);
+            throw new RuntimeException("获取逾期记录失败: " + e.getMessage(), e);
+        }
+    }
 }
