@@ -75,7 +75,13 @@ export function useAdvancedSearch(
     validationErrors.value = []
 
     try {
-      const searchParams = { ...searchForm.value, ...params, ...pagination.value }
+      // 只传递page和pageSize，不包含total
+      const searchParams = { 
+        ...searchForm.value, 
+        ...params, 
+        page: pagination.value.page,
+        pageSize: pagination.value.pageSize
+      }
 
       // 验证搜索条件
       if (options.validator) {

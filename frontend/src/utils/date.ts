@@ -57,6 +57,23 @@ export const getRelativeTime = (date: Date | string | number): string => {
   const target = dayjs(date);
   const diff = now.diff(target, "second");
 
+  // 处理未来时间
+  if (diff < 0) {
+    const absDiff = Math.abs(diff);
+    if (absDiff < 60) {
+      return "即将";
+    } else if (absDiff < 3600) {
+      return `${Math.floor(absDiff / 60)}分钟后`;
+    } else if (absDiff < 86400) {
+      return `${Math.floor(absDiff / 3600)}小时后`;
+    } else if (absDiff < 2592000) {
+      return `${Math.floor(absDiff / 86400)}天后`;
+    } else {
+      return formatDate(date);
+    }
+  }
+
+  // 处理过去时间
   if (diff < 60) {
     return "刚刚";
   } else if (diff < 3600) {
@@ -130,7 +147,8 @@ export const getDateRange = (
  */
 export const parseDate = (dateString: string): Date | null => {
   if (!dateString) return null;
-  const parsed = dayjs(dateString);
+  // 使用UTC时间解析，避免时区问题
+  const parsed = dayjs(dateString).startOf('day');
   return parsed.isValid() ? parsed.toDate() : null;
 };
 
@@ -140,6 +158,8 @@ export const parseDate = (dateString: string): Date | null => {
  * @returns 是否有效
  */
 export const isValidDate = (date: any): boolean => {
+  // 明确处理null和undefined
+  if (date === null || date === undefined) return false;
   return dayjs(date).isValid();
 };
 
@@ -171,9 +191,17 @@ export const subtractDays = (date: Date | string, days: number): Date => {
  */
 export const getWeekRange = (date: Date | string, startOfWeek: number = 1): { start: Date; end: Date } => {
   const target = dayjs(date);
-  const start = target.startOf('week').add(startOfWeek, 'day');
-  const end = start.add(6, 'day');
-  
+  const currentDayOfWeek = target.day(); // 0=周日，1=周一，...
+
+  // 计算到目标起始日的偏移量
+  let offset = currentDayOfWeek - startOfWeek;
+  if (offset < 0) {
+    offset += 7;
+  }
+
+  const start = target.subtract(offset, 'day').startOf('day');
+  const end = start.add(6, 'day').endOf('day');
+
   return {
     start: start.toDate(),
     end: end.toDate()
@@ -187,7 +215,7 @@ export const getWeekRange = (date: Date | string, startOfWeek: number = 1): { st
  */
 export const getMonthRange = (date: Date | string): { start: Date; end: Date } => {
   const target = dayjs(date);
-  
+
   return {
     start: target.startOf('month').toDate(),
     end: target.endOf('month').toDate()
@@ -209,8 +237,8 @@ export const isSameDay = (date1: Date | string, date2: Date | string): boolean =
  * 计算日期差（天数）
  * @param date1 日期1
  * @param date2 日期2
- * @returns 天数差
+ * @returns 天数差（绝对值）
  */
 export const getDaysDiff = (date1: Date | string, date2: Date | string): number => {
-  return dayjs(date1).diff(dayjs(date2), 'day');
+  return Math.abs(dayjs(date1).diff(dayjs(date2), 'day'));
 };
