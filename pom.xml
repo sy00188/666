@@ -362,6 +362,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>com.archive.management.ArchiveManagementApplication</mainClass>
                     <excludes>
                         <!-- Lombok should not be excluded for annotation processing -->
                     </excludes>
